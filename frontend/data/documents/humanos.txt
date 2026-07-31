@@ -1,0 +1,18 @@
+Human OS
+
+Human OS is an AI Operating System.
+
+It contains:
+
+- Memory
+- Notes
+- Router
+- Skills
+- Planner
+- Knowledge Base
+
+The creator of Human OS is Rutvik Joshi.
+
+Human OS is designed to become a personal AI assistant capable of remembering users, managing knowledge, performing tasks, using tools, and reasoning across conversations.
+
+Its goal is to become a complete operating system for artificial intelligence.
