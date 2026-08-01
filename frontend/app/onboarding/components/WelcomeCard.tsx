@@ -1,4 +1,10 @@
-export default function WelcomeCard() {
+type WelcomeCardProps = {
+  onBegin: () => void;
+};
+
+export default function WelcomeCard({
+  onBegin,
+}: WelcomeCardProps) {
   return (
     <section className="space-y-8 text-center">
       <div className="space-y-4">
@@ -27,7 +33,10 @@ export default function WelcomeCard() {
         </p>
       </div>
 
-      <button className="rounded-xl bg-white px-8 py-4 font-semibold text-black transition hover:scale-105">
+      <button
+        onClick={onBegin}
+        className="rounded-xl bg-white px-8 py-4 font-semibold text-black transition hover:scale-105"
+      >
         Begin
       </button>
     </section>
