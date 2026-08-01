@@ -2,62 +2,58 @@
 
 import { useState } from "react";
 
-import ProgressBar from "./components/ProgressBar";
-import WelcomeCard from "./components/WelcomeCard";
+import {
+  OnboardingFlow,
+  OnboardingAnswers,
+} from "@/features/onboarding";
+
+import { profileEngine } from "@/brain/profile/profileEngine";
 
 export default function OnboardingPage() {
-  const [started, setStarted] = useState(false);
+  const [completed, setCompleted] = useState(false);
 
-  const [name, setName] = useState("");
+  function handleComplete(
+    answers: OnboardingAnswers
+  ) {
+    profileEngine.create({
+      name: answers.name,
+      mission: answers.mission,
+      biggestGoal: answers.goal,
+      communicationStyle:
+        answers.communicationStyle,
+    });
 
-  if (!started) {
+    setCompleted(true);
+  }
+
+  if (completed) {
+    const profile = profileEngine.get();
+
     return (
-      <div className="space-y-12">
-        <ProgressBar
-          current={1}
-          total={5}
-        />
+      <main className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-6">
+        <div className="space-y-6 text-center">
+          <h1 className="text-5xl font-bold">
+            Welcome, {profile?.name}! 🎉
+          </h1>
 
-        <WelcomeCard
-          onBegin={() => setStarted(true)}
-        />
-      </div>
+          <p className="text-zinc-400">
+            Your Human Profile has been created.
+          </p>
+
+          <p className="text-zinc-500">
+            Dashboard integration comes in the next
+            milestone.
+          </p>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-10">
-      <ProgressBar
-        current={2}
-        total={5}
+    <main className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-6">
+      <OnboardingFlow
+        onComplete={handleComplete}
       />
-
-      <div className="space-y-6">
-        <h1 className="text-4xl font-bold">
-          What should I call you?
-        </h1>
-
-        <p className="text-gray-400">
-          This helps Human OS personalize every future
-          conversation.
-        </p>
-
-        <input
-          value={name}
-          onChange={(e) =>
-            setName(e.target.value)
-          }
-          placeholder="Enter your name..."
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-white outline-none focus:border-white"
-        />
-
-        <button
-          disabled={!name.trim()}
-          className="rounded-xl bg-white px-8 py-4 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
+    </main>
   );
 }
