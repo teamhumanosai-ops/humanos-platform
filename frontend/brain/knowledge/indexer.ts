@@ -1,41 +1,44 @@
 import { OpenRouterEmbeddingProvider } from "@/brain/ai/embeddings/openrouter";
 import { vectorStore } from "./vectorStore";
-
-export interface KnowledgeChunk {
-  id: string;
-  source: string;
-  content: string;
-}
+import { getDocuments } from "./store";
 
 export class KnowledgeIndexer {
-  private readonly provider = new OpenRouterEmbeddingProvider();
+  private readonly provider =
+    new OpenRouterEmbeddingProvider();
 
-  async index(chunks: KnowledgeChunk[]): Promise<void> {
+  async index(): Promise<void> {
     console.log("");
-    console.log("🧠 Human OS Knowledge Indexer");
-    console.log("--------------------------------");
+    console.log("🧠 Building Semantic Index...");
+    console.log("");
 
     vectorStore.clear();
 
-    for (const chunk of chunks) {
-      console.log(`📄 ${chunk.source} :: ${chunk.id}`);
+    const documents = getDocuments();
 
-      const result = await this.provider.embed(chunk.content);
+    for (const document of documents) {
+      for (const chunk of document.chunks) {
+        console.log(
+          `Embedding ${document.source} :: ${chunk.id}`
+        );
 
-      vectorStore.add({
-        id: chunk.id,
-        source: chunk.source,
-        chunk: chunk.content,
-        embedding: result.vector,
-      });
+        const embedding =
+          await this.provider.embed(chunk.text);
 
-      console.log(`✅ Embedded (${result.dimensions} dimensions)`);
+        vectorStore.add({
+          id: chunk.id,
+          source: document.source,
+          chunk: chunk.text,
+          embedding: embedding.vector,
+        });
+      }
     }
 
     console.log("");
-    console.log("🎉 Indexing Complete");
-    console.log(`Indexed Chunks : ${vectorStore.size()}`);
+    console.log(
+      `✅ Semantic Index Ready (${vectorStore.size()} chunks)`
+    );
   }
 }
 
-export const knowledgeIndexer = new KnowledgeIndexer();
+export const knowledgeIndexer =
+  new KnowledgeIndexer();

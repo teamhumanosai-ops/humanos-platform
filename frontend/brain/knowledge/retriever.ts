@@ -1,10 +1,13 @@
-import { searchKnowledge } from "./search";
+import { retrievalPipeline } from "./retrievalPipeline";
 
-export function retrieveKnowledge(question: string): string {
+export async function retrieveKnowledge(
+  question: string
+): Promise<string> {
   console.log("🔍 retrieveKnowledge() called");
   console.log("Question:", question);
 
-  const results = searchKnowledge(question);
+  const results =
+    await retrievalPipeline.execute(question);
 
   console.log("Results found:", results.length);
 
@@ -13,33 +16,29 @@ export function retrieveKnowledge(question: string): string {
     return "";
   }
 
-  const topResults = results.slice(0, 3);
-
   console.log("========== KNOWLEDGE DEBUG ==========");
 
-  for (const result of topResults) {
+  results.forEach((result, index) => {
     console.log({
-      source: result.chunk.source,
-      chunk: result.chunk.id,
-      score: result.score,
-      index: result.chunk.index,
-      preview: result.chunk.text.substring(0, 80),
+      index: index + 1,
+      source: result.source,
+      score: result.score.toFixed(6),
+      preview: result.text.substring(0, 80),
     });
-  }
+  });
 
   console.log("====================================");
 
   return `
 Relevant Knowledge Base Information:
 
-${topResults
+${results
   .map(
     (result) => `
-Source: ${result.chunk.source}
-Chunk: ${result.chunk.id}
-Score: ${result.score}
+Source: ${result.source}
+Score: ${result.score.toFixed(6)}
 
-${result.chunk.text}
+${result.text}
 `
   )
   .join("\n")}

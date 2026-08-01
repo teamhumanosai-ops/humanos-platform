@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { initializeBrain } from "@/brain/bootstrap/bootstrap";
 import { orchestrate } from "@/brain/orchestrator";
 
 type ChatMessage = {
@@ -9,6 +10,9 @@ type ChatMessage = {
 
 export async function POST(req: Request) {
   try {
+    // Initialize Human OS once
+    await initializeBrain();
+
     const body = await req.json();
 
     const messages: ChatMessage[] = body.messages ?? [];

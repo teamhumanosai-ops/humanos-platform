@@ -1,5 +1,6 @@
 import { ingestDocument } from "./ingest";
 import { listDocuments } from "./loader";
+import { knowledgeIndexer } from "./indexer";
 
 let initialized = false;
 
@@ -23,4 +24,10 @@ export async function initializeKnowledge() {
   console.log(
     `\n✅ Loaded ${files.length} knowledge document(s).\n`
   );
+
+  console.log("🧠 Building Semantic Index...\n");
+
+  await knowledgeIndexer.index();
+
+  console.log("\n🚀 Human OS Knowledge Ready.\n");
 }
