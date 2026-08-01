@@ -4,6 +4,7 @@ import { buildContext } from "../context";
 import { formatResponse } from "../formatter";
 import { extractSimpleMemory } from "../memory";
 import { aiService } from "../core/aiService";
+import { initializeBrain } from "../bootstrap";
 
 export async function orchestrate(
   messages: {
@@ -11,6 +12,8 @@ export async function orchestrate(
     message: string;
   }[]
 ): Promise<string> {
+  await initializeBrain();
+
   const lastUserMessage = [...messages]
     .reverse()
     .find((m) => m.role === "user");
@@ -19,21 +22,17 @@ export async function orchestrate(
     return "How can I help you?";
   }
 
-  // Learn from the latest message
   extractSimpleMemory(lastUserMessage.message);
 
-  // Detect intent
   const intent = detectIntent(lastUserMessage.message);
 
-  // Execute local skills (Memory, Notes, etc.)
   const localResponse = await executeSkills(lastUserMessage.message);
 
   if (localResponse) {
     return formatResponse(localResponse);
   }
 
-  // Build AI context
-  let systemContext = buildContext();
+  let systemContext = buildContext(lastUserMessage.message);
 
   switch (intent) {
     case Intent.STARTUP_PLANNING:

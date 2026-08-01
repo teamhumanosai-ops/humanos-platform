@@ -14,9 +14,12 @@ export async function ingestDocument(
     title: filename,
     source: filename,
     createdAt: new Date().toISOString(),
-    chunks: chunks.map((chunk) => ({
+
+    chunks: chunks.map((chunk, index) => ({
       ...chunk,
       documentId: filename,
+      source: filename,
+      index,
     })),
   });
 }

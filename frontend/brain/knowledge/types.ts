@@ -9,5 +9,18 @@ export interface KnowledgeDocument {
 export interface KnowledgeChunk {
   id: string;
   documentId: string;
+
+  // Which file did this come from?
+  source: string;
+
+  // Position inside the document
+  index: number;
+
+  // Chunk text
   text: string;
+}
+
+export interface SearchResult {
+  chunk: KnowledgeChunk;
+  score: number;
 }

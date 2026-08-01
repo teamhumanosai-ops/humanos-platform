@@ -11,7 +11,13 @@ export function splitIntoChunks(text: string): KnowledgeChunk[] {
 
   return parts.map((part, index) => ({
     id: `chunk-${index + 1}`,
+
     documentId: "",
+
+    source: "",
+
+    index,
+
     text: part.trim(),
   }));
 }
