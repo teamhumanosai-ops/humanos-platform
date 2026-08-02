@@ -20,3 +20,32 @@ export const memories = sqliteTable(
     ).notNull(),
   }
 );
+
+export const timelineEvents = sqliteTable(
+  "timeline_events",
+  {
+    id: integer("id")
+      .primaryKey({ autoIncrement: true }),
+
+    timestamp: text("timestamp")
+      .notNull(),
+
+    title: text("title")
+      .notNull(),
+
+    description: text("description")
+      .notNull(),
+
+    category: text("category")
+      .notNull(),
+
+    confidence: integer("confidence")
+      .notNull(),
+
+    source: text("source")
+      .notNull(),
+
+    createdAt: text("created_at")
+      .notNull(),
+  }
+);

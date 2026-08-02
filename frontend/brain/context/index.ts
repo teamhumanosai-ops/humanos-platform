@@ -1,4 +1,5 @@
 import { buildMemoryPrompt } from "../memory";
+import { buildTimelinePrompt } from "../timeline";
 import { retrieveKnowledge } from "../knowledge";
 import { profileEngine } from "../profile/profileEngine";
 
@@ -8,6 +9,9 @@ export async function buildContext(
   const profile = profileEngine.get();
 
   const memory = await buildMemoryPrompt();
+
+  const timeline =
+    await buildTimelinePrompt();
 
   const knowledge =
     await retrieveKnowledge(userMessage);
@@ -44,9 +48,13 @@ ${profileContext}
 
 ${memory}
 
+${timeline}
+
 ${knowledge}
 
 Human OS has access to its own Knowledge Base.
+
+Use the user's memories and timeline naturally when they help answer the user's request.
 
 If relevant information exists in the Knowledge Base,
 prefer using it instead of relying on general model knowledge.
