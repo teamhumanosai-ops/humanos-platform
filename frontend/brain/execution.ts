@@ -10,6 +10,8 @@ export type ExecutionStatus =
 export type Execution = {
   id: string;
 
+  planId: string;
+
   title: string;
 
   action: string;
@@ -52,9 +54,13 @@ export function clearExecutions(): void {
 }
 
 export function createExecutionFromDecision(
-  decision: Decision
+  decision: Decision,
+  planId: string
 ): Execution {
-  const execution = generateExecution(decision);
+  const execution = generateExecution(
+    decision,
+    planId
+  );
 
   saveExecution(execution);
 

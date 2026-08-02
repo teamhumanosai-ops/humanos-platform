@@ -2,10 +2,13 @@ import { Decision } from "./decision";
 import { Execution } from "./execution";
 
 export function generateExecution(
-  decision: Decision
+  decision: Decision,
+  planId: string
 ): Execution {
   return {
     id: crypto.randomUUID(),
+
+    planId,
 
     title: decision.title,
 

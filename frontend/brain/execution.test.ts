@@ -1,5 +1,7 @@
 import {
   createPlanFromMessage,
+  completePlanMilestone,
+  getPlan,
 } from "./planning";
 
 import {
@@ -23,24 +25,20 @@ if (plan) {
 
   const execution =
     createExecutionFromDecision(
-      decision
+      decision,
+      plan.id
     );
 
-  console.log("Created");
+  startExecution(execution.id);
 
-  console.log(execution);
+  completeExecution(execution.id);
 
-  const started =
-    startExecution(execution.id);
+  completePlanMilestone(
+    plan.id,
+    execution.action
+  );
 
-  console.log("Started");
-
-  console.log(started);
-
-  const completed =
-    completeExecution(execution.id);
-
-  console.log("Completed");
-
-  console.log(completed);
+  console.log(
+    getPlan(plan.id)
+  );
 }
