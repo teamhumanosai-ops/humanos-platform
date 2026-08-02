@@ -1,3 +1,6 @@
+import { Plan } from "./planning";
+import { generateDecision } from "./decisionGenerator";
+
 export type Decision = {
   id: string;
 
@@ -16,10 +19,15 @@ export type Decision = {
   createdAt: Date;
 };
 
-const decisionStore = new Map<string, Decision>();
+const decisionStore = new Map<
+  string,
+  Decision
+>();
 
 export function getDecisions(): Decision[] {
-  return Array.from(decisionStore.values());
+  return Array.from(
+    decisionStore.values()
+  );
 }
 
 export function getDecision(
@@ -45,4 +53,15 @@ export function deleteDecision(
 
 export function clearDecisions(): void {
   decisionStore.clear();
+}
+
+export function createDecisionFromPlan(
+  plan: Plan
+): Decision {
+  const decision =
+    generateDecision(plan);
+
+  saveDecision(decision);
+
+  return decision;
 }
