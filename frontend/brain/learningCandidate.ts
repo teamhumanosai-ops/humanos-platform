@@ -1,4 +1,5 @@
 import { LearningCategory } from "./learning";
+import { LearningEvidence } from "./learningEvidence";
 
 export type LearningCandidate = {
   title: string;
@@ -8,4 +9,6 @@ export type LearningCandidate = {
   category: LearningCategory;
 
   source: string;
+
+  evidence: LearningEvidence[];
 };
