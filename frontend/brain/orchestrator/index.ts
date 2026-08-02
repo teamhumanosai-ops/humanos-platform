@@ -3,6 +3,7 @@ import { executeSkills } from "../router";
 import { buildContext } from "../context";
 import { formatResponse } from "../formatter";
 import { extractSimpleMemory } from "../memory";
+import { extractTimelineEvent } from "../timeline";
 import { aiService } from "../core/aiService";
 import { initializeBrain } from "../bootstrap";
 
@@ -44,10 +45,18 @@ export async function orchestrate(
   }
 
   // -----------------------------
-  // Persist memory BEFORE response
+  // Persist Memory
   // -----------------------------
 
   await extractSimpleMemory(
+    lastUserMessage.message
+  );
+
+  // -----------------------------
+  // Persist Timeline Events
+  // -----------------------------
+
+  await extractTimelineEvent(
     lastUserMessage.message
   );
 
