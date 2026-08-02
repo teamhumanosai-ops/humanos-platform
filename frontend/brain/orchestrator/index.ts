@@ -63,9 +63,10 @@ export async function orchestrate(
     return formatResponse(localResponse);
   }
 
-  let systemContext = buildContext(
-    lastUserMessage.message
-  );
+  let systemContext =
+    await buildContext(
+      lastUserMessage.message
+    );
 
   switch (intent) {
     case Intent.STARTUP_PLANNING:
