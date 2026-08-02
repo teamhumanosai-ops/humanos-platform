@@ -1,3 +1,6 @@
+import { Decision } from "./decision";
+import { generateExecution } from "./executionGenerator";
+
 export type Execution = {
   id: string;
 
@@ -52,4 +55,15 @@ export function deleteExecution(
 
 export function clearExecutions(): void {
   executionStore.clear();
+}
+
+export function createExecutionFromDecision(
+  decision: Decision
+): Execution {
+  const execution =
+    generateExecution(decision);
+
+  saveExecution(execution);
+
+  return execution;
 }
