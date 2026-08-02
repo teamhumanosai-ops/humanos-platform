@@ -12,19 +12,43 @@ export class ProfileEngine {
     const profile: HumanProfile = {
       id: crypto.randomUUID(),
 
-      name: data.name ?? "",
+      identity: {
+        fullName: data.identity?.fullName ?? "",
+        preferredName: data.identity?.preferredName,
+        age: data.identity?.age,
+        country: data.identity?.country,
+        timezone: data.identity?.timezone,
+      },
 
-      preferredName: data.preferredName,
+      mission: {
+        lifeMission: data.mission?.lifeMission,
+        currentMission: data.mission?.currentMission,
+        biggestGoal: data.mission?.biggestGoal,
+        currentProject: data.mission?.currentProject,
+      },
 
-      mission: data.mission,
+      personality: {
+        communicationStyle: data.personality?.communicationStyle,
+        learningStyle: data.personality?.learningStyle,
+        decisionStyle: data.personality?.decisionStyle,
+      },
 
-      biggestGoal: data.biggestGoal,
+      productivity: {
+        bestWorkingHours: data.productivity?.bestWorkingHours,
+        biggestDistraction: data.productivity?.biggestDistraction,
+        planningStyle: data.productivity?.planningStyle,
+      },
 
-      communicationStyle: data.communicationStyle,
+      interests: {
+        favoriteTopics: data.interests?.favoriteTopics ?? [],
+        favoriteBooks: data.interests?.favoriteBooks ?? [],
+        favoriteCreators: data.interests?.favoriteCreators ?? [],
+      },
 
-      createdAt: now,
-
-      updatedAt: now,
+      metadata: {
+        createdAt: now,
+        updatedAt: now,
+      },
     };
 
     saveProfile(profile);
@@ -46,7 +70,10 @@ export class ProfileEngine {
     saveProfile({
       ...profile,
       ...data,
-      updatedAt: new Date().toISOString(),
+      metadata: {
+        ...profile.metadata,
+        updatedAt: new Date().toISOString(),
+      },
     });
   }
 

@@ -16,11 +16,19 @@ export default function OnboardingPage() {
     answers: OnboardingAnswers
   ) {
     profileEngine.create({
-      name: answers.name,
-      mission: answers.mission,
-      biggestGoal: answers.goal,
-      communicationStyle:
-        answers.communicationStyle,
+      identity: {
+        fullName: answers.name,
+      },
+
+      mission: {
+        currentMission: answers.mission,
+        biggestGoal: answers.goal,
+      },
+
+      personality: {
+        communicationStyle:
+          answers.communicationStyle,
+      },
     });
 
     setCompleted(true);
@@ -33,7 +41,7 @@ export default function OnboardingPage() {
       <main className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-6">
         <div className="space-y-6 text-center">
           <h1 className="text-5xl font-bold">
-            Welcome, {profile?.name}! 🎉
+            Welcome, {profile?.identity.fullName}! 🎉
           </h1>
 
           <p className="text-zinc-400">
