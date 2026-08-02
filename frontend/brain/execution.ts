@@ -1,6 +1,12 @@
 import { Decision } from "./decision";
 import { generateExecution } from "./executionGenerator";
 
+export type ExecutionStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "blocked";
+
 export type Execution = {
   id: string;
 
@@ -8,11 +14,7 @@ export type Execution = {
 
   action: string;
 
-  status:
-    | "pending"
-    | "in_progress"
-    | "completed"
-    | "blocked";
+  status: ExecutionStatus;
 
   startedAt: Date | null;
 
@@ -21,15 +23,10 @@ export type Execution = {
   createdAt: Date;
 };
 
-const executionStore = new Map<
-  string,
-  Execution
->();
+const executionStore = new Map<string, Execution>();
 
 export function getExecutions(): Execution[] {
-  return Array.from(
-    executionStore.values()
-  );
+  return Array.from(executionStore.values());
 }
 
 export function getExecution(
@@ -41,10 +38,7 @@ export function getExecution(
 export function saveExecution(
   execution: Execution
 ): void {
-  executionStore.set(
-    execution.id,
-    execution
-  );
+  executionStore.set(execution.id, execution);
 }
 
 export function deleteExecution(
@@ -60,10 +54,68 @@ export function clearExecutions(): void {
 export function createExecutionFromDecision(
   decision: Decision
 ): Execution {
-  const execution =
-    generateExecution(decision);
+  const execution = generateExecution(decision);
 
   saveExecution(execution);
 
   return execution;
+}
+
+export function startExecution(
+  id: string
+): Execution | null {
+  const execution = getExecution(id);
+
+  if (!execution) {
+    return null;
+  }
+
+  const updated: Execution = {
+    ...execution,
+    status: "in_progress",
+    startedAt: new Date(),
+  };
+
+  saveExecution(updated);
+
+  return updated;
+}
+
+export function completeExecution(
+  id: string
+): Execution | null {
+  const execution = getExecution(id);
+
+  if (!execution) {
+    return null;
+  }
+
+  const updated: Execution = {
+    ...execution,
+    status: "completed",
+    completedAt: new Date(),
+  };
+
+  saveExecution(updated);
+
+  return updated;
+}
+
+export function blockExecution(
+  id: string
+): Execution | null {
+  const execution = getExecution(id);
+
+  if (!execution) {
+    return null;
+  }
+
+  const updated: Execution = {
+    ...execution,
+    status: "blocked",
+  };
+
+  saveExecution(updated);
+
+  return updated;
 }

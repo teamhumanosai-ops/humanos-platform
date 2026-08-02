@@ -8,6 +8,8 @@ import {
 
 import {
   createExecutionFromDecision,
+  startExecution,
+  completeExecution,
 } from "./execution";
 
 const plan =
@@ -24,5 +26,21 @@ if (plan) {
       decision
     );
 
+  console.log("Created");
+
   console.log(execution);
+
+  const started =
+    startExecution(execution.id);
+
+  console.log("Started");
+
+  console.log(started);
+
+  const completed =
+    completeExecution(execution.id);
+
+  console.log("Completed");
+
+  console.log(completed);
 }
