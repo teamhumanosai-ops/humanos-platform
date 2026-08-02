@@ -2,6 +2,11 @@ import { extractGoal } from "./goalExtractor";
 import { generatePlan } from "./planGenerator";
 import { completeMilestone } from "./progressTracker";
 
+export type PlanStatus =
+  | "active"
+  | "completed"
+  | "paused";
+
 export type Plan = {
   id: string;
 
@@ -11,7 +16,7 @@ export type Plan = {
 
   description: string;
 
-  status: "active" | "completed" | "paused";
+  status: PlanStatus;
 
   milestones: string[];
 
@@ -30,25 +35,27 @@ export type Plan = {
 
 const planStore = new Map<string, Plan>();
 
-export function getPlans(): Plan[] {
+/*
+|--------------------------------------------------------------------------
+| Query API
+|--------------------------------------------------------------------------
+*/
+
+export function getAllPlans(): Plan[] {
   return Array.from(planStore.values());
 }
 
-export function getPlan(id: string): Plan | undefined {
+export function getPlan(
+  id: string
+): Plan | undefined {
   return planStore.get(id);
 }
 
-export function savePlan(plan: Plan): void {
-  planStore.set(plan.id, plan);
-}
-
-export function deletePlan(id: string): void {
-  planStore.delete(id);
-}
-
-export function clearPlans(): void {
-  planStore.clear();
-}
+/*
+|--------------------------------------------------------------------------
+| Mutation API
+|--------------------------------------------------------------------------
+*/
 
 export function createPlanFromMessage(
   message: string
@@ -65,6 +72,36 @@ export function createPlanFromMessage(
 
   return plan;
 }
+
+export function savePlan(
+  plan: Plan
+): void {
+  plan.updatedAt = new Date();
+
+  planStore.set(plan.id, plan);
+}
+
+export function updatePlan(
+  plan: Plan
+): void {
+  savePlan(plan);
+}
+
+export function deletePlan(
+  id: string
+): void {
+  planStore.delete(id);
+}
+
+export function clearPlans(): void {
+  planStore.clear();
+}
+
+/*
+|--------------------------------------------------------------------------
+| Planning Operations
+|--------------------------------------------------------------------------
+*/
 
 export function completePlanMilestone(
   planId: string,

@@ -28,7 +28,13 @@ export type Execution = {
 
 const executionStore = new Map<string, Execution>();
 
-export function getExecutions(): Execution[] {
+/*
+|--------------------------------------------------------------------------
+| Query API
+|--------------------------------------------------------------------------
+*/
+
+export function getAllExecutions(): Execution[] {
   return Array.from(executionStore.values());
 }
 
@@ -38,10 +44,25 @@ export function getExecution(
   return executionStore.get(id);
 }
 
+/*
+|--------------------------------------------------------------------------
+| Mutation API
+|--------------------------------------------------------------------------
+*/
+
 export function saveExecution(
   execution: Execution
 ): void {
-  executionStore.set(execution.id, execution);
+  executionStore.set(
+    execution.id,
+    execution
+  );
+}
+
+export function updateExecution(
+  execution: Execution
+): void {
+  saveExecution(execution);
 }
 
 export function deleteExecution(
@@ -53,6 +74,12 @@ export function deleteExecution(
 export function clearExecutions(): void {
   executionStore.clear();
 }
+
+/*
+|--------------------------------------------------------------------------
+| Execution Operations
+|--------------------------------------------------------------------------
+*/
 
 export function createExecutionFromDecision(
   decision: Decision,

@@ -21,7 +21,13 @@ export type Decision = {
 
 const decisionStore = new Map<string, Decision>();
 
-export function getDecisions(): Decision[] {
+/*
+|--------------------------------------------------------------------------
+| Query API
+|--------------------------------------------------------------------------
+*/
+
+export function getAllDecisions(): Decision[] {
   return Array.from(decisionStore.values());
 }
 
@@ -31,6 +37,12 @@ export function getDecision(
   return decisionStore.get(id);
 }
 
+/*
+|--------------------------------------------------------------------------
+| Mutation API
+|--------------------------------------------------------------------------
+*/
+
 export function saveDecision(
   decision: Decision
 ): void {
@@ -38,6 +50,12 @@ export function saveDecision(
     decision.id,
     decision
   );
+}
+
+export function updateDecision(
+  decision: Decision
+): void {
+  saveDecision(decision);
 }
 
 export function deleteDecision(
@@ -49,6 +67,12 @@ export function deleteDecision(
 export function clearDecisions(): void {
   decisionStore.clear();
 }
+
+/*
+|--------------------------------------------------------------------------
+| Decision Operations
+|--------------------------------------------------------------------------
+*/
 
 export function createDecisionFromPlan(
   plan: Plan
