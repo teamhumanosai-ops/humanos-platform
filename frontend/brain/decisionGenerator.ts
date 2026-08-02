@@ -1,25 +1,38 @@
 import { Plan } from "./planning";
 import { Decision } from "./decision";
+import {
+  evaluateActions,
+} from "./actionEvaluator";
 
 export function generateDecision(
   plan: Plan
 ): Decision {
+  const evaluations =
+    evaluateActions(plan);
+
+  const best =
+    evaluations.sort(
+      (a, b) => b.score - a.score
+    )[0];
+
   return {
     id: crypto.randomUUID(),
 
     title: `Decision for ${plan.title}`,
 
-    description: `Recommended action for achieving "${plan.goal}"`,
+    description:
+      `Recommended action for "${plan.goal}"`,
 
-    selectedAction: plan.nextAction,
+    selectedAction: best.action,
 
-    alternatives: plan.milestones.filter(
-      (m) => m !== plan.nextAction
-    ),
+    alternatives: evaluations
+      .filter(
+        (item) =>
+          item.action !== best.action
+      )
+      .map((item) => item.action),
 
-    reason:
-      `The next incomplete milestone is "${plan.nextAction}". ` +
-      `Completing work in sequence keeps the plan progressing.`,
+    reason: best.reason,
 
     confidence: plan.confidence,
 
