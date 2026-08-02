@@ -3,7 +3,7 @@ import {
 } from "./planning";
 
 import {
-  createDecisionFromPlan,
+  getBestDecision,
 } from "./decision";
 
 const plan =
@@ -13,7 +13,9 @@ const plan =
 
 if (plan) {
   const decision =
-    createDecisionFromPlan(plan);
+    getBestDecision(plan);
+
+  console.log("Decision");
 
   console.log(decision);
 }

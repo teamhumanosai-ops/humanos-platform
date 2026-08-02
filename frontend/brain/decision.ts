@@ -19,15 +19,10 @@ export type Decision = {
   createdAt: Date;
 };
 
-const decisionStore = new Map<
-  string,
-  Decision
->();
+const decisionStore = new Map<string, Decision>();
 
 export function getDecisions(): Decision[] {
-  return Array.from(
-    decisionStore.values()
-  );
+  return Array.from(decisionStore.values());
 }
 
 export function getDecision(
@@ -64,4 +59,10 @@ export function createDecisionFromPlan(
   saveDecision(decision);
 
   return decision;
+}
+
+export function getBestDecision(
+  plan: Plan
+): Decision {
+  return createDecisionFromPlan(plan);
 }
