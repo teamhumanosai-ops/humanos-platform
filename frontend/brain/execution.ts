@@ -1,5 +1,6 @@
 import { Decision } from "./decision";
 import { generateExecution } from "./executionGenerator";
+import { completePlanMilestone } from "./planning";
 
 export type ExecutionStatus =
   | "pending"
@@ -103,6 +104,11 @@ export function completeExecution(
   };
 
   saveExecution(updated);
+
+  completePlanMilestone(
+    updated.planId,
+    updated.action
+  );
 
   return updated;
 }

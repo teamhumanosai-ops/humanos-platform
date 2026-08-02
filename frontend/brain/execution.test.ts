@@ -1,6 +1,5 @@
 import {
   createPlanFromMessage,
-  completePlanMilestone,
   getPlan,
 } from "./planning";
 
@@ -29,16 +28,15 @@ if (plan) {
       plan.id
     );
 
+  console.log("Initial Plan");
+
+  console.log(getPlan(plan.id));
+
   startExecution(execution.id);
 
   completeExecution(execution.id);
 
-  completePlanMilestone(
-    plan.id,
-    execution.action
-  );
+  console.log("Updated Plan");
 
-  console.log(
-    getPlan(plan.id)
-  );
+  console.log(getPlan(plan.id));
 }
