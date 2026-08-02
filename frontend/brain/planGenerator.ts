@@ -1,6 +1,8 @@
 import { Plan } from "./planning";
 
-export function generatePlan(goal: string): Plan {
+export function generatePlan(
+  goal: string
+): Plan {
   const now = new Date();
 
   return {

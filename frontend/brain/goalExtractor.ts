@@ -1,4 +1,6 @@
-export function extractGoal(message: string): string | null {
+export function extractGoal(
+  message: string
+): string | null {
   const patterns = [
     /i want to (.+)/i,
     /i need to (.+)/i,
