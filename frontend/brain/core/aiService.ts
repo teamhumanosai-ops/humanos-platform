@@ -1,6 +1,5 @@
 import { AI_CONFIG } from "@/lib/ai";
 import { SYSTEM_PROMPT } from "@/brain/systemPrompt";
-import { buildMemoryPrompt } from "@/brain/memory";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -27,8 +26,6 @@ export async function aiService(
           {
             role: "system",
             content: `${SYSTEM_PROMPT}
-
-${buildMemoryPrompt()}
 
 ${systemContext}`,
           },

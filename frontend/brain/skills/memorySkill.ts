@@ -1,9 +1,11 @@
 import { getMemories } from "../memory";
 
-export function memorySkill(message: string): string | null {
+export async function memorySkill(
+  message: string
+): Promise<string | null> {
   const lower = message.toLowerCase();
 
-  const memories = getMemories();
+  const memories = await getMemories();
 
   const getValue = (key: string) =>
     memories.find((m) => m.key === key)?.value;
