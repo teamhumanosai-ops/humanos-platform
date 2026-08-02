@@ -6,6 +6,9 @@ import { extractSimpleMemory } from "../memory";
 import { aiService } from "../core/aiService";
 import { initializeBrain } from "../bootstrap";
 
+import { profileEngine } from "../profile/profileEngine";
+import { enrichmentEngine } from "../enrichment";
+
 export async function orchestrate(
   messages: {
     role: "user" | "assistant";
@@ -22,17 +25,47 @@ export async function orchestrate(
     return "How can I help you?";
   }
 
+  // -----------------------------
+  // Load Human Profile
+  // -----------------------------
+
+  const profile = profileEngine.get();
+
+  let enrichmentSuggestion = null;
+
+  if (profile) {
+    enrichmentSuggestion =
+      enrichmentEngine.getNextQuestion(profile);
+
+    // Phase 1:
+    // Keep the result internal.
+    // We'll use it in Phase 2.
+    console.debug(
+      "[Human OS] Next enrichment:",
+      enrichmentSuggestion
+    );
+  }
+
+  // -----------------------------
+  // Existing Pipeline
+  // -----------------------------
+
   extractSimpleMemory(lastUserMessage.message);
 
-  const intent = detectIntent(lastUserMessage.message);
+  const intent = detectIntent(
+    lastUserMessage.message
+  );
 
-  const localResponse = await executeSkills(lastUserMessage.message);
+  const localResponse =
+    await executeSkills(lastUserMessage.message);
 
   if (localResponse) {
     return formatResponse(localResponse);
   }
 
-  let systemContext = buildContext(lastUserMessage.message);
+  let systemContext = buildContext(
+    lastUserMessage.message
+  );
 
   switch (intent) {
     case Intent.STARTUP_PLANNING:
@@ -50,5 +83,8 @@ export async function orchestrate(
       break;
   }
 
-  return await aiService(systemContext, messages);
+  return await aiService(
+    systemContext,
+    messages
+  );
 }
