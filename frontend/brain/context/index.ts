@@ -7,7 +7,7 @@ export async function buildContext(
 ): Promise<string> {
   const profile = profileEngine.get();
 
-  const memory = buildMemoryPrompt();
+  const memory = await buildMemoryPrompt();
 
   const knowledge =
     await retrieveKnowledge(userMessage);

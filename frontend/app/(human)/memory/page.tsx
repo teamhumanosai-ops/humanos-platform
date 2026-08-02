@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 
 import AppPage from "@/components/ui/AppPage";
 
+import {
+  getMemories,
+  refreshMemories,
+  subscribe,
+} from "@/lib/state";
+
 type Memory = {
   key: string;
   value: string;
@@ -15,15 +21,18 @@ export default function MemoryPage() {
   const [memories, setMemories] = useState<Memory[]>([]);
 
   useEffect(() => {
-    async function loadMemory() {
-      const response = await fetch("/api/memory");
-
-      const data = await response.json();
-
-      setMemories(data);
+    async function initialize() {
+      await refreshMemories();
+      setMemories(getMemories());
     }
 
-    loadMemory();
+    initialize();
+
+    const unsubscribe = subscribe(() => {
+      setMemories([...getMemories()]);
+    });
+
+    return unsubscribe;
   }, []);
 
   return (

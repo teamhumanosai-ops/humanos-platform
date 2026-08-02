@@ -1,5 +1,5 @@
 import { buildMemoryPrompt } from "../memory";
 
-export function buildMemoryContext(): string {
-  return buildMemoryPrompt();
+export async function buildMemoryContext(): Promise<string> {
+  return await buildMemoryPrompt();
 }

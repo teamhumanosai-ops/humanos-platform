@@ -37,9 +37,6 @@ export async function orchestrate(
     enrichmentSuggestion =
       enrichmentEngine.getNextQuestion(profile);
 
-    // Phase 1:
-    // Keep the result internal.
-    // We'll use it in Phase 2.
     console.debug(
       "[Human OS] Next enrichment:",
       enrichmentSuggestion
@@ -47,10 +44,12 @@ export async function orchestrate(
   }
 
   // -----------------------------
-  // Existing Pipeline
+  // Persist memory BEFORE response
   // -----------------------------
 
-  extractSimpleMemory(lastUserMessage.message);
+  await extractSimpleMemory(
+    lastUserMessage.message
+  );
 
   const intent = detectIntent(
     lastUserMessage.message
