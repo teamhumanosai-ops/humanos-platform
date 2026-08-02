@@ -5,6 +5,10 @@ export type Plan = {
 
   goal: string;
 
+  description: string;
+
+  status: "active" | "completed" | "paused";
+
   milestones: string[];
 
   completedMilestones: string[];
@@ -15,27 +19,7 @@ export type Plan = {
 
   confidence: number;
 
+  createdAt: Date;
+
   updatedAt: Date;
 };
-
-const planStore = new Map<string, Plan>();
-
-export function getPlans(): Plan[] {
-  return Array.from(planStore.values());
-}
-
-export function getPlan(id: string): Plan | undefined {
-  return planStore.get(id);
-}
-
-export function savePlan(plan: Plan) {
-  planStore.set(plan.id, plan);
-}
-
-export function deletePlan(id: string) {
-  planStore.delete(id);
-}
-
-export function clearPlans() {
-  planStore.clear();
-}
