@@ -1,4 +1,5 @@
 import { Plan } from "./planning";
+import { calculateConfidence } from "./confidenceScorer";
 
 export type ActionEvaluation = {
   action: string;
@@ -23,20 +24,16 @@ export function evaluateActions(
       };
     }
 
-    if (milestone === plan.nextAction) {
-      return {
-        action: milestone,
-        score: 100,
-        reason:
-          "Highest priority because it is the next required milestone",
-      };
-    }
-
     return {
       action: milestone,
-      score: 50,
+      score: calculateConfidence(
+        plan,
+        milestone
+      ),
       reason:
-        "Useful milestone but not the immediate priority",
+        milestone === plan.nextAction
+          ? "Highest confidence based on current plan progress"
+          : "Valid future milestone",
     };
   });
 }
