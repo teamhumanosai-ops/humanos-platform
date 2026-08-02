@@ -1,5 +1,6 @@
 import { buildMemoryPrompt } from "../memory";
 import { buildTimelinePrompt } from "../timeline";
+import { buildReflectionPrompt } from "../reflection";
 import { retrieveKnowledge } from "../knowledge";
 import { profileEngine } from "../profile/profileEngine";
 
@@ -12,6 +13,9 @@ export async function buildContext(
 
   const timeline =
     await buildTimelinePrompt();
+
+  const reflections =
+    await buildReflectionPrompt();
 
   const knowledge =
     await retrieveKnowledge(userMessage);
@@ -50,11 +54,15 @@ ${memory}
 
 ${timeline}
 
+${reflections}
+
 ${knowledge}
 
 Human OS has access to its own Knowledge Base.
 
-Use the user's memories and timeline naturally when they help answer the user's request.
+Use the user's memories, timeline, and reflections naturally when they help answer the user's request.
+
+Reflections represent inferred long-term patterns, not direct user statements.
 
 If relevant information exists in the Knowledge Base,
 prefer using it instead of relying on general model knowledge.

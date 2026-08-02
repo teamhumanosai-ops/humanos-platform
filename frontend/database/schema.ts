@@ -49,3 +49,23 @@ export const timelineEvents = sqliteTable(
       .notNull(),
   }
 );
+
+export const reflections = sqliteTable(
+  "reflections",
+  {
+    id: integer("id")
+      .primaryKey({ autoIncrement: true }),
+
+    summary: text("summary")
+      .notNull(),
+
+    evidence: text("evidence")
+      .notNull(),
+
+    confidence: integer("confidence")
+      .notNull(),
+
+    createdAt: text("created_at")
+      .notNull(),
+  }
+);
