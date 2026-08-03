@@ -1,48 +1,43 @@
-export interface RuntimeContext {
-  message: string;
+import { BrainState } from "../brainState";
+import { MemoryStage } from "./steps/memoryStage";
+import { Stage } from "./steps/stage";
 
-  intent?: string;
+export class CognitiveRuntime {
+  private readonly stages: Stage[] = [];
 
-  profile?: unknown;
-
-  mission?: unknown;
-
-  memory?: unknown;
-
-  knowledge?: unknown;
-
-  planner?: unknown;
-
-  response?: string;
-}
-
-export type RuntimeStep = (
-  context: RuntimeContext
-) => Promise<RuntimeContext>;
-
-export class RuntimePipeline {
-  private readonly steps: RuntimeStep[] = [];
-
-  use(step: RuntimeStep): this {
-    this.steps.push(step);
-
-    return this;
+  constructor() {
+    // Default cognitive pipeline
+    this.register(new MemoryStage());
   }
 
-  async execute(
-    message: string
-  ): Promise<RuntimeContext> {
-    let context: RuntimeContext = {
-      message,
-    };
+  /**
+   * Register a cognitive stage.
+   */
+  register(stage: Stage): void {
+    this.stages.push(stage);
+  }
 
-    for (const step of this.steps) {
-      context = await step(context);
+  /**
+   * Execute every registered stage.
+   */
+  async execute(
+    state: BrainState
+  ): Promise<BrainState> {
+    let current = state;
+
+    for (const stage of this.stages) {
+      current = await stage.execute(current);
     }
 
-    return context;
+    current.updatedAt = new Date();
+
+    return current;
+  }
+
+  /**
+   * Return the currently registered stages.
+   */
+  getStages(): readonly Stage[] {
+    return this.stages;
   }
 }
-
-export const runtimePipeline =
-  new RuntimePipeline();
