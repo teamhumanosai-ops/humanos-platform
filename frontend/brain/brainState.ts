@@ -1,11 +1,42 @@
+export type ConversationMessage = {
+  role: "user" | "assistant";
+  message: string;
+};
+
 export type BrainState = {
   /*
   |--------------------------------------------------------------------------
-  | Input
+  | Conversation
   |--------------------------------------------------------------------------
   */
 
   conversation: string;
+
+  messages: ConversationMessage[];
+
+  userMessage: string;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Cognitive State
+  |--------------------------------------------------------------------------
+  */
+
+  intent: string | null;
+
+  context: string | null;
+
+  memory: string[];
+
+  knowledge: string[];
+
+  reasoning: string | null;
+
+  plan: string | null;
+
+  decision: string | null;
+
+  response: string | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -23,21 +54,13 @@ export type BrainState = {
 
   /*
   |--------------------------------------------------------------------------
-  | Processing Flags
+  | Diagnostics
   |--------------------------------------------------------------------------
   */
 
-  hasMemory: boolean;
+  executedStages: string[];
 
-  hasReflection: boolean;
-
-  hasLearning: boolean;
-
-  hasPlanning: boolean;
-
-  hasDecision: boolean;
-
-  hasExecution: boolean;
+  errors: string[];
 
   /*
   |--------------------------------------------------------------------------
@@ -51,12 +74,34 @@ export type BrainState = {
 };
 
 export function createBrainState(
-  conversation: string
+  conversation: string,
+  messages: ConversationMessage[],
+  userMessage: string
 ): BrainState {
   const now = new Date();
 
   return {
     conversation,
+
+    messages,
+
+    userMessage,
+
+    intent: null,
+
+    context: null,
+
+    memory: [],
+
+    knowledge: [],
+
+    reasoning: null,
+
+    plan: null,
+
+    decision: null,
+
+    response: null,
 
     currentGoal: null,
 
@@ -66,17 +111,9 @@ export function createBrainState(
 
     currentExecutionId: null,
 
-    hasMemory: false,
+    executedStages: [],
 
-    hasReflection: false,
-
-    hasLearning: false,
-
-    hasPlanning: false,
-
-    hasDecision: false,
-
-    hasExecution: false,
+    errors: [],
 
     createdAt: now,
 

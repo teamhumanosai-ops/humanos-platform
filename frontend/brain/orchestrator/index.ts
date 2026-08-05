@@ -10,6 +10,10 @@ import { initializeBrain } from "../bootstrap";
 import { profileEngine } from "../profile/profileEngine";
 import { enrichmentEngine } from "../enrichment";
 
+import { CognitiveRuntime } from "../runtime/pipeline";
+import { createRuntimeBrainState } from "../runtime/createBrainState";
+import { runtimeServices } from "../runtime/runtimeServices";
+
 export async function orchestrate(
   messages: {
     role: "user" | "assistant";
@@ -26,16 +30,31 @@ export async function orchestrate(
     return "How can I help you?";
   }
 
-  // -----------------------------
-  // Load Human Profile
-  // -----------------------------
+  /**
+   * -----------------------------
+   * Cognitive Runtime
+   * -----------------------------
+   */
+
+  const runtime = new CognitiveRuntime(
+    runtimeServices
+  );
+
+  const brainState =
+    createRuntimeBrainState(messages);
+
+  await runtime.execute(brainState);
+
+  /**
+   * -----------------------------
+   * Human Profile
+   * -----------------------------
+   */
 
   const profile = profileEngine.get();
 
-  let enrichmentSuggestion = null;
-
   if (profile) {
-    enrichmentSuggestion =
+    const enrichmentSuggestion =
       enrichmentEngine.getNextQuestion(profile);
 
     console.debug(
@@ -44,39 +63,60 @@ export async function orchestrate(
     );
   }
 
-  // -----------------------------
-  // Persist Memory
-  // -----------------------------
+  /**
+   * -----------------------------
+   * Memory
+   * -----------------------------
+   */
 
   await extractSimpleMemory(
     lastUserMessage.message
   );
 
-  // -----------------------------
-  // Persist Timeline Events
-  // -----------------------------
+  /**
+   * -----------------------------
+   * Timeline
+   * -----------------------------
+   */
 
   await extractTimelineEvent(
     lastUserMessage.message
   );
 
-  const intent = detectIntent(
-    lastUserMessage.message
-  );
+  /**
+   * -----------------------------
+   * Intent
+   * -----------------------------
+   */
+
+  brainState.intent =
+    detectIntent(
+      lastUserMessage.message
+    ).toString();
 
   const localResponse =
-    await executeSkills(lastUserMessage.message);
+    await executeSkills(
+      lastUserMessage.message
+    );
 
   if (localResponse) {
     return formatResponse(localResponse);
   }
+
+  /**
+   * -----------------------------
+   * Context
+   * -----------------------------
+   */
 
   let systemContext =
     await buildContext(
       lastUserMessage.message
     );
 
-  switch (intent) {
+  switch (
+    detectIntent(lastUserMessage.message)
+  ) {
     case Intent.STARTUP_PLANNING:
       systemContext +=
         "\n\nThe user wants startup advice. Think like an experienced startup founder and advisor.";
@@ -87,13 +127,30 @@ export async function orchestrate(
         "\n\nThe user needs current information. Use live search when appropriate.";
       break;
 
-    case Intent.GENERAL_CHAT:
     default:
       break;
   }
 
-  return await aiService(
-    systemContext,
-    messages
+  brainState.context = systemContext;
+
+  /**
+   * -----------------------------
+   * AI Response
+   * -----------------------------
+   */
+
+  const response =
+    await aiService(
+      systemContext,
+      messages
+    );
+
+  brainState.response = response;
+
+  console.debug(
+    "[Human OS Runtime]",
+    brainState
   );
+
+  return response;
 }

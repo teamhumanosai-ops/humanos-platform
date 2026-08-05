@@ -1,25 +1,31 @@
 import { BrainState } from "../brainState";
+
+import { RuntimeServices } from "./runtimeServices";
+
+import { InputStage } from "./steps/inputStage";
 import { MemoryStage } from "./steps/memoryStage";
+import { IntentStage } from "./steps/intentStage";
+import { ContextStage } from "./steps/contextStage";
+import { ResponseStage } from "./steps/responseStage";
 import { Stage } from "./steps/stage";
 
 export class CognitiveRuntime {
   private readonly stages: Stage[] = [];
 
-  constructor() {
-    // Default cognitive pipeline
+  constructor(
+    public readonly services: RuntimeServices
+  ) {
+    this.register(new InputStage());
     this.register(new MemoryStage());
+    this.register(new IntentStage());
+    this.register(new ContextStage());
+    this.register(new ResponseStage());
   }
 
-  /**
-   * Register a cognitive stage.
-   */
   register(stage: Stage): void {
     this.stages.push(stage);
   }
 
-  /**
-   * Execute every registered stage.
-   */
   async execute(
     state: BrainState
   ): Promise<BrainState> {
@@ -34,9 +40,6 @@ export class CognitiveRuntime {
     return current;
   }
 
-  /**
-   * Return the currently registered stages.
-   */
   getStages(): readonly Stage[] {
     return this.stages;
   }

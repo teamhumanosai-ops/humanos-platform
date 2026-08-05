@@ -2,10 +2,12 @@ import { BrainState } from "../../brainState";
 import { Stage } from "./stage";
 
 /**
- * Base implementation for all cognitive stages.
+ * Base implementation for all Human OS cognitive stages.
  *
- * Future stages (Memory, Reflection, Learning, etc.)
- * should extend this class.
+ * Every stage automatically:
+ * - records execution
+ * - updates timestamps
+ * - captures failures
  */
 export abstract class BaseStage implements Stage {
   abstract readonly name: string;
@@ -13,9 +15,37 @@ export abstract class BaseStage implements Stage {
   async execute(
     state: BrainState
   ): Promise<BrainState> {
-    state.updatedAt = new Date();
+    const startedAt = Date.now();
 
-    return this.process(state);
+    try {
+      state.executedStages.push(this.name);
+
+      const result = await this.process(state);
+
+      result.updatedAt = new Date();
+
+      console.debug(
+        `[Runtime] ${this.name} (${Date.now() - startedAt} ms)`
+      );
+
+      return result;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      state.errors.push(
+        `${this.name}: ${message}`
+      );
+
+      console.error(
+        `[Runtime] ${this.name} failed`,
+        error
+      );
+
+      throw error;
+    }
   }
 
   protected abstract process(

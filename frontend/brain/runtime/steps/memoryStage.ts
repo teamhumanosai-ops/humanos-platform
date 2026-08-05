@@ -8,16 +8,25 @@ export class MemoryStage extends BaseStage {
     state: BrainState
   ): Promise<BrainState> {
     /**
-     * Phase 1:
-     * The stage currently performs no memory enrichment.
+     * Human OS Alpha
      *
-     * Later this stage will:
-     * - Extract memories
+     * This stage is responsible for memory processing.
+     *
+     * Future responsibilities:
+     * - Retrieve memories
      * - Store memories
-     * - Update BrainState flags
+     * - Rank memories
+     * - Episodic memory
+     * - Semantic memory
      */
 
-    state.hasMemory = true;
+    state.executedStages.push(this.name);
+
+    state.memory.push(
+      "Memory stage executed."
+    );
+
+    state.updatedAt = new Date();
 
     return state;
   }
