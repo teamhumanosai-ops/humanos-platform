@@ -1,0 +1,31 @@
+import {
+    BaseExtractor,
+    ExtractedContent,
+} from "../../extractors";
+
+export class MarkdownExtractor extends BaseExtractor {
+    readonly name = "MarkdownExtractor";
+
+    protected async doExtract(
+        content?: Buffer | string
+    ): Promise<ExtractedContent> {
+        if (!content) {
+            return {
+                text: "",
+                sections: [],
+            };
+        }
+
+        const text =
+            typeof content === "string"
+                ? content
+                : content.toString("utf-8");
+
+        return {
+            text,
+            sections: text
+                .split(/\n#{1,6}\s/)
+                .filter(Boolean),
+        };
+    }
+}
