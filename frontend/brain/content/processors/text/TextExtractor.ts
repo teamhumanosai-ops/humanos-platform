@@ -3,6 +3,8 @@ import {
     ExtractedContent,
 } from "../../extractors";
 
+import { TextNormalizer } from "../../normalization";
+
 export class TextExtractor extends BaseExtractor {
     readonly name = "TextExtractor";
 
@@ -16,14 +18,21 @@ export class TextExtractor extends BaseExtractor {
             };
         }
 
-        const text =
+        const raw =
             typeof content === "string"
                 ? content
                 : content.toString("utf-8");
 
+        const normalized =
+            TextNormalizer.normalize(raw);
+
         return {
-            text,
-            sections: [],
+            text: normalized,
+
+            sections:
+                TextNormalizer.sections(
+                    normalized
+                ),
         };
     }
 }
