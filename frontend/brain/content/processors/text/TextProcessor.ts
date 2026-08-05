@@ -7,6 +7,9 @@ import { TextExtractor } from "./TextExtractor";
 export class TextProcessor extends BaseProcessor {
     readonly name = "TextProcessor";
 
+    private readonly extractor =
+        new TextExtractor();
+
     canProcess(
         artifact: Artifact
     ): boolean {
@@ -19,8 +22,11 @@ export class TextProcessor extends BaseProcessor {
     protected async extract(
         artifact: Artifact
     ): Promise<string> {
-        return TextExtractor.extract(
-            artifact.rawContent
-        );
+        const result =
+            await this.extractor.extract(
+                artifact.rawContent
+            );
+
+        return result.content.text;
     }
 }

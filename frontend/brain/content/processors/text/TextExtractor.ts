@@ -1,15 +1,29 @@
-export class TextExtractor {
-    static async extract(
+import {
+    BaseExtractor,
+    ExtractedContent,
+} from "../../extractors";
+
+export class TextExtractor extends BaseExtractor {
+    readonly name = "TextExtractor";
+
+    protected async doExtract(
         content?: Buffer | string
-    ): Promise<string> {
+    ): Promise<ExtractedContent> {
         if (!content) {
-            return "";
+            return {
+                text: "",
+                sections: [],
+            };
         }
 
-        if (typeof content === "string") {
-            return content;
-        }
+        const text =
+            typeof content === "string"
+                ? content
+                : content.toString("utf-8");
 
-        return content.toString("utf-8");
+        return {
+            text,
+            sections: [],
+        };
     }
 }
