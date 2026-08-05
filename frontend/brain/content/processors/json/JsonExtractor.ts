@@ -1,9 +1,19 @@
-export class JsonExtractor {
-    static async extract(
+import {
+    BaseExtractor,
+    ExtractedContent,
+} from "../../extractors";
+
+export class JsonExtractor extends BaseExtractor {
+    readonly name = "JsonExtractor";
+
+    protected async doExtract(
         content?: Buffer | string
-    ): Promise<string> {
+    ): Promise<ExtractedContent> {
         if (!content) {
-            return "{}";
+            return {
+                text: "",
+                sections: [],
+            };
         }
 
         const text =
@@ -11,16 +21,21 @@ export class JsonExtractor {
                 ? content
                 : content.toString("utf-8");
 
-        try {
-            const parsed = JSON.parse(text);
+        let formatted = text;
 
-            return JSON.stringify(
-                parsed,
+        try {
+            formatted = JSON.stringify(
+                JSON.parse(text),
                 null,
                 2
             );
         } catch {
-            return "{}";
+            // Keep original text if parsing fails.
         }
+
+        return {
+            text: formatted,
+            sections: [],
+        };
     }
 }
