@@ -3,6 +3,8 @@ import {
     ExtractedContent,
 } from "../../extractors";
 
+import { JsonNormalizer } from "./JsonNormalizer";
+
 export class JsonExtractor extends BaseExtractor {
     readonly name = "JsonExtractor";
 
@@ -16,26 +18,18 @@ export class JsonExtractor extends BaseExtractor {
             };
         }
 
-        const text =
+        const raw =
             typeof content === "string"
                 ? content
                 : content.toString("utf-8");
 
-        let formatted = text;
-
-        try {
-            formatted = JSON.stringify(
-                JSON.parse(text),
-                null,
-                2
-            );
-        } catch {
-            // Keep original text if parsing fails.
-        }
+        const normalized =
+            JsonNormalizer.normalize(raw);
 
         return {
-            text: formatted,
-            sections: [],
+            text: normalized.text,
+
+            sections: normalized.keys,
         };
     }
 }
