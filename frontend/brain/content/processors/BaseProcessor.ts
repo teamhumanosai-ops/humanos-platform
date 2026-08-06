@@ -1,5 +1,13 @@
 import { Artifact } from "../models";
 
+import {
+    AnalyzerRegistry,
+} from "../analyzers";
+
+import {
+    KnowledgeEngine,
+} from "../../knowledge/engine";
+
 import { ContentProcessor } from "./ContentProcessor";
 
 export abstract class BaseProcessor
@@ -21,10 +29,24 @@ export abstract class BaseProcessor
         const extractedContent =
             await this.extract(artifact);
 
+        const analysis =
+            await AnalyzerRegistry.analyze({
+                text: extractedContent,
+
+                sections: [],
+            });
+
+        const knowledge =
+            await KnowledgeEngine.generate(
+                analysis
+            );
+
         return {
             ...artifact,
 
             extractedContent,
+
+            knowledge,
         };
     }
 }
