@@ -3,24 +3,57 @@ import {
     ExtractedContent,
 } from "../../extractors";
 
+import { PdfEngine } from "../../engines/pdf/PdfEngine";
+import { PdfParseEngine } from "../../engines/pdf/PdfParseEngine";
+
 export class PdfExtractor extends BaseExtractor {
     readonly name = "PdfExtractor";
 
+    constructor(
+        private readonly engine: PdfEngine =
+            new PdfParseEngine()
+    ) {
+        super();
+    }
+
     protected async doExtract(
-        _content?: Buffer | string
+        content?: Buffer | string
     ): Promise<ExtractedContent> {
-        /**
-         * Placeholder.
-         *
-         * Real PDF extraction will be implemented
-         * in a later milestone using a dedicated
-         * PDF parsing library.
-         */
+        if (!content) {
+            return {
+                text: "",
+                sections: [],
+            };
+        }
+
+        const buffer =
+            typeof content === "string"
+                ? Buffer.from(content)
+                : content;
+
+        const result =
+            await this.engine.extractText(
+                buffer
+            );
 
         return {
-            text: "",
+            text: result.text,
 
-            sections: [],
+            sections: [
+                `Pages: ${result.pageCount}`,
+
+                ...(result.metadata.title
+                    ? [
+                          `Title: ${result.metadata.title}`,
+                      ]
+                    : []),
+
+                ...(result.metadata.author
+                    ? [
+                          `Author: ${result.metadata.author}`,
+                      ]
+                    : []),
+            ],
         };
     }
 }
