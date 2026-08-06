@@ -1,7 +1,8 @@
-import { loadMemories } from "./store";
+import { retrieveRelevantMemories } from "./retrieval";
 
 export async function buildMemoryPrompt(): Promise<string> {
-  const memories = await loadMemories();
+  const memories =
+    await retrieveRelevantMemories();
 
   if (memories.length === 0) {
     return "";
@@ -18,6 +19,7 @@ ${memories
   .join("\n")}
 
 Use these naturally in conversation.
+Prefer higher-importance memories.
 Never invent facts.
 `;
 }
