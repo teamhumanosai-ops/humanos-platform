@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/database/db";
 import { memories } from "@/database/schema";
 
+import { memoryGraphAdapter } from "@/brain/graph";
+
 import type { Memory } from "./types";
 import { analyzeMemory } from "./intelligence";
 
@@ -30,6 +32,17 @@ export async function saveMemory(
       })
       .where(eq(memories.key, key));
 
+    memoryGraphAdapter.sync({
+      id: key,
+      label: value,
+      properties: {
+        confidence,
+        kind: analysis.kind,
+        importance: analysis.importance,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
     return;
   }
 
@@ -40,6 +53,17 @@ export async function saveMemory(
     kind: analysis.kind,
     importance: analysis.importance,
     updatedAt: new Date().toISOString(),
+  });
+
+  memoryGraphAdapter.sync({
+    id: key,
+    label: value,
+    properties: {
+      confidence,
+      kind: analysis.kind,
+      importance: analysis.importance,
+      updatedAt: new Date().toISOString(),
+    },
   });
 }
 
