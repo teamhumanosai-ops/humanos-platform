@@ -2,13 +2,17 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/database/db";
 import { memories } from "@/database/schema";
-import type { MemoryItem } from "./types";
+
+import type { Memory } from "./types";
+import { analyzeMemory } from "./intelligence";
 
 export async function saveMemory(
   key: string,
   value: string,
   confidence = 1
 ): Promise<void> {
+  const analysis = analyzeMemory(key, value);
+
   const existing = await db
     .select()
     .from(memories)
@@ -20,6 +24,8 @@ export async function saveMemory(
       .set({
         value,
         confidence,
+        kind: analysis.kind,
+        importance: analysis.importance,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(memories.key, key));
@@ -31,22 +37,29 @@ export async function saveMemory(
     key,
     value,
     confidence,
+    kind: analysis.kind,
+    importance: analysis.importance,
     updatedAt: new Date().toISOString(),
   });
 }
 
-export async function loadMemories(): Promise<
-  MemoryItem[]
-> {
-  return await db.select().from(memories);
+export async function loadMemories(): Promise<Memory[]> {
+  const rows = await db.select().from(memories);
+
+  return rows.map((row) => ({
+    key: row.key,
+    value: row.value,
+    confidence: row.confidence,
+    kind: row.kind as Memory["kind"],
+    importance: row.importance,
+    updatedAt: row.updatedAt,
+  }));
 }
 
 /**
  * Compatibility wrapper for the legacy API.
  */
-export async function getMemories(): Promise<
-  MemoryItem[]
-> {
+export async function getMemories(): Promise<Memory[]> {
   return loadMemories();
 }
 
@@ -55,10 +68,10 @@ export async function getMemories(): Promise<
  */
 export async function getMemory(
   key: string
-): Promise<MemoryItem | undefined> {
+): Promise<Memory | undefined> {
   const list = await loadMemories();
 
-  return list.find((m) => m.key === key);
+  return list.find((memory) => memory.key === key);
 }
 
 /**

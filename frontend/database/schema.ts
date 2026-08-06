@@ -15,6 +15,12 @@ export const memories = sqliteTable(
       "confidence"
     ).notNull(),
 
+    kind: text("kind").notNull(),
+
+    importance: integer(
+      "importance"
+    ).notNull(),
+
     updatedAt: text(
       "updated_at"
     ).notNull(),
