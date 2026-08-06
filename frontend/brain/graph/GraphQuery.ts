@@ -15,14 +15,14 @@ export class GraphQuery {
   }
 
   getNeighbors(nodeId: string): GraphNode[] {
-    const neighbors: GraphNode[] = [];
+    const neighbors = new Map<string, GraphNode>();
 
     for (const edge of graphStore.getEdges()) {
       if (edge.from === nodeId) {
         const node = graphStore.getNode(edge.to);
 
         if (node) {
-          neighbors.push(node);
+          neighbors.set(node.id, node);
         }
       }
 
@@ -30,27 +30,40 @@ export class GraphQuery {
         const node = graphStore.getNode(edge.from);
 
         if (node) {
-          neighbors.push(node);
+          neighbors.set(node.id, node);
         }
       }
     }
 
-    return neighbors;
+    return [...neighbors.values()];
   }
 
-  findByType(type: GraphNode["type"]): GraphNode[] {
+  getRelationships(nodeId: string): GraphEdge[] {
+    return graphStore.getEdges().filter(
+      (edge) =>
+        edge.from === nodeId ||
+        edge.to === nodeId
+    );
+  }
+
+  findByType(
+    type: GraphNode["type"]
+  ): GraphNode[] {
     return graphStore
       .getNodes()
       .filter((node) => node.type === type);
   }
 
-  search(label: string): GraphNode[] {
-    const query = label.toLowerCase();
+  search(query: string): GraphNode[] {
+    const normalized =
+      query.trim().toLowerCase();
 
     return graphStore.getNodes().filter((node) => {
       return (
-        node.label.toLowerCase().includes(query) ||
-        node.id.toLowerCase().includes(query)
+        node.id.toLowerCase().includes(normalized) ||
+        node.label
+          .toLowerCase()
+          .includes(normalized)
       );
     });
   }
@@ -67,6 +80,22 @@ export class GraphQuery {
           edge.to === to
       );
   }
+
+  getConnectedSubgraph(
+    nodeId: string
+  ): {
+    node: GraphNode | undefined;
+    neighbors: GraphNode[];
+    relationships: GraphEdge[];
+  } {
+    return {
+      node: this.getNode(nodeId),
+      neighbors: this.getNeighbors(nodeId),
+      relationships:
+        this.getRelationships(nodeId),
+    };
+  }
 }
 
-export const graphQuery = new GraphQuery();
+export const graphQuery =
+  new GraphQuery();

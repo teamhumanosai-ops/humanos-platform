@@ -1,7 +1,7 @@
 import { buildMemoryPrompt } from "../memory";
 import { buildTimelinePrompt } from "../timeline";
 import { buildReflectionPrompt } from "../reflection";
-import { retrieveKnowledge } from "../knowledge";
+import { buildKnowledgeContext } from "./knowledge";
 import { profileEngine } from "../profile/profileEngine";
 
 export async function buildContext(
@@ -18,7 +18,7 @@ export async function buildContext(
     await buildReflectionPrompt();
 
   const knowledge =
-    await retrieveKnowledge(userMessage);
+    await buildKnowledgeContext(userMessage);
 
   let profileContext = "";
 
