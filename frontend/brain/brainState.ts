@@ -1,3 +1,7 @@
+import type { GraphNode } from "./graph";
+import type { Memory } from "./memory";
+import type { HumanProfile } from "./profile/types";
+
 export type ConversationMessage = {
   role: "user" | "assistant";
   message: string;
@@ -37,6 +41,22 @@ export type BrainState = {
   decision: string | null;
 
   response: string | null;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Unified Brain Context
+  |--------------------------------------------------------------------------
+  */
+
+  memories: Memory[];
+
+  graph: GraphNode[];
+
+  timeline: string[];
+
+  reflections: string[];
+
+  profile: HumanProfile | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -102,6 +122,16 @@ export function createBrainState(
     decision: null,
 
     response: null,
+
+    memories: [],
+
+    graph: [],
+
+    timeline: [],
+
+    reflections: [],
+
+    profile: null,
 
     currentGoal: null,
 

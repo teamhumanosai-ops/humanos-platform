@@ -1,8 +1,10 @@
 import { classifyMemory, MemoryKind } from "./classifier";
+import { memoryAnalysisPipeline } from "./pipeline";
 
 export interface MemoryAnalysis {
   kind: MemoryKind;
   importance: number;
+  entities?: string[];
 }
 
 export function analyzeMemory(
@@ -11,11 +13,16 @@ export function analyzeMemory(
 ): MemoryAnalysis {
   const kind = classifyMemory(key, value);
 
-  return {
-    kind,
-    importance:
-      kind === "long_term"
-        ? 1.0
-        : 0.5,
-  };
+  return memoryAnalysisPipeline.run(
+    key,
+    value,
+    {
+      kind,
+      importance:
+        kind === "long_term"
+          ? 1
+          : 0.5,
+      entities: [],
+    }
+  );
 }

@@ -1,32 +1,21 @@
 import { BrainState } from "../../brainState";
 import { BaseStage } from "./baseStage";
 
+import { loadMemories } from "../../memory";
+
 export class MemoryStage extends BaseStage {
   readonly name = "Memory";
 
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    /**
-     * Human OS Alpha
-     *
-     * This stage is responsible for memory processing.
-     *
-     * Future responsibilities:
-     * - Retrieve memories
-     * - Store memories
-     * - Rank memories
-     * - Episodic memory
-     * - Semantic memory
-     */
+    const memories = await loadMemories();
 
-    state.executedStages.push(this.name);
+    state.memories = memories;
 
-    state.memory.push(
-      "Memory stage executed."
+    state.memory = memories.map(
+      (memory) => memory.value
     );
-
-    state.updatedAt = new Date();
 
     return state;
   }

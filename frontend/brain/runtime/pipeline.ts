@@ -5,6 +5,7 @@ import { RuntimeServices } from "./runtimeServices";
 import { InputStage } from "./steps/inputStage";
 import { MemoryStage } from "./steps/memoryStage";
 import { IntentStage } from "./steps/intentStage";
+import { BrainStateStage } from "./steps/brainStateStage";
 import { ContextStage } from "./steps/contextStage";
 import { ResponseStage } from "./steps/responseStage";
 import { Stage } from "./steps/stage";
@@ -18,6 +19,7 @@ export class CognitiveRuntime {
     this.register(new InputStage());
     this.register(new MemoryStage());
     this.register(new IntentStage());
+    this.register(new BrainStateStage());
     this.register(new ContextStage());
     this.register(new ResponseStage());
   }

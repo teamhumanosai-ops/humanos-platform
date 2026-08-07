@@ -15,6 +15,20 @@ export async function saveMemory(
 ): Promise<void> {
   const analysis = analyzeMemory(key, value);
 
+  const timestamp = new Date().toISOString();
+
+  const graphRecord = {
+    id: key,
+    label: value,
+    entities: analysis.entities,
+    properties: {
+      confidence,
+      kind: analysis.kind,
+      importance: analysis.importance,
+      updatedAt: timestamp,
+    },
+  };
+
   const existing = await db
     .select()
     .from(memories)
@@ -28,20 +42,11 @@ export async function saveMemory(
         confidence,
         kind: analysis.kind,
         importance: analysis.importance,
-        updatedAt: new Date().toISOString(),
+        updatedAt: timestamp,
       })
       .where(eq(memories.key, key));
 
-    memoryGraphAdapter.sync({
-      id: key,
-      label: value,
-      properties: {
-        confidence,
-        kind: analysis.kind,
-        importance: analysis.importance,
-        updatedAt: new Date().toISOString(),
-      },
-    });
+    memoryGraphAdapter.sync(graphRecord);
 
     return;
   }
@@ -52,19 +57,10 @@ export async function saveMemory(
     confidence,
     kind: analysis.kind,
     importance: analysis.importance,
-    updatedAt: new Date().toISOString(),
+    updatedAt: timestamp,
   });
 
-  memoryGraphAdapter.sync({
-    id: key,
-    label: value,
-    properties: {
-      confidence,
-      kind: analysis.kind,
-      importance: analysis.importance,
-      updatedAt: new Date().toISOString(),
-    },
-  });
+  memoryGraphAdapter.sync(graphRecord);
 }
 
 export async function loadMemories(): Promise<Memory[]> {
