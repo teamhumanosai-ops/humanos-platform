@@ -2,6 +2,10 @@ import type { MemoryAnalysis } from "./intelligence";
 
 import { entityAnalyzer } from "./EntityAnalyzer";
 
+import {
+  relationshipAnalyzer,
+} from "./RelationshipAnalyzer";
+
 export interface MemoryAnalyzer {
   analyze(
     key: string,
@@ -21,7 +25,10 @@ export class MemoryAnalysisPipeline {
     initial: MemoryAnalysis
   ): MemoryAnalysis {
     return this.analyzers.reduce(
-      (analysis, analyzer) =>
+      (
+        analysis,
+        analyzer
+      ) =>
         analyzer.analyze(
           key,
           value,
@@ -35,4 +42,5 @@ export class MemoryAnalysisPipeline {
 export const memoryAnalysisPipeline =
   new MemoryAnalysisPipeline([
     entityAnalyzer,
+    relationshipAnalyzer,
   ]);
