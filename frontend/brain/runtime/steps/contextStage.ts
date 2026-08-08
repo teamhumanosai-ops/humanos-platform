@@ -1,17 +1,93 @@
 import { BrainState } from "../../brainState";
-import { BaseStage } from "./baseStage";
 import { buildContext } from "../../context";
+import { graphQuery } from "../../graph";
+import { Intent } from "../../intent";
+import { BaseStage } from "./baseStage";
+
+const REASONING_RELATIONSHIP_TYPES = new Set([
+  "uses",
+  "built_with",
+  "depends_on",
+  "based_on",
+  "created_by",
+  "works_with",
+  "integrates_with",
+  "part_of",
+  "belongs_to",
+]);
+
+function buildReasoningGraphContext(
+  userMessage: string
+): string {
+  const matchedNodes =
+    graphQuery.search(
+      userMessage
+    );
+
+  if (matchedNodes.length === 0) {
+    return "";
+  }
+
+  const sections = new Set<string>();
+
+  for (const node of matchedNodes) {
+    const relationships =
+      graphQuery.getRelationships(
+        node.id
+      );
+
+    for (const relationship of relationships) {
+      if (
+        !REASONING_RELATIONSHIP_TYPES.has(
+          relationship.type
+        )
+      ) {
+        continue;
+      }
+
+      const fromNode =
+        graphQuery.getNode(
+          relationship.from
+        );
+
+      const toNode =
+        graphQuery.getNode(
+          relationship.to
+        );
+
+      if (!fromNode || !toNode) {
+        continue;
+      }
+
+      sections.add(
+        `• ${fromNode.label} ${relationship.type.replace(
+          /_/g,
+          " "
+        )} ${toNode.label}`
+      );
+    }
+  }
+
+  if (sections.size === 0) {
+    return "";
+  }
+
+  return `Relevant Reasoning Graph Relationships:
+
+${[...sections].join("\n")}`;
+}
 
 /**
  * ContextStage
  *
  * Builds the runtime context consumed by
- * reasoning and response stages.
+ * the response stage.
  *
- * Existing Human OS context remains the
- * primary context builder. Runtime-provided
- * live knowledge is appended only when the
- * LiveKnowledgeStage produced results.
+ * Responsibilities:
+ * - Build the existing Human OS context
+ * - Add reasoning-aware graph relationships
+ * - Preserve local skill responses
+ * - Apply intent-specific guidance
  */
 export class ContextStage extends BaseStage {
   readonly name = "Context";
@@ -19,36 +95,41 @@ export class ContextStage extends BaseStage {
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    const baseContext =
+    if (state.response) {
+      return state;
+    }
+
+    let context =
       await buildContext(
         state.userMessage
       );
 
-    if (
-      state.liveKnowledge.length === 0
-    ) {
-      state.context =
-        baseContext;
+    const reasoningGraphContext =
+      buildReasoningGraphContext(
+        state.userMessage
+      );
 
-      return state;
+    if (reasoningGraphContext) {
+      context += `\n\n${reasoningGraphContext}`;
     }
 
-    const liveKnowledgeContext = `
-Relevant Live Web Information:
+    switch (state.intent) {
+      case Intent.STARTUP_PLANNING:
+        context +=
+          "\n\nThe user wants startup advice. Think like an experienced startup founder and advisor.";
+        break;
 
-${state.liveKnowledge.join(
-  "\n\n"
-)}
+      case Intent.LIVE_SEARCH:
+        context +=
+          "\n\nThe user needs current information. Use live search when appropriate.";
+        break;
 
-The information above was retrieved from the web for this request.
+      default:
+        break;
+    }
 
-Use it when answering current-information questions.
-Do not present unavailable or unsupported details as facts.
-`;
-
-    state.context = `${baseContext}
-
-${liveKnowledgeContext}`;
+    state.context =
+      context;
 
     return state;
   }

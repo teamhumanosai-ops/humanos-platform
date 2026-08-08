@@ -10,7 +10,15 @@ export type GraphEdgeType =
   | "references"
   | "belongs_to"
   | "mentions"
-  | "derived_from";
+  | "derived_from"
+  | "uses"
+  | "built_with"
+  | "depends_on"
+  | "based_on"
+  | "created_by"
+  | "works_with"
+  | "integrates_with"
+  | "part_of";
 
 export interface GraphNode {
   id: string;

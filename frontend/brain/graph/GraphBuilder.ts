@@ -1,5 +1,12 @@
-import { graphStore } from "./GraphStore";
-import { GraphEdge, GraphNode, GraphNodeType } from "./types";
+import {
+  graphStore,
+} from "./GraphStore";
+
+import {
+  GraphEdge,
+  GraphNode,
+  GraphNodeType,
+} from "./types";
 
 function now(): string {
   return new Date().toISOString();
@@ -45,7 +52,12 @@ export class GraphBuilder {
     label: string,
     properties: Record<string, unknown> = {}
   ): GraphNode {
-    const node = createNode(id, "memory", label, properties);
+    const node = createNode(
+      id,
+      "memory",
+      label,
+      properties
+    );
 
     if (!graphStore.hasNode(id)) {
       graphStore.addNode(node);
@@ -59,7 +71,12 @@ export class GraphBuilder {
     label: string,
     properties: Record<string, unknown> = {}
   ): GraphNode {
-    const node = createNode(id, "timeline", label, properties);
+    const node = createNode(
+      id,
+      "timeline",
+      label,
+      properties
+    );
 
     if (!graphStore.hasNode(id)) {
       graphStore.addNode(node);
@@ -73,7 +90,12 @@ export class GraphBuilder {
     label: string,
     properties: Record<string, unknown> = {}
   ): GraphNode {
-    const node = createNode(id, "knowledge", label, properties);
+    const node = createNode(
+      id,
+      "knowledge",
+      label,
+      properties
+    );
 
     if (!graphStore.hasNode(id)) {
       graphStore.addNode(node);
@@ -87,7 +109,12 @@ export class GraphBuilder {
     label: string,
     properties: Record<string, unknown> = {}
   ): GraphNode {
-    const node = createNode(id, "entity", label, properties);
+    const node = createNode(
+      id,
+      "entity",
+      label,
+      properties
+    );
 
     if (!graphStore.hasNode(id)) {
       graphStore.addNode(node);
@@ -100,18 +127,27 @@ export class GraphBuilder {
     from: string,
     to: string,
     type: GraphEdge["type"] = "related_to",
-    weight = 1
+    weight = 1,
+    properties: Record<string, unknown> = {}
   ): void {
-    const edgeId = `${from}:${type}:${to}`;
+    const edgeId =
+      `${from}:${type}:${to}`;
 
     if (graphStore.hasEdge(edgeId)) {
       return;
     }
 
     graphStore.addEdge(
-      createEdge(from, to, type, weight)
+      createEdge(
+        from,
+        to,
+        type,
+        weight,
+        properties
+      )
     );
   }
 }
 
-export const graphBuilder = new GraphBuilder();
+export const graphBuilder =
+  new GraphBuilder();
