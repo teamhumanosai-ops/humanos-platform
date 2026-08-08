@@ -1,14 +1,15 @@
 import { BrainState } from "../../brainState";
+import { RuntimeServices } from "../runtimeServices";
 import { BaseStage } from "./baseStage";
-import type { RuntimeServices } from "../runtimeServices";
 
 /**
  * Final stage of the Human OS cognitive workflow.
  *
  * Responsibilities:
- * - Generate the AI response
- * - Preserve responses produced by local skills
- * - Finalize BrainState
+ * - Return an existing local skill response when available
+ * - Generate an AI response when no local response exists
+ * - Store the final response in BrainState
+ * - Finalize runtime response metadata
  */
 export class ResponseStage extends BaseStage {
   readonly name = "Response";
@@ -22,13 +23,29 @@ export class ResponseStage extends BaseStage {
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    if (!state.response) {
-      state.response =
-        await this.services.aiService(
-          state.context ?? "",
-          state.messages
-        );
+    /**
+     * SkillStage may already have produced a
+     * local response. In that case, do not call
+     * the AI service again.
+     */
+    if (state.response) {
+      state.updatedAt = new Date();
+
+      return state;
     }
+
+    /**
+     * Generate the final AI response using the
+     * context and complete conversation history
+     * already stored in BrainState.
+     */
+    state.response =
+      await this.services.aiService(
+        state.context ?? "",
+        state.messages
+      );
+
+    state.updatedAt = new Date();
 
     return state;
   }
