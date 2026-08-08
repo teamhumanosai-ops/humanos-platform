@@ -13,12 +13,9 @@ import { BaseStage } from "./baseStage";
 /**
  * ContextStage
  *
- * Composes structured cognitive context
- * and enriches BrainState with both:
- *
- * 1. The final prompt consumed by ResponseStage
- * 2. Structured knowledge available to
- *    future reasoning/planning/agent stages
+ * Consumes the cognitive information already
+ * hydrated into BrainState and composes the
+ * final context consumed by ResponseStage.
  */
 export class ContextStage
   extends BaseStage {
@@ -33,7 +30,7 @@ export class ContextStage
 
     const structuredContext =
       await buildContext(
-        state.userMessage
+        state
       );
 
     let prompt =

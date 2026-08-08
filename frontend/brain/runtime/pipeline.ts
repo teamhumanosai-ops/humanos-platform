@@ -1,63 +1,24 @@
 import { BrainState } from "../brainState";
 
-import {
-  createStageDiagnostic,
-} from "./diagnostics";
-
-import {
-  RuntimeServices,
-} from "./runtimeServices";
+import { RuntimeServices } from "./runtimeServices";
 
 import { InputStage } from "./steps/inputStage";
-import { IntentStage } from "./steps/intentStage";
-import {
-  LiveKnowledgeStage,
-} from "./steps/liveKnowledgeStage";
-import {
-  MemoryExtractionStage,
-} from "./steps/memoryExtractionStage";
-import {
-  TimelineExtractionStage,
-} from "./steps/timelineExtractionStage";
 import { MemoryStage } from "./steps/memoryStage";
-import {
-  BrainStateStage,
-} from "./steps/brainStateStage";
-import { SkillStage } from "./steps/skillStage";
+import { IntentStage } from "./steps/intentStage";
+import { BrainStateStage } from "./steps/brainStateStage";
 import { ContextStage } from "./steps/contextStage";
-import {
-  ResponseStage,
-} from "./steps/responseStage";
+import { ReasoningStage } from "./steps/reasoningStage";
+import { ResponseStage } from "./steps/responseStage";
 import { Stage } from "./steps/stage";
 
 export class CognitiveRuntime {
-  private readonly stages: Stage[] =
-    [];
+  private readonly stages: Stage[] = [];
 
   constructor(
-    public readonly services:
-      RuntimeServices
+    public readonly services: RuntimeServices
   ) {
     this.register(
       new InputStage()
-    );
-
-    this.register(
-      new IntentStage()
-    );
-
-    this.register(
-      new LiveKnowledgeStage(
-        this.services
-      )
-    );
-
-    this.register(
-      new MemoryExtractionStage()
-    );
-
-    this.register(
-      new TimelineExtractionStage()
     );
 
     this.register(
@@ -65,15 +26,19 @@ export class CognitiveRuntime {
     );
 
     this.register(
+      new IntentStage()
+    );
+
+    this.register(
       new BrainStateStage()
     );
 
     this.register(
-      new SkillStage()
+      new ContextStage()
     );
 
     this.register(
-      new ContextStage()
+      new ReasoningStage()
     );
 
     this.register(
@@ -86,7 +51,9 @@ export class CognitiveRuntime {
   register(
     stage: Stage
   ): void {
-    this.stages.push(stage);
+    this.stages.push(
+      stage
+    );
   }
 
   async execute(
@@ -98,60 +65,10 @@ export class CognitiveRuntime {
       const stage of
       this.stages
     ) {
-      const startedAt =
-        new Date();
-
-      try {
-        current =
-          await stage.execute(
-            current
-          );
-
-        const completedAt =
-          new Date();
-
-        current.executedStages.push(
-          stage.name
+      current =
+        await stage.execute(
+          current
         );
-
-        current.diagnostics.push(
-          createStageDiagnostic(
-            stage.name,
-            startedAt,
-            completedAt
-          )
-        );
-      } catch (error) {
-        const completedAt =
-          new Date();
-
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.executedStages.push(
-          stage.name
-        );
-
-        current.errors.push(
-          message
-        );
-
-        current.diagnostics.push(
-          createStageDiagnostic(
-            stage.name,
-            startedAt,
-            completedAt,
-            message
-          )
-        );
-
-        current.updatedAt =
-          completedAt;
-
-        throw error;
-      }
     }
 
     current.updatedAt =
