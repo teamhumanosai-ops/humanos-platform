@@ -1,11 +1,11 @@
 import { BaseStage } from "./baseStage";
 import { BrainState } from "../../brainState";
 
-import { loadMemories } from "../../memory";
 import { graphQuery } from "../../graph";
 import { profileEngine } from "../../profile/profileEngine";
 import { buildTimelinePrompt } from "../../timeline";
 import { buildReflectionPrompt } from "../../reflection";
+import { enrichmentEngine } from "../../enrichment";
 
 export class BrainStateStage extends BaseStage {
   readonly name = "BrainState";
@@ -13,14 +13,23 @@ export class BrainStateStage extends BaseStage {
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    state.memories =
-      await loadMemories();
-
     state.graph =
       graphQuery.getNodes();
 
     state.profile =
       profileEngine.get();
+
+    if (state.profile) {
+      const enrichmentSuggestion =
+        enrichmentEngine.getNextQuestion(
+          state.profile
+        );
+
+      console.debug(
+        "[Human OS] Next enrichment:",
+        enrichmentSuggestion
+      );
+    }
 
     const timeline =
       await buildTimelinePrompt();

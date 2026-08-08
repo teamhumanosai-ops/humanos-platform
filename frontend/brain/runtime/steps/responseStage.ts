@@ -1,39 +1,34 @@
 import { BrainState } from "../../brainState";
 import { BaseStage } from "./baseStage";
+import type { RuntimeServices } from "../runtimeServices";
 
 /**
  * Final stage of the Human OS cognitive workflow.
  *
  * Responsibilities:
- * - Prepare the final response
- * - Collect runtime diagnostics
+ * - Generate the AI response
+ * - Preserve responses produced by local skills
  * - Finalize BrainState
- *
- * Future:
- * - AI response generation
- * - Response validation
- * - Safety checks
- * - Output formatting
  */
 export class ResponseStage extends BaseStage {
   readonly name = "Response";
 
+  constructor(
+    private readonly services: RuntimeServices
+  ) {
+    super();
+  }
+
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    /**
-     * During Human OS Alpha, the orchestrator
-     * still generates the AI response.
-     *
-     * This stage currently acts as the
-     * runtime completion stage.
-     */
-
     if (!state.response) {
-      state.response = "";
+      state.response =
+        await this.services.aiService(
+          state.context ?? "",
+          state.messages
+        );
     }
-
-    state.updatedAt = new Date();
 
     return state;
   }
