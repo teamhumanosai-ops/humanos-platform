@@ -1,21 +1,52 @@
 import { BrainState } from "../brainState";
 
-import { RuntimeServices } from "./runtimeServices";
+import {
+  RuntimeServices,
+} from "./runtimeServices";
 
-import { InputStage } from "./steps/inputStage";
-import { MemoryStage } from "./steps/memoryStage";
-import { IntentStage } from "./steps/intentStage";
-import { BrainStateStage } from "./steps/brainStateStage";
-import { ContextStage } from "./steps/contextStage";
-import { ReasoningStage } from "./steps/reasoningStage";
-import { ResponseStage } from "./steps/responseStage";
-import { Stage } from "./steps/stage";
+import {
+  InputStage,
+} from "./steps/inputStage";
+
+import {
+  MemoryStage,
+} from "./steps/memoryStage";
+
+import {
+  IntentStage,
+} from "./steps/intentStage";
+
+import {
+  BrainStateStage,
+} from "./steps/brainStateStage";
+
+import {
+  ContextStage,
+} from "./steps/contextStage";
+
+import {
+  ReasoningStage,
+} from "./steps/reasoningStage";
+
+import {
+  PlanningStage,
+} from "./steps/planningStage";
+
+import {
+  ResponseStage,
+} from "./steps/responseStage";
+
+import {
+  Stage,
+} from "./steps/stage";
 
 export class CognitiveRuntime {
-  private readonly stages: Stage[] = [];
+  private readonly stages: Stage[] =
+    [];
 
   constructor(
-    public readonly services: RuntimeServices
+    public readonly services:
+      RuntimeServices
   ) {
     this.register(
       new InputStage()
@@ -39,6 +70,10 @@ export class CognitiveRuntime {
 
     this.register(
       new ReasoningStage()
+    );
+
+    this.register(
+      new PlanningStage()
     );
 
     this.register(
