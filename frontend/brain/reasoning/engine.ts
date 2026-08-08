@@ -1,105 +1,140 @@
-import type {
-  BrainState,
-} from "../brainState";
+import type { BrainState } from "../brainState";
+import type { ReasoningObservation, ReasoningResult } from "./types";
 
-import type {
-  ReasoningResult,
-} from "./types";
-
-function normalize(
-  value: string
-): string {
+function normalize(value: string): string {
   return value
     .replace(/\s+/g, " ")
     .trim();
 }
 
+function limitItems(
+  items: string[],
+  limit = 5
+): string[] {
+  return items
+    .map((item) => normalize(item))
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
 function buildObservations(
   state: BrainState
-): {
-  statement: string;
-  confidence: number;
-}[] {
-  const observations: {
-    statement: string;
-    confidence: number;
-  }[] = [];
+): ReasoningObservation[] {
+  const observations: ReasoningObservation[] = [];
 
   if (state.intent) {
     observations.push({
       statement:
-        `The detected intent is ${state.intent}.`,
+        `The detected intent is "${state.intent}".`,
       confidence: 0.8,
     });
   }
 
-  if (
-    state.memories.length > 0
-  ) {
+  const memoryValues = limitItems(
+    state.memories.map(
+      (memory) => memory.value
+    )
+  );
+
+  if (memoryValues.length > 0) {
     observations.push({
       statement:
-        `Relevant long-term memory is available for this request.`,
+        `Relevant long-term memory includes: ${memoryValues.join("; ")}.`,
       confidence: 0.9,
     });
   }
 
-  if (
-    state.graph.length > 0
-  ) {
+  const graphLabels = limitItems(
+    state.graph.map(
+      (node) => `${node.label} (${node.type})`
+    )
+  );
+
+  if (graphLabels.length > 0) {
     observations.push({
       statement:
-        `Relevant knowledge graph entities are available.`,
+        `Relevant knowledge graph entities include: ${graphLabels.join(", ")}.`,
       confidence: 0.85,
     });
   }
 
-  if (
-    state.graphEdges.length > 0
-  ) {
+  if (state.graphEdges.length > 0) {
+    const relationshipCount =
+      state.graphEdges.length;
+
     observations.push({
       statement:
-        `Relevant relationships are available in the knowledge graph.`,
+        `The knowledge graph contains ${relationshipCount} relevant relationship${
+          relationshipCount === 1
+            ? ""
+            : "s"
+        } for this request.`,
       confidence: 0.85,
     });
   }
 
-  if (
-    state.timeline.length > 0
-  ) {
+  const timelineItems = limitItems(
+    state.timeline
+  );
+
+  if (timelineItems.length > 0) {
     observations.push({
       statement:
-        `Relevant timeline information is available.`,
+        `Relevant timeline information includes: ${timelineItems.join("; ")}.`,
       confidence: 0.85,
     });
   }
 
-  if (
-    state.reflections.length > 0
-  ) {
+  const reflectionItems = limitItems(
+    state.reflections
+  );
+
+  if (reflectionItems.length > 0) {
     observations.push({
       statement:
-        `Relevant reflections are available.`,
+        `Relevant inferred patterns include: ${reflectionItems.join("; ")}.`,
       confidence: 0.8,
     });
   }
 
-  if (
-    state.knowledge.length > 0
-  ) {
+  if (state.knowledge.length > 0) {
+    const knowledgeSources =
+      limitItems(
+        state.knowledge.map(
+          (item) => item.source
+        )
+      );
+
     observations.push({
       statement:
-        `Relevant knowledge retrieval results are available.`,
+        knowledgeSources.length > 0
+          ? `Knowledge retrieval returned ${state.knowledge.length} relevant result${
+              state.knowledge.length === 1
+                ? ""
+                : "s"
+            } from: ${knowledgeSources.join(", ")}.`
+          : `Knowledge retrieval returned ${state.knowledge.length} relevant result${
+              state.knowledge.length === 1
+                ? ""
+                : "s"
+            }.`,
       confidence: 0.9,
     });
   }
 
-  if (
-    state.liveKnowledge.length > 0
-  ) {
+  if (state.liveKnowledge.length > 0) {
     observations.push({
       statement:
         `Current external knowledge was retrieved for this request.`,
       confidence: 0.95,
+    });
+  }
+
+  if (state.profile) {
+    observations.push({
+      statement:
+        `A user profile is available to personalize the reasoning.`,
+      confidence: 0.85,
     });
   }
 
@@ -109,40 +144,40 @@ function buildObservations(
 export function reason(
   state: BrainState
 ): ReasoningResult {
-  const observations =
-    buildObservations(
-      state
-    );
-
   const userRequest =
-    normalize(
-      state.userMessage
-    );
+    normalize(state.userMessage);
 
-  const summary =
-    observations.length > 0
-      ? `The request "${userRequest}" can be answered using the available cognitive context and ${observations.length} relevant observations.`
-      : `The request "${userRequest}" does not currently have additional structured reasoning evidence.`;
+  const observations =
+    buildObservations(state);
+
+  if (observations.length === 0) {
+    return {
+      summary:
+        `The request "${userRequest}" does not currently have additional structured reasoning evidence.`,
+
+      observations: [],
+
+      confidence: 0.5,
+    };
+  }
 
   const confidence =
-    observations.length === 0
-      ? 0.5
-      : observations.reduce(
-          (
-            total,
-            observation
-          ) =>
-            total +
-            observation.confidence,
-          0
-        ) /
-        observations.length;
+    observations.reduce(
+      (total, observation) =>
+        total + observation.confidence,
+      0
+    ) / observations.length;
+
+  const summary =
+    `The request "${userRequest}" was evaluated against ${observations.length} available cognitive signal${
+      observations.length === 1
+        ? ""
+        : "s"
+    }.`;
 
   return {
     summary,
-
     observations,
-
     confidence,
   };
 }
