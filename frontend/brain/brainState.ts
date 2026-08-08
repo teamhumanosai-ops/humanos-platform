@@ -70,6 +70,8 @@ export type BrainState = {
 
   decision: string | null;
 
+  execution: string | null;
+
   response: string | null;
 
   /*
@@ -158,6 +160,8 @@ export function createBrainState(
     plan: null,
 
     decision: null,
+
+    execution: null,
 
     response: null,
 

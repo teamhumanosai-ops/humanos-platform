@@ -33,6 +33,14 @@ import {
 } from "./steps/planningStage";
 
 import {
+  DecisionStage,
+} from "./steps/decisionStage";
+
+import {
+  ExecutionStage,
+} from "./steps/executionStage";
+
+import {
   ResponseStage,
 } from "./steps/responseStage";
 
@@ -41,8 +49,8 @@ import {
 } from "./steps/stage";
 
 export class CognitiveRuntime {
-  private readonly stages: Stage[] =
-    [];
+  private readonly stages:
+    Stage[] = [];
 
   constructor(
     public readonly services:
@@ -74,6 +82,14 @@ export class CognitiveRuntime {
 
     this.register(
       new PlanningStage()
+    );
+
+    this.register(
+      new DecisionStage()
+    );
+
+    this.register(
+      new ExecutionStage()
     );
 
     this.register(
