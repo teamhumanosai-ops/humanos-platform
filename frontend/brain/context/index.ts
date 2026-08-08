@@ -1,133 +1,134 @@
-import type { BrainState } from "../brainState";
+import { buildMemoryPrompt } from "../memory";
 
-function formatSection(
-  title: string,
-  content: string[]
-): string {
-  if (content.length === 0) {
-    return "";
-  }
+import {
+  buildTimelinePrompt,
+} from "../timeline";
 
-  return `${title}:\n${content
-    .map((item) => `- ${item}`)
-    .join("\n")}`;
+import {
+  buildReflectionPrompt,
+} from "../reflection";
+
+import {
+  buildKnowledgeContext,
+} from "./knowledge";
+
+import {
+  profileEngine,
+} from "../profile/profileEngine";
+
+import type {
+  HumanProfile,
+} from "../profile/types";
+
+import type {
+  BrainKnowledge,
+} from "../brainState";
+
+export type StructuredContext = {
+  prompt: string;
+
+  memory: string;
+
+  knowledge: BrainKnowledge[];
+
+  timeline: string;
+
+  reflections: string;
+
+  profile: HumanProfile | null;
+};
+
+export async function buildContext(
+  userMessage: string
+): Promise<StructuredContext> {
+  const profile =
+    profileEngine.get();
+
+  const memory =
+    await buildMemoryPrompt();
+
+  const timeline =
+    await buildTimelinePrompt();
+
+  const reflections =
+    await buildReflectionPrompt();
+
+  const knowledgeContext =
+    await buildKnowledgeContext(
+      userMessage
+    );
+
+  let profileContext =
+    "";
+
+  if (profile) {
+    profileContext = `
+Current Human Profile:
+
+Name:
+${profile.identity.fullName}
+
+Mission:
+${
+  profile.mission.currentMission ??
+  "Unknown"
 }
 
-/**
- * Builds the cognitive context from the
- * already-hydrated BrainState.
- *
- * This function intentionally does not
- * retrieve memory, graph, timeline, profile,
- * or reflection data itself.
- *
- * BrainStateStage owns hydration.
- * Context owns composition.
- */
-export function buildContext(
-  state: BrainState
-): string {
-  const sections: string[] = [];
+Biggest Goal:
+${
+  profile.mission.biggestGoal ??
+  "Unknown"
+}
 
-  const memories =
-    state.memories.map(
-      (memory) =>
-        `${memory.key}: ${memory.value}`
-    );
+Communication Style:
+${
+  profile.personality
+    .communicationStyle ??
+  "Natural"
+}
 
-  const memorySection =
-    formatSection(
-      "Known facts about the user",
-      memories
-    );
+Use this information naturally.
 
-  if (memorySection) {
-    sections.push(
-      memorySection
-    );
+Do not mention it unless it helps answer the user's request.
+`;
   }
 
-  const timelineSection =
-    formatSection(
-      "Relevant timeline",
-      state.timeline
-    );
+  const prompt = `
+${profileContext}
 
-  if (timelineSection) {
-    sections.push(
-      timelineSection
-    );
-  }
+${memory}
 
-  const reflectionSection =
-    formatSection(
-      "Reflections",
-      state.reflections
-    );
+${timeline}
 
-  if (reflectionSection) {
-    sections.push(
-      reflectionSection
-    );
-  }
+${reflections}
 
-  const graphSection =
-    formatSection(
-      "Knowledge Graph",
-      state.graph.map(
-        (node) =>
-          `${node.type}: ${node.label}`
-      )
-    );
+${knowledgeContext.prompt}
 
-  if (graphSection) {
-    sections.push(
-      graphSection
-    );
-  }
+Human OS has access to its own Knowledge Base.
 
-  if (state.profile) {
-    sections.push(
-      `User Profile:\n${JSON.stringify(
-        state.profile,
-        null,
-        2
-      )}`
-    );
-  }
+Use the user's memories, timeline, and reflections naturally when they help answer the user's request.
 
-  if (
-    state.knowledge.length > 0
-  ) {
-    sections.push(
-      formatSection(
-        "Knowledge",
-        state.knowledge
-      )
-    );
-  }
+Reflections represent inferred long-term patterns, not direct user statements.
 
-  if (
-    state.liveKnowledge.length > 0
-  ) {
-    sections.push(
-      formatSection(
-        "Live Knowledge",
-        state.liveKnowledge
-      )
-    );
-  }
+If relevant information exists in the Knowledge Base,
+prefer using it instead of relying on general model knowledge.
 
-  sections.push(`
-Human OS uses its internal cognitive state to answer questions.
+If no relevant knowledge exists,
+answer normally.
+`;
 
-Use the available context when relevant.
-Prefer known facts over assumptions.
-Never invent personal facts.
-When current information is required, use live knowledge when available.
-`);
+  return {
+    prompt,
 
-  return sections
-    .filter(Boolean)
-    .join("\n\n");
+    memory,
+
+    knowledge:
+      knowledgeContext.results,
+
+    timeline,
+
+    reflections,
+
+    profile,
+  };
 }

@@ -1,28 +1,51 @@
-import { retrieveKnowledge } from "../knowledge";
-import { graphQuery } from "../graph";
+import {
+  retrieveKnowledgeResults,
+} from "../knowledge";
+
+import type {
+  RetrievalResult,
+} from "../knowledge/retrievalPipeline";
+
+import {
+  graphQuery,
+} from "../graph";
+
+export type KnowledgeContext = {
+  prompt: string;
+
+  results: RetrievalResult[];
+
+  graphPrompt: string;
+};
 
 export async function buildKnowledgeContext(
   userMessage: string
-): Promise<string> {
-  const knowledge =
-    await retrieveKnowledge(userMessage);
+): Promise<KnowledgeContext> {
+  const results =
+    await retrieveKnowledgeResults(
+      userMessage
+    );
 
   const graphNodes =
-    graphQuery.search(userMessage);
+    graphQuery.search(
+      userMessage
+    );
 
-  if (graphNodes.length === 0) {
-    return knowledge;
-  }
+  const graphSections: string[] =
+    [];
 
-  const sections: string[] = [];
-
-  for (const node of graphNodes) {
+  for (
+    const node of graphNodes
+  ) {
     const subgraph =
-      graphQuery.getConnectedSubgraph(node.id);
+      graphQuery.getConnectedSubgraph(
+        node.id
+      );
 
-    sections.push(
+    graphSections.push(
       [
         `${node.label} (${node.type})`,
+
         ...subgraph.neighbors.map(
           (neighbor) =>
             `  • ${neighbor.label} (${neighbor.type})`
@@ -31,15 +54,46 @@ export async function buildKnowledgeContext(
     );
   }
 
-  const graphContext = `Relevant Knowledge Graph Information:
+  const graphPrompt =
+    graphSections.length > 0
+      ? `Relevant Knowledge Graph Information:
 
-${sections.join("\n\n")}`;
+${graphSections.join(
+  "\n\n"
+)}`
+      : "";
 
-  if (!knowledge.trim()) {
-    return graphContext;
-  }
+  const knowledgePrompt =
+    results.length > 0
+      ? `Relevant Knowledge Base Information:
 
-  return `${knowledge}
+${results
+  .map(
+    (result) => `
+Source: ${result.source}
+Score: ${result.score.toFixed(6)}
 
-${graphContext}`;
+${result.text}
+`
+  )
+  .join("\n")}`
+      : "";
+
+  const prompt = [
+    knowledgePrompt,
+    graphPrompt,
+  ]
+    .filter(
+      (section) =>
+        section.trim().length > 0
+    )
+    .join("\n\n");
+
+  return {
+    prompt,
+
+    results,
+
+    graphPrompt,
+  };
 }

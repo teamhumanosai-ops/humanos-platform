@@ -1,19 +1,28 @@
 import { BrainState } from "../../brainState";
-import { buildContext } from "../../context";
-import { Intent } from "../../intent";
+
+import {
+  buildContext,
+} from "../../context";
+
+import {
+  Intent,
+} from "../../intent";
 
 import { BaseStage } from "./baseStage";
 
 /**
  * ContextStage
  *
- * Composes the already-hydrated BrainState
- * into the context consumed by ResponseStage.
+ * Composes structured cognitive context
+ * and enriches BrainState with both:
+ *
+ * 1. The final prompt consumed by ResponseStage
+ * 2. Structured knowledge available to
+ *    future reasoning/planning/agent stages
  */
 export class ContextStage
   extends BaseStage {
-  readonly name =
-    "Context";
+  readonly name = "Context";
 
   protected async process(
     state: BrainState
@@ -22,37 +31,34 @@ export class ContextStage
       return state;
     }
 
-    let context =
-      buildContext(state);
+    const structuredContext =
+      await buildContext(
+        state.userMessage
+      );
 
-    if (
-      state.intent ===
-      Intent.LIVE_SEARCH
-    ) {
-      context += `
+    let prompt =
+      structuredContext.prompt;
 
-LIVE KNOWLEDGE POLICY:
+    switch (state.intent) {
+      case Intent.STARTUP_PLANNING:
+        prompt +=
+          "\n\nThe user wants startup advice. Think like an experienced startup founder and advisor.";
+        break;
 
-This request requires current information.
+      case Intent.LIVE_SEARCH:
+        prompt +=
+          "\n\nThe user needs current information. Use live search when appropriate.";
+        break;
 
-LIVE WEB EVIDENCE IS AUTHORITATIVE FOR THIS REQUEST.
-
-Use the live web evidence supplied below as the primary factual basis for the answer.
-
-Do NOT say that you lack real-time access when live web evidence is present.
-
-Do NOT replace current web evidence with your training-memory knowledge.
-
-If sources disagree, explicitly say that they disagree and identify the disagreement.
-
-When giving factual claims derived from the web, include source links from the supplied evidence.
-
-If the supplied live evidence does not contain enough information to answer confidently, say that the available sources were insufficient instead of guessing.
-`;
+      default:
+        break;
     }
 
     state.context =
-      context;
+      prompt;
+
+    state.knowledge =
+      structuredContext.knowledge;
 
     return state;
   }

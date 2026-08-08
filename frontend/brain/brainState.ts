@@ -1,4 +1,17 @@
 import type {
+  GraphEdge,
+  GraphNode,
+} from "./graph";
+
+import type {
+  Memory,
+} from "./memory";
+
+import type {
+  HumanProfile,
+} from "./profile/types";
+
+import type {
   CitationSource,
 } from "./websearch/citations";
 
@@ -7,12 +20,39 @@ export type ConversationMessage = {
   message: string;
 };
 
+export type BrainKnowledge = {
+  source: string;
+  text: string;
+  score: number;
+};
+
+export type BrainDiagnostic = {
+  stage: string;
+  startedAt: Date;
+  completedAt: Date;
+  durationMs: number;
+  success: boolean;
+  error: string | null;
+};
+
 export type BrainState = {
+  /*
+  |--------------------------------------------------------------------------
+  | Conversation
+  |--------------------------------------------------------------------------
+  */
+
   conversation: string;
 
   messages: ConversationMessage[];
 
   userMessage: string;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Cognitive State
+  |--------------------------------------------------------------------------
+  */
 
   intent: string | null;
 
@@ -20,11 +60,9 @@ export type BrainState = {
 
   memory: string[];
 
-  knowledge: string[];
+  knowledge: BrainKnowledge[];
 
   liveKnowledge: string[];
-
-  citations: CitationSource[];
 
   reasoning: string | null;
 
@@ -34,17 +72,31 @@ export type BrainState = {
 
   response: string | null;
 
-  memories: import("./memory").Memory[];
+  /*
+  |--------------------------------------------------------------------------
+  | Unified Brain Context
+  |--------------------------------------------------------------------------
+  */
 
-  graph: import("./graph").GraphNode[];
+  memories: Memory[];
 
-  graphEdges: import("./graph").GraphEdge[];
+  graph: GraphNode[];
+
+  graphEdges: GraphEdge[];
 
   timeline: string[];
 
   reflections: string[];
 
-  profile: import("./profile/types").HumanProfile | null;
+  profile: HumanProfile | null;
+
+  citations: CitationSource[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Runtime Context
+  |--------------------------------------------------------------------------
+  */
 
   currentGoal: string | null;
 
@@ -54,18 +106,23 @@ export type BrainState = {
 
   currentExecutionId: string | null;
 
+  /*
+  |--------------------------------------------------------------------------
+  | Runtime Diagnostics
+  |--------------------------------------------------------------------------
+  */
+
   executedStages: string[];
 
-  diagnostics: {
-    stage: string;
-    startedAt: Date;
-    completedAt: Date;
-    durationMs: number;
-    success: boolean;
-    error: string | null;
-  }[];
+  diagnostics: BrainDiagnostic[];
 
   errors: string[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Metadata
+  |--------------------------------------------------------------------------
+  */
 
   createdAt: Date;
 
@@ -96,8 +153,6 @@ export function createBrainState(
 
     liveKnowledge: [],
 
-    citations: [],
-
     reasoning: null,
 
     plan: null,
@@ -117,6 +172,8 @@ export function createBrainState(
     reflections: [],
 
     profile: null,
+
+    citations: [],
 
     currentGoal: null,
 
