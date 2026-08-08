@@ -1,39 +1,18 @@
-import type { GraphNode } from "./graph";
-import type { Memory } from "./memory";
-import type { HumanProfile } from "./profile/types";
+import type {
+  CitationSource,
+} from "./websearch/citations";
 
 export type ConversationMessage = {
   role: "user" | "assistant";
   message: string;
 };
 
-export type StageDiagnostic = {
-  stage: string;
-  startedAt: Date;
-  completedAt: Date;
-  durationMs: number;
-  success: boolean;
-  error: string | null;
-};
-
 export type BrainState = {
-  /*
-  |--------------------------------------------------------------------------
-  | Conversation
-  |--------------------------------------------------------------------------
-  */
-
   conversation: string;
 
   messages: ConversationMessage[];
 
   userMessage: string;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Cognitive State
-  |--------------------------------------------------------------------------
-  */
 
   intent: string | null;
 
@@ -45,6 +24,8 @@ export type BrainState = {
 
   liveKnowledge: string[];
 
+  citations: CitationSource[];
+
   reasoning: string | null;
 
   plan: string | null;
@@ -53,27 +34,17 @@ export type BrainState = {
 
   response: string | null;
 
-  /*
-  |--------------------------------------------------------------------------
-  | Unified Brain Context
-  |--------------------------------------------------------------------------
-  */
+  memories: import("./memory").Memory[];
 
-  memories: Memory[];
+  graph: import("./graph").GraphNode[];
 
-  graph: GraphNode[];
+  graphEdges: import("./graph").GraphEdge[];
 
   timeline: string[];
 
   reflections: string[];
 
-  profile: HumanProfile | null;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Runtime Context
-  |--------------------------------------------------------------------------
-  */
+  profile: import("./profile/types").HumanProfile | null;
 
   currentGoal: string | null;
 
@@ -83,23 +54,18 @@ export type BrainState = {
 
   currentExecutionId: string | null;
 
-  /*
-  |--------------------------------------------------------------------------
-  | Diagnostics
-  |--------------------------------------------------------------------------
-  */
-
   executedStages: string[];
 
-  diagnostics: StageDiagnostic[];
+  diagnostics: {
+    stage: string;
+    startedAt: Date;
+    completedAt: Date;
+    durationMs: number;
+    success: boolean;
+    error: string | null;
+  }[];
 
   errors: string[];
-
-  /*
-  |--------------------------------------------------------------------------
-  | Metadata
-  |--------------------------------------------------------------------------
-  */
 
   createdAt: Date;
 
@@ -130,6 +96,8 @@ export function createBrainState(
 
     liveKnowledge: [],
 
+    citations: [],
+
     reasoning: null,
 
     plan: null,
@@ -141,6 +109,8 @@ export function createBrainState(
     memories: [],
 
     graph: [],
+
+    graphEdges: [],
 
     timeline: [],
 

@@ -1,73 +1,133 @@
-import { buildMemoryPrompt } from "../memory";
-import { buildTimelinePrompt } from "../timeline";
-import { buildReflectionPrompt } from "../reflection";
-import { buildKnowledgeContext } from "./knowledge";
-import { profileEngine } from "../profile/profileEngine";
+import type { BrainState } from "../brainState";
 
-export async function buildContext(
-  userMessage: string
-): Promise<string> {
-  const profile = profileEngine.get();
-
-  const memory = await buildMemoryPrompt();
-
-  const timeline =
-    await buildTimelinePrompt();
-
-  const reflections =
-    await buildReflectionPrompt();
-
-  const knowledge =
-    await buildKnowledgeContext(userMessage);
-
-  let profileContext = "";
-
-  if (profile) {
-    profileContext = `
-Current Human Profile:
-
-Name:
-${profile.identity.fullName}
-
-Mission:
-${profile.mission.currentMission ?? "Unknown"}
-
-Biggest Goal:
-${profile.mission.biggestGoal ?? "Unknown"}
-
-Communication Style:
-${
-  profile.personality.communicationStyle ??
-  "Natural"
-}
-
-Use this information naturally.
-
-Do not mention it unless it helps answer the user's request.
-`;
+function formatSection(
+  title: string,
+  content: string[]
+): string {
+  if (content.length === 0) {
+    return "";
   }
 
-  return `
-${profileContext}
+  return `${title}:\n${content
+    .map((item) => `- ${item}`)
+    .join("\n")}`;
+}
 
-${memory}
+/**
+ * Builds the cognitive context from the
+ * already-hydrated BrainState.
+ *
+ * This function intentionally does not
+ * retrieve memory, graph, timeline, profile,
+ * or reflection data itself.
+ *
+ * BrainStateStage owns hydration.
+ * Context owns composition.
+ */
+export function buildContext(
+  state: BrainState
+): string {
+  const sections: string[] = [];
 
-${timeline}
+  const memories =
+    state.memories.map(
+      (memory) =>
+        `${memory.key}: ${memory.value}`
+    );
 
-${reflections}
+  const memorySection =
+    formatSection(
+      "Known facts about the user",
+      memories
+    );
 
-${knowledge}
+  if (memorySection) {
+    sections.push(
+      memorySection
+    );
+  }
 
-Human OS has access to its own Knowledge Base.
+  const timelineSection =
+    formatSection(
+      "Relevant timeline",
+      state.timeline
+    );
 
-Use the user's memories, timeline, and reflections naturally when they help answer the user's request.
+  if (timelineSection) {
+    sections.push(
+      timelineSection
+    );
+  }
 
-Reflections represent inferred long-term patterns, not direct user statements.
+  const reflectionSection =
+    formatSection(
+      "Reflections",
+      state.reflections
+    );
 
-If relevant information exists in the Knowledge Base,
-prefer using it instead of relying on general model knowledge.
+  if (reflectionSection) {
+    sections.push(
+      reflectionSection
+    );
+  }
 
-If no relevant knowledge exists,
-answer normally.
-`;
+  const graphSection =
+    formatSection(
+      "Knowledge Graph",
+      state.graph.map(
+        (node) =>
+          `${node.type}: ${node.label}`
+      )
+    );
+
+  if (graphSection) {
+    sections.push(
+      graphSection
+    );
+  }
+
+  if (state.profile) {
+    sections.push(
+      `User Profile:\n${JSON.stringify(
+        state.profile,
+        null,
+        2
+      )}`
+    );
+  }
+
+  if (
+    state.knowledge.length > 0
+  ) {
+    sections.push(
+      formatSection(
+        "Knowledge",
+        state.knowledge
+      )
+    );
+  }
+
+  if (
+    state.liveKnowledge.length > 0
+  ) {
+    sections.push(
+      formatSection(
+        "Live Knowledge",
+        state.liveKnowledge
+      )
+    );
+  }
+
+  sections.push(`
+Human OS uses its internal cognitive state to answer questions.
+
+Use the available context when relevant.
+Prefer known facts over assumptions.
+Never invent personal facts.
+When current information is required, use live knowledge when available.
+`);
+
+  return sections
+    .filter(Boolean)
+    .join("\n\n");
 }

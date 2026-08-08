@@ -1,96 +1,19 @@
 import { BrainState } from "../../brainState";
 import { buildContext } from "../../context";
-import { graphQuery } from "../../graph";
 import { Intent } from "../../intent";
+
 import { BaseStage } from "./baseStage";
-
-const REASONING_RELATIONSHIP_TYPES = new Set([
-  "uses",
-  "built_with",
-  "depends_on",
-  "based_on",
-  "created_by",
-  "works_with",
-  "integrates_with",
-  "part_of",
-  "belongs_to",
-]);
-
-function buildReasoningGraphContext(
-  userMessage: string
-): string {
-  const matchedNodes =
-    graphQuery.search(
-      userMessage
-    );
-
-  if (matchedNodes.length === 0) {
-    return "";
-  }
-
-  const sections = new Set<string>();
-
-  for (const node of matchedNodes) {
-    const relationships =
-      graphQuery.getRelationships(
-        node.id
-      );
-
-    for (const relationship of relationships) {
-      if (
-        !REASONING_RELATIONSHIP_TYPES.has(
-          relationship.type
-        )
-      ) {
-        continue;
-      }
-
-      const fromNode =
-        graphQuery.getNode(
-          relationship.from
-        );
-
-      const toNode =
-        graphQuery.getNode(
-          relationship.to
-        );
-
-      if (!fromNode || !toNode) {
-        continue;
-      }
-
-      sections.add(
-        `• ${fromNode.label} ${relationship.type.replace(
-          /_/g,
-          " "
-        )} ${toNode.label}`
-      );
-    }
-  }
-
-  if (sections.size === 0) {
-    return "";
-  }
-
-  return `Relevant Reasoning Graph Relationships:
-
-${[...sections].join("\n")}`;
-}
 
 /**
  * ContextStage
  *
- * Builds the runtime context consumed by
- * the response stage.
- *
- * Responsibilities:
- * - Build the existing Human OS context
- * - Add reasoning-aware graph relationships
- * - Preserve local skill responses
- * - Apply intent-specific guidance
+ * Composes the already-hydrated BrainState
+ * into the context consumed by ResponseStage.
  */
-export class ContextStage extends BaseStage {
-  readonly name = "Context";
+export class ContextStage
+  extends BaseStage {
+  readonly name =
+    "Context";
 
   protected async process(
     state: BrainState
@@ -100,32 +23,32 @@ export class ContextStage extends BaseStage {
     }
 
     let context =
-      await buildContext(
-        state.userMessage
-      );
+      buildContext(state);
 
-    const reasoningGraphContext =
-      buildReasoningGraphContext(
-        state.userMessage
-      );
+    if (
+      state.intent ===
+      Intent.LIVE_SEARCH
+    ) {
+      context += `
 
-    if (reasoningGraphContext) {
-      context += `\n\n${reasoningGraphContext}`;
-    }
+LIVE KNOWLEDGE POLICY:
 
-    switch (state.intent) {
-      case Intent.STARTUP_PLANNING:
-        context +=
-          "\n\nThe user wants startup advice. Think like an experienced startup founder and advisor.";
-        break;
+This request requires current information.
 
-      case Intent.LIVE_SEARCH:
-        context +=
-          "\n\nThe user needs current information. Use live search when appropriate.";
-        break;
+LIVE WEB EVIDENCE IS AUTHORITATIVE FOR THIS REQUEST.
 
-      default:
-        break;
+Use the live web evidence supplied below as the primary factual basis for the answer.
+
+Do NOT say that you lack real-time access when live web evidence is present.
+
+Do NOT replace current web evidence with your training-memory knowledge.
+
+If sources disagree, explicitly say that they disagree and identify the disagreement.
+
+When giving factual claims derived from the web, include source links from the supplied evidence.
+
+If the supplied live evidence does not contain enough information to answer confidently, say that the available sources were insufficient instead of guessing.
+`;
     }
 
     state.context =

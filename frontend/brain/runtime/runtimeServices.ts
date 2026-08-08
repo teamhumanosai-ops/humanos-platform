@@ -7,8 +7,9 @@ export type RuntimeServices = {
   searchWeb: typeof searchWeb;
 };
 
-export const runtimeServices: RuntimeServices = {
-  aiService,
+export const runtimeServices:
+  RuntimeServices = {
+    aiService,
 
-  searchWeb,
-};
+    searchWeb,
+  };

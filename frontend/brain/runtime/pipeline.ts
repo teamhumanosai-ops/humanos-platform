@@ -4,24 +4,39 @@ import {
   createStageDiagnostic,
 } from "./diagnostics";
 
-import { RuntimeServices } from "./runtimeServices";
+import {
+  RuntimeServices,
+} from "./runtimeServices";
 
 import { InputStage } from "./steps/inputStage";
 import { IntentStage } from "./steps/intentStage";
-import { MemoryExtractionStage } from "./steps/memoryExtractionStage";
-import { TimelineExtractionStage } from "./steps/timelineExtractionStage";
+import {
+  LiveKnowledgeStage,
+} from "./steps/liveKnowledgeStage";
+import {
+  MemoryExtractionStage,
+} from "./steps/memoryExtractionStage";
+import {
+  TimelineExtractionStage,
+} from "./steps/timelineExtractionStage";
 import { MemoryStage } from "./steps/memoryStage";
-import { BrainStateStage } from "./steps/brainStateStage";
+import {
+  BrainStateStage,
+} from "./steps/brainStateStage";
 import { SkillStage } from "./steps/skillStage";
 import { ContextStage } from "./steps/contextStage";
-import { ResponseStage } from "./steps/responseStage";
+import {
+  ResponseStage,
+} from "./steps/responseStage";
 import { Stage } from "./steps/stage";
 
 export class CognitiveRuntime {
-  private readonly stages: Stage[] = [];
+  private readonly stages: Stage[] =
+    [];
 
   constructor(
-    public readonly services: RuntimeServices
+    public readonly services:
+      RuntimeServices
   ) {
     this.register(
       new InputStage()
@@ -29,6 +44,12 @@ export class CognitiveRuntime {
 
     this.register(
       new IntentStage()
+    );
+
+    this.register(
+      new LiveKnowledgeStage(
+        this.services
+      )
     );
 
     this.register(
@@ -62,7 +83,9 @@ export class CognitiveRuntime {
     );
   }
 
-  register(stage: Stage): void {
+  register(
+    stage: Stage
+  ): void {
     this.stages.push(stage);
   }
 
@@ -71,7 +94,10 @@ export class CognitiveRuntime {
   ): Promise<BrainState> {
     let current = state;
 
-    for (const stage of this.stages) {
+    for (
+      const stage of
+      this.stages
+    ) {
       const startedAt =
         new Date();
 
@@ -134,7 +160,8 @@ export class CognitiveRuntime {
     return current;
   }
 
-  getStages(): readonly Stage[] {
+  getStages():
+    readonly Stage[] {
     return this.stages;
   }
 }

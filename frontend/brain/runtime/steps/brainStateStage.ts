@@ -1,35 +1,43 @@
 import { BaseStage } from "./baseStage";
+
 import { BrainState } from "../../brainState";
 
-import { graphQuery } from "../../graph";
-import { profileEngine } from "../../profile/profileEngine";
-import { buildTimelinePrompt } from "../../timeline";
-import { buildReflectionPrompt } from "../../reflection";
-import { enrichmentEngine } from "../../enrichment";
+import {
+  graphQuery,
+} from "../../graph";
 
-export class BrainStateStage extends BaseStage {
+import { loadMemories } from "../../memory";
+
+import {
+  profileEngine,
+} from "../../profile/profileEngine";
+
+import {
+  buildTimelinePrompt,
+} from "../../timeline";
+
+import {
+  buildReflectionPrompt,
+} from "../../reflection";
+
+export class BrainStateStage
+  extends BaseStage {
   readonly name = "BrainState";
 
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
+    state.memories =
+      await loadMemories();
+
     state.graph =
       graphQuery.getNodes();
 
+    state.graphEdges =
+      graphQuery.getEdges();
+
     state.profile =
       profileEngine.get();
-
-    if (state.profile) {
-      const enrichmentSuggestion =
-        enrichmentEngine.getNextQuestion(
-          state.profile
-        );
-
-      console.debug(
-        "[Human OS] Next enrichment:",
-        enrichmentSuggestion
-      );
-    }
 
     const timeline =
       await buildTimelinePrompt();
@@ -37,7 +45,10 @@ export class BrainStateStage extends BaseStage {
     state.timeline =
       timeline
         .split("\n")
-        .map((line) => line.trim())
+        .map(
+          (line) =>
+            line.trim()
+        )
         .filter(Boolean);
 
     const reflections =
@@ -46,7 +57,10 @@ export class BrainStateStage extends BaseStage {
     state.reflections =
       reflections
         .split("\n")
-        .map((line) => line.trim())
+        .map(
+          (line) =>
+            line.trim()
+        )
         .filter(Boolean);
 
     return state;
