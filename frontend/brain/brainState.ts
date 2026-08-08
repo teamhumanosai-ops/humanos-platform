@@ -7,6 +7,15 @@ export type ConversationMessage = {
   message: string;
 };
 
+export type StageDiagnostic = {
+  stage: string;
+  startedAt: Date;
+  completedAt: Date;
+  durationMs: number;
+  success: boolean;
+  error: string | null;
+};
+
 export type BrainState = {
   /*
   |--------------------------------------------------------------------------
@@ -33,6 +42,8 @@ export type BrainState = {
   memory: string[];
 
   knowledge: string[];
+
+  liveKnowledge: string[];
 
   reasoning: string | null;
 
@@ -80,6 +91,8 @@ export type BrainState = {
 
   executedStages: string[];
 
+  diagnostics: StageDiagnostic[];
+
   errors: string[];
 
   /*
@@ -115,6 +128,8 @@ export function createBrainState(
 
     knowledge: [],
 
+    liveKnowledge: [],
+
     reasoning: null,
 
     plan: null,
@@ -142,6 +157,8 @@ export function createBrainState(
     currentExecutionId: null,
 
     executedStages: [],
+
+    diagnostics: [],
 
     errors: [],
 

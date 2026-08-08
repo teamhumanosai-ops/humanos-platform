@@ -1,16 +1,17 @@
 import { BrainState } from "../../brainState";
 import { BaseStage } from "./baseStage";
 import { buildContext } from "../../context";
-import { Intent } from "../../intent";
 
 /**
  * ContextStage
  *
  * Builds the runtime context consumed by
- * the response stage.
+ * reasoning and response stages.
  *
- * If a local skill has already produced a
- * response, context generation is skipped.
+ * Existing Human OS context remains the
+ * primary context builder. Runtime-provided
+ * live knowledge is appended only when the
+ * LiveKnowledgeStage produced results.
  */
 export class ContextStage extends BaseStage {
   readonly name = "Context";
@@ -18,30 +19,36 @@ export class ContextStage extends BaseStage {
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    if (state.response) {
+    const baseContext =
+      await buildContext(
+        state.userMessage
+      );
+
+    if (
+      state.liveKnowledge.length === 0
+    ) {
+      state.context =
+        baseContext;
+
       return state;
     }
 
-    let context = await buildContext(
-      state.userMessage
-    );
+    const liveKnowledgeContext = `
+Relevant Live Web Information:
 
-    switch (state.intent) {
-      case Intent.STARTUP_PLANNING:
-        context +=
-          "\n\nThe user wants startup advice. Think like an experienced startup founder and advisor.";
-        break;
+${state.liveKnowledge.join(
+  "\n\n"
+)}
 
-      case Intent.LIVE_SEARCH:
-        context +=
-          "\n\nThe user needs current information. Use live search when appropriate.";
-        break;
+The information above was retrieved from the web for this request.
 
-      default:
-        break;
-    }
+Use it when answering current-information questions.
+Do not present unavailable or unsupported details as facts.
+`;
 
-    state.context = context;
+    state.context = `${baseContext}
+
+${liveKnowledgeContext}`;
 
     return state;
   }

@@ -1,5 +1,9 @@
 import { BrainState } from "../brainState";
 
+import {
+  createStageDiagnostic,
+} from "./diagnostics";
+
 import { RuntimeServices } from "./runtimeServices";
 
 import { InputStage } from "./steps/inputStage";
@@ -19,9 +23,13 @@ export class CognitiveRuntime {
   constructor(
     public readonly services: RuntimeServices
   ) {
-    this.register(new InputStage());
+    this.register(
+      new InputStage()
+    );
 
-    this.register(new IntentStage());
+    this.register(
+      new IntentStage()
+    );
 
     this.register(
       new MemoryExtractionStage()
@@ -31,15 +39,21 @@ export class CognitiveRuntime {
       new TimelineExtractionStage()
     );
 
-    this.register(new MemoryStage());
+    this.register(
+      new MemoryStage()
+    );
 
     this.register(
       new BrainStateStage()
     );
 
-    this.register(new SkillStage());
+    this.register(
+      new SkillStage()
+    );
 
-    this.register(new ContextStage());
+    this.register(
+      new ContextStage()
+    );
 
     this.register(
       new ResponseStage(
@@ -58,11 +72,64 @@ export class CognitiveRuntime {
     let current = state;
 
     for (const stage of this.stages) {
-      current =
-        await stage.execute(current);
+      const startedAt =
+        new Date();
+
+      try {
+        current =
+          await stage.execute(
+            current
+          );
+
+        const completedAt =
+          new Date();
+
+        current.executedStages.push(
+          stage.name
+        );
+
+        current.diagnostics.push(
+          createStageDiagnostic(
+            stage.name,
+            startedAt,
+            completedAt
+          )
+        );
+      } catch (error) {
+        const completedAt =
+          new Date();
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        current.executedStages.push(
+          stage.name
+        );
+
+        current.errors.push(
+          message
+        );
+
+        current.diagnostics.push(
+          createStageDiagnostic(
+            stage.name,
+            startedAt,
+            completedAt,
+            message
+          )
+        );
+
+        current.updatedAt =
+          completedAt;
+
+        throw error;
+      }
     }
 
-    current.updatedAt = new Date();
+    current.updatedAt =
+      new Date();
 
     return current;
   }
