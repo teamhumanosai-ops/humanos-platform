@@ -1,7 +1,13 @@
 import type { BrainState } from "../brainState";
-import type { ReasoningObservation, ReasoningResult } from "./types";
 
-function normalize(value: string): string {
+import type {
+  ReasoningObservation,
+  ReasoningResult,
+} from "./types";
+
+function normalize(
+  value: string
+): string {
   return value
     .replace(/\s+/g, " ")
     .trim();
@@ -12,7 +18,9 @@ function limitItems(
   limit = 5
 ): string[] {
   return items
-    .map((item) => normalize(item))
+    .map((item) =>
+      normalize(item)
+    )
     .filter(Boolean)
     .slice(0, limit);
 }
@@ -30,74 +38,83 @@ function buildObservations(
     });
   }
 
-  const memoryValues = limitItems(
-    state.memories.map(
-      (memory) => memory.value
-    )
-  );
+  const memoryValues =
+    limitItems(
+      state.memories.map(
+        (memory) => memory.value
+      )
+    );
 
   if (memoryValues.length > 0) {
     observations.push({
       statement:
-        `Relevant long-term memory includes: ${memoryValues.join("; ")}.`,
+        `Relevant long-term memory is available for this request: ${memoryValues.join(
+          "; "
+        )}.`,
       confidence: 0.9,
     });
   }
 
-  const graphLabels = limitItems(
-    state.graph.map(
-      (node) => `${node.label} (${node.type})`
-    )
-  );
+  const graphLabels =
+    limitItems(
+      state.graph.map(
+        (node) => node.label
+      )
+    );
 
   if (graphLabels.length > 0) {
     observations.push({
       statement:
-        `Relevant knowledge graph entities include: ${graphLabels.join(", ")}.`,
+        `Relevant knowledge graph entities are available: ${graphLabels.join(
+          ", "
+        )}.`,
       confidence: 0.85,
     });
   }
 
-  if (state.graphEdges.length > 0) {
-    const relationshipCount =
-      state.graphEdges.length;
-
+  if (
+    state.graphEdges.length > 0
+  ) {
     observations.push({
       statement:
-        `The knowledge graph contains ${relationshipCount} relevant relationship${
-          relationshipCount === 1
-            ? ""
-            : "s"
-        } for this request.`,
+        `Relevant relationships are available in the knowledge graph.`,
       confidence: 0.85,
     });
   }
 
-  const timelineItems = limitItems(
-    state.timeline
-  );
+  const timelineItems =
+    limitItems(
+      state.timeline
+    );
 
   if (timelineItems.length > 0) {
     observations.push({
       statement:
-        `Relevant timeline information includes: ${timelineItems.join("; ")}.`,
+        `Relevant timeline information is available: ${timelineItems.join(
+          "; "
+        )}.`,
       confidence: 0.85,
     });
   }
 
-  const reflectionItems = limitItems(
-    state.reflections
-  );
+  const reflectionItems =
+    limitItems(
+      state.reflections
+    );
 
   if (reflectionItems.length > 0) {
     observations.push({
       statement:
-        `Relevant inferred patterns include: ${reflectionItems.join("; ")}.`,
+        `Relevant reflections are available: ${reflectionItems.join(
+          "; "
+        )}.`,
       confidence: 0.8,
     });
   }
 
-  if (state.knowledge.length > 0) {
+  if (
+    state.knowledge.length > 0
+  ) {
     const knowledgeSources =
       limitItems(
         state.knowledge.map(
@@ -112,7 +129,9 @@ function buildObservations(
               state.knowledge.length === 1
                 ? ""
                 : "s"
-            } from: ${knowledgeSources.join(", ")}.`
+            } from: ${knowledgeSources.join(
+              ", "
+            )}.`
           : `Knowledge retrieval returned ${state.knowledge.length} relevant result${
               state.knowledge.length === 1
                 ? ""
@@ -122,7 +141,9 @@ function buildObservations(
     });
   }
 
-  if (state.liveKnowledge.length > 0) {
+  if (
+    state.liveKnowledge.length > 0
+  ) {
     observations.push({
       statement:
         `Current external knowledge was retrieved for this request.`,
@@ -145,12 +166,16 @@ export function reason(
   state: BrainState
 ): ReasoningResult {
   const userRequest =
-    normalize(state.userMessage);
+    normalize(
+      state.userMessage
+    );
 
   const observations =
     buildObservations(state);
 
-  if (observations.length === 0) {
+  if (
+    observations.length === 0
+  ) {
     return {
       summary:
         `The request "${userRequest}" does not currently have additional structured reasoning evidence.`,
@@ -163,10 +188,15 @@ export function reason(
 
   const confidence =
     observations.reduce(
-      (total, observation) =>
-        total + observation.confidence,
+      (
+        total,
+        observation
+      ) =>
+        total +
+        observation.confidence,
       0
-    ) / observations.length;
+    ) /
+    observations.length;
 
   const summary =
     `The request "${userRequest}" was evaluated against ${observations.length} available cognitive signal${
@@ -177,7 +207,9 @@ export function reason(
 
   return {
     summary,
+
     observations,
+
     confidence,
   };
 }
