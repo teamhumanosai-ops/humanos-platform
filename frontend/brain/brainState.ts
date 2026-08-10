@@ -12,6 +12,10 @@ import type {
 } from "./profile/types";
 
 import type {
+  ReasoningObservation,
+} from "./reasoning";
+
+import type {
   CitationSource,
 } from "./websearch/citations";
 
@@ -46,7 +50,9 @@ export type BrainDiagnostic = {
 
   success: boolean;
 
-  error: string | null;
+  error:
+    | string
+    | null;
 };
 
 export type BrainRuntimeStatus =
@@ -93,6 +99,12 @@ export type BrainState = {
   reasoning:
     | string
     | null;
+
+  reasoningObservations:
+    ReasoningObservation[];
+
+  reasoningConfidence:
+    number;
 
   plan:
     | string
@@ -245,6 +257,12 @@ export function createBrainState(
 
     reasoning:
       null,
+
+    reasoningObservations:
+      [],
+
+    reasoningConfidence:
+      0,
 
     plan:
       null,
