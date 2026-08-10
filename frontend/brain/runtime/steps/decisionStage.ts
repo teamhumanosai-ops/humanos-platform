@@ -1,4 +1,6 @@
-import { BrainState } from "../../brainState";
+import {
+  BrainState,
+} from "../../brainState";
 
 import {
   getBestDecision,
@@ -18,28 +20,44 @@ import {
  * Integrates the existing Decision Engine
  * into the Cognitive Runtime.
  *
- * Responsibilities:
- * - Read the plan selected by PlanningStage
- * - Generate the best decision for that plan
- * - Store the decision in BrainState
+ * The Decision Engine remains authoritative
+ * for selecting the action.
  *
- * The Decision Engine remains responsible
- * for decision generation.
- *
- * BrainState remains the shared runtime artifact.
+ * BrainState reasoning evidence is preserved
+ * alongside the resulting decision so later
+ * runtime stages can understand the cognitive
+ * evidence that preceded the decision.
  */
 export class DecisionStage
   extends BaseStage {
-  readonly name = "Decision";
+  readonly name =
+    "Decision";
 
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    if (state.response) {
+    /*
+    |--------------------------------------------------------------------------
+    | A local skill response does not require
+    | decision generation.
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      state.response
+    ) {
       return state;
     }
 
-    if (!state.currentPlanId) {
+    /*
+    |--------------------------------------------------------------------------
+    | Decision requires an active plan.
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      !state.currentPlanId
+    ) {
       return state;
     }
 
@@ -52,6 +70,16 @@ export class DecisionStage
       return state;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Existing Decision Engine
+    |--------------------------------------------------------------------------
+    |
+    | The engine remains responsible for selecting
+    | the best action from the current plan.
+    |
+    */
+
     const decision =
       getBestDecision(
         plan
@@ -59,6 +87,40 @@ export class DecisionStage
 
     state.currentDecisionId =
       decision.id;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Structured reasoning evidence
+    |--------------------------------------------------------------------------
+    |
+    | Preserve the reasoning signals that were
+    | available before the decision was created.
+    |
+    */
+
+    const reasoningEvidence =
+      state.reasoningObservations
+        .map(
+          (
+            observation,
+            index
+          ) =>
+            `${index + 1}. [${
+              observation.source
+            }] ${
+              observation.statement
+            } (confidence ${
+              observation.confidence.toFixed(
+                2
+              )
+            })`
+        );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Decision artifact
+    |--------------------------------------------------------------------------
+    */
 
     state.decision =
       [
@@ -71,13 +133,36 @@ export class DecisionStage
         "Alternatives:",
 
         ...decision.alternatives.map(
-          (alternative, index) =>
+          (
+            alternative,
+            index
+          ) =>
             `${index + 1}. ${alternative}`
         ),
 
         `Reason: ${decision.reason}`,
 
         `Confidence: ${decision.confidence}`,
+
+        ...(reasoningEvidence.length > 0
+          ? [
+              "",
+
+              "Reasoning Evidence:",
+
+              ...reasoningEvidence,
+            ]
+          : []),
+
+        ...(state.reasoningConfidence > 0
+          ? [
+              "",
+
+              `Overall Reasoning Confidence: ${state.reasoningConfidence.toFixed(
+                2
+              )}`,
+            ]
+          : []),
       ].join("\n");
 
     return state;
