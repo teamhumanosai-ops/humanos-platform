@@ -7,6 +7,10 @@ export type PlanStatus =
   | "completed"
   | "paused";
 
+export type PlanningContext = {
+  graphObservations?: string[];
+};
+
 export type Plan = {
   id: string;
 
@@ -33,7 +37,8 @@ export type Plan = {
   updatedAt: Date;
 };
 
-const planStore = new Map<string, Plan>();
+const planStore =
+  new Map<string, Plan>();
 
 /*
 |--------------------------------------------------------------------------
@@ -42,7 +47,9 @@ const planStore = new Map<string, Plan>();
 */
 
 export function getAllPlans(): Plan[] {
-  return Array.from(planStore.values());
+  return Array.from(
+    planStore.values()
+  );
 }
 
 export function getPlan(
@@ -60,13 +67,64 @@ export function getPlan(
 export function createPlanFromMessage(
   message: string
 ): Plan | null {
-  const goal = extractGoal(message);
+  return createPlanFromMessageWithContext(
+    message
+  );
+}
+
+export function createPlanFromMessageWithContext(
+  message: string,
+  context: PlanningContext = {}
+): Plan | null {
+  const goal =
+    extractGoal(message);
 
   if (!goal) {
     return null;
   }
 
-  const plan = generatePlan(goal);
+  const plan =
+    generatePlan(goal);
+
+  const graphObservations =
+    context.graphObservations
+      ?.filter(
+        (observation) =>
+          observation.trim().length > 0
+      )
+      .slice(0, 3) ?? [];
+
+  if (
+    graphObservations.length > 0
+  ) {
+    const graphMilestone =
+      "Use relevant knowledge graph relationships to guide execution.";
+
+    if (
+      !plan.milestones.includes(
+        graphMilestone
+      )
+    ) {
+      plan.milestones = [
+        graphMilestone,
+        ...plan.milestones,
+      ];
+    }
+
+    plan.description =
+      [
+        plan.description,
+
+        "Graph context:",
+        ...graphObservations.map(
+          (observation) =>
+            `- ${observation}`
+        ),
+      ].join("\n");
+
+    plan.nextAction =
+      graphMilestone;
+  }
 
   savePlan(plan);
 
@@ -76,9 +134,13 @@ export function createPlanFromMessage(
 export function savePlan(
   plan: Plan
 ): void {
-  plan.updatedAt = new Date();
+  plan.updatedAt =
+    new Date();
 
-  planStore.set(plan.id, plan);
+  planStore.set(
+    plan.id,
+    plan
+  );
 }
 
 export function updatePlan(
@@ -107,16 +169,18 @@ export function completePlanMilestone(
   planId: string,
   milestone: string
 ): Plan | null {
-  const plan = getPlan(planId);
+  const plan =
+    getPlan(planId);
 
   if (!plan) {
     return null;
   }
 
-  const updated = completeMilestone(
-    plan,
-    milestone
-  );
+  const updated =
+    completeMilestone(
+      plan,
+      milestone
+    );
 
   savePlan(updated);
 

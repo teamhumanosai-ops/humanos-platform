@@ -1,4 +1,6 @@
-import { BrainState } from "../../brainState";
+import {
+  BrainState,
+} from "../../brainState";
 
 import {
   Intent,
@@ -24,6 +26,8 @@ import {
  * - Create a plan using the existing
  *   Planning Engine
  * - Store the resulting plan in BrainState
+ * - Preserve relevant reasoning and graph
+ *   context in the runtime plan description
  *
  * The Planning Engine remains responsible
  * for plan generation.
@@ -39,9 +43,23 @@ export class PlanningStage
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
+    /*
+    |--------------------------------------------------------------------------
+    | Do not create a plan when a local skill
+    | has already produced the response.
+    |--------------------------------------------------------------------------
+    */
+
     if (state.response) {
       return state;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Planning currently applies to startup
+    | planning intent.
+    |--------------------------------------------------------------------------
+    */
 
     if (
       state.intent !==
@@ -49,6 +67,12 @@ export class PlanningStage
     ) {
       return state;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Use the existing Planning Engine.
+    |--------------------------------------------------------------------------
+    */
 
     const plan =
       createPlanFromMessage(
@@ -59,11 +83,69 @@ export class PlanningStage
       return state;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Store runtime plan identity.
+    |--------------------------------------------------------------------------
+    */
+
     state.currentGoal =
       plan.goal;
 
     state.currentPlanId =
       plan.id;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Build graph-aware planning context.
+    |--------------------------------------------------------------------------
+    |
+    | BrainState.reasoning is nullable in the
+    | current architecture, so only consume it
+    | when a reasoning result exists.
+    |
+    */
+
+    const graphContext =
+      state.graph.length > 0 ||
+      state.graphEdges.length > 0
+        ? [
+            "Knowledge graph context is available.",
+
+            `Graph entities: ${state.graph.length}.`,
+
+            `Graph relationships: ${state.graphEdges.length}.`,
+          ].join(" ")
+        : "";
+
+    const reasoningContext =
+      state.reasoning?.trim() ?? "";
+
+    const descriptionParts = [
+      plan.description,
+    ];
+
+    if (
+      reasoningContext
+    ) {
+      descriptionParts.push(
+        `Reasoning context: ${reasoningContext}`
+      );
+    }
+
+    if (
+      graphContext
+    ) {
+      descriptionParts.push(
+        graphContext
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Store human-readable plan state.
+    |--------------------------------------------------------------------------
+    */
 
     state.plan =
       [
@@ -71,7 +153,9 @@ export class PlanningStage
 
         `Goal: ${plan.goal}`,
 
-        `Description: ${plan.description}`,
+        `Description: ${descriptionParts.join(
+          "\n"
+        )}`,
 
         `Next Action: ${plan.nextAction}`,
 
