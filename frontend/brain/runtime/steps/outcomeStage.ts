@@ -7,6 +7,10 @@ import {
 } from "../../execution";
 
 import {
+  getPlan,
+} from "../../planning";
+
+import {
   createRuntimeOutcome,
 } from "../outcome";
 
@@ -17,12 +21,14 @@ import {
 /**
  * OutcomeStage
  *
- * Finalizes the cognitive runtime by creating
- * a RuntimeOutcome from the authoritative
- * BrainState and Execution Engine state.
+ * Finalizes the cognitive runtime by synchronizing:
  *
- * The Execution Engine remains the source of
- * truth for execution lifecycle status.
+ * - Execution state
+ * - Plan progress
+ * - Runtime outcome
+ *
+ * The Execution Engine remains authoritative
+ * for execution lifecycle state.
  */
 export class OutcomeStage
   extends BaseStage {
@@ -34,7 +40,7 @@ export class OutcomeStage
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | Resolve the authoritative execution state.
+    | Resolve the authoritative execution.
     |--------------------------------------------------------------------------
     */
 
@@ -47,7 +53,74 @@ export class OutcomeStage
 
     /*
     |--------------------------------------------------------------------------
-    | Keep BrainState execution text aligned
+    | Synchronize plan information.
+    |--------------------------------------------------------------------------
+    */
+
+    const plan =
+      state.currentPlanId
+        ? getPlan(
+            state.currentPlanId
+          )
+        : undefined;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Keep BrainState plan information synchronized
+    | with the persisted plan.
+    |--------------------------------------------------------------------------
+    */
+
+    if (plan) {
+      state.currentGoal =
+        plan.goal;
+
+      state.plan =
+        [
+          `Plan: ${plan.title}`,
+
+          `Goal: ${plan.goal}`,
+
+          `Description: ${plan.description}`,
+
+          `Status: ${plan.status}`,
+
+          `Next Action: ${plan.nextAction}`,
+
+          `Priority: ${plan.priority}`,
+
+          `Confidence: ${plan.confidence}`,
+
+          `Completed Milestones: ${
+            plan.completedMilestones.length
+          }/${plan.milestones.length
+          }`,
+
+          "Milestones:",
+
+          ...plan.milestones.map(
+            (
+              milestone,
+              index
+            ) => {
+              const completed =
+                plan.completedMilestones.includes(
+                  milestone
+                );
+
+              return `${index + 1}. ${
+                completed
+                  ? "[completed]"
+                  : "[pending]"
+              } ${milestone}`;
+            }
+          ),
+        ].join("\n");
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Keep BrainState execution text synchronized
     | with the actual execution record.
     |--------------------------------------------------------------------------
     */
@@ -82,7 +155,7 @@ export class OutcomeStage
     /*
     |--------------------------------------------------------------------------
     | Create the runtime outcome from the
-    | authoritative execution status.
+    | authoritative execution state.
     |--------------------------------------------------------------------------
     */
 
