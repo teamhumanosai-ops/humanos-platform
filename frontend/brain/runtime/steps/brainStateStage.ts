@@ -1,18 +1,16 @@
 import { BaseStage } from "./baseStage";
 
-import { BrainState } from "../../brainState";
-
 import {
-  graphQuery,
-} from "../../graph";
-
-import {
-  loadMemories,
-} from "../../memory";
+  BrainState,
+} from "../../brainState";
 
 import {
   retrieveKnowledgeResults,
 } from "../../knowledge";
+
+import {
+  graphQuery,
+} from "../../graph";
 
 import {
   profileEngine,
@@ -26,35 +24,26 @@ import {
   buildReflectionPrompt,
 } from "../../reflection";
 
+import {
+  enrichmentEngine,
+} from "../../enrichment";
+
 export class BrainStateStage
   extends BaseStage {
-  readonly name = "BrainState";
+  readonly name =
+    "BrainState";
 
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | Memory
-    |--------------------------------------------------------------------------
-    */
-
-    state.memories =
-      await loadMemories();
-
-    state.memory =
-      state.memories.map(
-        (memory) =>
-          memory.value
-      );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Knowledge
+    | Knowledge Retrieval
     |--------------------------------------------------------------------------
     |
-    | Knowledge retrieval now becomes part of the canonical BrainState.
-    | Context no longer needs to independently retrieve knowledge.
+    | Knowledge retrieval is part of the canonical BrainState hydration
+    | process. The retrieval subsystem remains responsible for search;
+    | BrainState becomes the shared runtime representation.
     |
     */
 
@@ -91,12 +80,24 @@ export class BrainStateStage
 
     /*
     |--------------------------------------------------------------------------
-    | Profile
+    | Human Profile
     |--------------------------------------------------------------------------
     */
 
     state.profile =
       profileEngine.get();
+
+    if (state.profile) {
+      const enrichmentSuggestion =
+        enrichmentEngine.getNextQuestion(
+          state.profile
+        );
+
+      console.debug(
+        "[Human OS] Next enrichment:",
+        enrichmentSuggestion
+      );
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -118,7 +119,7 @@ export class BrainStateStage
 
     /*
     |--------------------------------------------------------------------------
-    | Reflection
+    | Reflections
     |--------------------------------------------------------------------------
     */
 

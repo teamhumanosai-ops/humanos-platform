@@ -15,13 +15,17 @@ import {
  *
  * Converts the cognitive information already
  * assembled in BrainState into structured
- * reasoning signals.
+ * reasoning signals for the response layer.
  *
- * The reasoning engine remains responsible
- * for producing ReasoningResult.
+ * The reasoning engine produces both:
  *
- * BrainState remains responsible for
- * retaining the structured runtime artifact.
+ * - human-readable reasoning
+ * - structured reasoning evidence
+ *
+ * BrainState stores both representations so
+ * downstream Planning, Decision, Execution,
+ * and future cognitive stages can consume the
+ * structured evidence directly.
  */
 export class ReasoningStage
   extends BaseStage {
@@ -33,21 +37,18 @@ export class ReasoningStage
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | If a previous stage has already produced
-    | a final response, there is nothing left
-    | to reason about for this execution.
+    | Stop if an earlier stage already produced
+    | a final response.
     |--------------------------------------------------------------------------
     */
 
-    if (
-      state.response
-    ) {
+    if (state.response) {
       return state;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Evaluate the canonical BrainState.
+    | Generate structured reasoning
     |--------------------------------------------------------------------------
     */
 
@@ -56,13 +57,8 @@ export class ReasoningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Preserve the structured reasoning artifact.
+    | Canonical structured evidence
     |--------------------------------------------------------------------------
-    |
-    | This is the authoritative machine-readable
-    | reasoning representation for downstream
-    | runtime stages.
-    |
     */
 
     state.reasoningObservations =
@@ -73,9 +69,7 @@ export class ReasoningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Preserve the human-readable reasoning
-    | representation for compatibility with
-    | existing downstream consumers.
+    | Human-readable reasoning representation
     |--------------------------------------------------------------------------
     */
 
@@ -84,10 +78,8 @@ export class ReasoningStage
         result.summary,
 
         ...result.observations.map(
-          (
-            observation
-          ) =>
-            `- ${observation.statement} [${observation.source}] Confidence: ${observation.confidence.toFixed(
+          (observation) =>
+            `- ${observation.statement} Confidence: ${observation.confidence.toFixed(
               2
             )}`
         ),

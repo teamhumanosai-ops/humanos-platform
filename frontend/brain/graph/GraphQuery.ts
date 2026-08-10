@@ -36,7 +36,7 @@ export class GraphQuery {
 
     for (
       const edge of
-        graphStore.getEdges()
+      graphStore.getEdges()
     ) {
       if (
         edge.from === nodeId
@@ -101,24 +101,34 @@ export class GraphQuery {
   }
 
   getOutgoingRelationships(
-    nodeId: string
+    nodeId: string,
+    type?: GraphEdgeType
   ): GraphEdge[] {
     return graphStore
       .getEdges()
       .filter(
         (edge) =>
-          edge.from === nodeId
+          edge.from === nodeId &&
+          (
+            type === undefined ||
+            edge.type === type
+          )
       );
   }
 
   getIncomingRelationships(
-    nodeId: string
+    nodeId: string,
+    type?: GraphEdgeType
   ): GraphEdge[] {
     return graphStore
       .getEdges()
       .filter(
         (edge) =>
-          edge.to === nodeId
+          edge.to === nodeId &&
+          (
+            type === undefined ||
+            edge.type === type
+          )
       );
   }
 
@@ -127,23 +137,26 @@ export class GraphQuery {
     type?: GraphEdgeType
   ): GraphNode[] {
     const relationships =
-      type
-        ? this.getRelationshipsByType(
-            nodeId,
-            type
+      type === undefined
+        ? this.getRelationships(
+            nodeId
           )
         : this.getRelationships(
             nodeId
+          ).filter(
+            (edge) =>
+              edge.type === type
           );
 
-    const nodes =
+    const related =
       new Map<
         string,
         GraphNode
       >();
 
     for (
-      const edge of relationships
+      const edge of
+      relationships
     ) {
       const relatedId =
         edge.from === nodeId
@@ -156,7 +169,7 @@ export class GraphQuery {
         );
 
       if (node) {
-        nodes.set(
+        related.set(
           node.id,
           node
         );
@@ -164,7 +177,7 @@ export class GraphQuery {
     }
 
     return [
-      ...nodes.values(),
+      ...related.values(),
     ];
   }
 
@@ -177,7 +190,7 @@ export class GraphQuery {
         nodeId
       ).filter(
         (edge) =>
-          !type ||
+          type === undefined ||
           edge.type === type
       );
 
@@ -188,7 +201,8 @@ export class GraphQuery {
       >();
 
     for (
-      const edge of relationships
+      const edge of
+      relationships
     ) {
       const node =
         graphStore.getNode(
@@ -217,7 +231,7 @@ export class GraphQuery {
         nodeId
       ).filter(
         (edge) =>
-          !type ||
+          type === undefined ||
           edge.type === type
       );
 
@@ -228,7 +242,8 @@ export class GraphQuery {
       >();
 
     for (
-      const edge of relationships
+      const edge of
+      relationships
     ) {
       const node =
         graphStore.getNode(
@@ -258,6 +273,70 @@ export class GraphQuery {
         b.weight -
         a.weight
     );
+  }
+
+  findByRelationship(
+    from: string,
+    type: GraphEdgeType,
+    to?: string
+  ): GraphEdge[] {
+    return graphStore
+      .getEdges()
+      .filter(
+        (edge) =>
+          edge.from === from &&
+          edge.type === type &&
+          (
+            to === undefined ||
+            edge.to === to
+          )
+      );
+  }
+
+  findRelatedByLabel(
+    label: string,
+    type?: GraphEdgeType
+  ): GraphNode[] {
+    const normalized =
+      label
+        .trim()
+        .toLowerCase();
+
+    if (!normalized) {
+      return [];
+    }
+
+    const nodes =
+      this.search(
+        normalized
+      );
+
+    const related =
+      new Map<
+        string,
+        GraphNode
+      >();
+
+    for (
+      const node of nodes
+    ) {
+      for (
+        const relatedNode of
+        this.getRelatedNodes(
+          node.id,
+          type
+        )
+      ) {
+        related.set(
+          relatedNode.id,
+          relatedNode
+        );
+      }
+    }
+
+    return [
+      ...related.values(),
+    ];
   }
 
   findByType(
@@ -309,12 +388,14 @@ export class GraphQuery {
       return [];
     }
 
-    return this.getTimelineEvents()
+    return this
+      .getTimelineEvents()
       .filter(
         (node) =>
           String(
             node.properties
-              .category ?? ""
+              .category ??
+              ""
           )
             .trim()
             .toLowerCase() ===
@@ -325,29 +406,34 @@ export class GraphQuery {
   getTimelineEventCategories(
     nodeId: string
   ): GraphNode[] {
-    return this.getOutgoingNodes(
-      nodeId,
-      "belongs_to"
-    ).filter(
-      (node) =>
-        node.type ===
-        "entity" &&
-        node.properties.source ===
-          "timeline"
-    );
+    return this
+      .getOutgoingNodes(
+        nodeId,
+        "belongs_to"
+      )
+      .filter(
+        (node) =>
+          node.type ===
+            "entity" &&
+          node.properties
+            .source ===
+            "timeline"
+      );
   }
 
   getTimelineEventsForCategory(
     categoryId: string
   ): GraphNode[] {
-    return this.getIncomingNodes(
-      categoryId,
-      "belongs_to"
-    ).filter(
-      (node) =>
-        node.type ===
-        "timeline"
-    );
+    return this
+      .getIncomingNodes(
+        categoryId,
+        "belongs_to"
+      )
+      .filter(
+        (node) =>
+          node.type ===
+          "timeline"
+      );
   }
 
   /*
@@ -396,8 +482,10 @@ export class GraphQuery {
         (edge) =>
           edge.from === from &&
           edge.to === to &&
-          (!type ||
-            edge.type === type)
+          (
+            type === undefined ||
+            edge.type === type
+          )
       );
   }
 
