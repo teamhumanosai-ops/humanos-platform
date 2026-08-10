@@ -39,7 +39,9 @@ export class PlanningStage
     |--------------------------------------------------------------------------
     */
 
-    if (state.response) {
+    if (
+      state.response
+    ) {
       return state;
     }
 
@@ -59,13 +61,13 @@ export class PlanningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Build graph observations from the
+    | Build planning evidence from the
     | canonical BrainState.
     |--------------------------------------------------------------------------
     */
 
-    const graphObservations: string[] =
-      [];
+    const graphObservations:
+      string[] = [];
 
     if (
       state.graph.length > 0
@@ -85,20 +87,66 @@ export class PlanningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Preserve the reasoning signal when
-    | available.
+    | Structured reasoning evidence
+    |--------------------------------------------------------------------------
+    |
+    | Planning consumes the machine-readable
+    | reasoning observations instead of relying
+    | only on the formatted reasoning string.
+    |
+    */
+
+    for (
+      const observation of
+        state.reasoningObservations
+    ) {
+      graphObservations.push(
+        `Reasoning evidence (${observation.source}, confidence ${observation.confidence.toFixed(
+          2
+        )}): ${observation.statement}`
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Preserve the aggregate reasoning confidence.
     |--------------------------------------------------------------------------
     */
 
-    const reasoning =
-      state.reasoning?.trim();
-
     if (
-      reasoning
+      state.reasoningConfidence > 0
     ) {
       graphObservations.push(
-        `Reasoning context: ${reasoning}`
+        `Overall reasoning confidence: ${state.reasoningConfidence.toFixed(
+          2
+        )}.`
       );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Backward-compatible reasoning fallback.
+    |--------------------------------------------------------------------------
+    |
+    | Existing BrainState consumers may still
+    | provide only the formatted reasoning text.
+    |
+    */
+
+    if (
+      state.reasoningObservations.length ===
+        0
+    ) {
+      const reasoning =
+        state.reasoning?.trim();
+
+      if (
+        reasoning
+      ) {
+        graphObservations.push(
+          `Reasoning context: ${reasoning}`
+        );
+      }
     }
 
     /*
