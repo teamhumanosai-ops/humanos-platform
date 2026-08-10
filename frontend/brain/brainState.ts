@@ -15,23 +15,37 @@ import type {
   CitationSource,
 } from "./websearch/citations";
 
+import type {
+  RuntimeOutcome,
+} from "./runtime/outcome";
+
 export type ConversationMessage = {
-  role: "user" | "assistant";
+  role:
+    | "user"
+    | "assistant";
+
   message: string;
 };
 
 export type BrainKnowledge = {
   source: string;
+
   text: string;
+
   score: number;
 };
 
 export type BrainDiagnostic = {
   stage: string;
+
   startedAt: Date;
+
   completedAt: Date;
+
   durationMs: number;
+
   success: boolean;
+
   error: string | null;
 };
 
@@ -73,6 +87,8 @@ export type BrainState = {
   execution: string | null;
 
   response: string | null;
+
+  outcome: RuntimeOutcome | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -164,6 +180,8 @@ export function createBrainState(
     execution: null,
 
     response: null,
+
+    outcome: null,
 
     memories: [],
 

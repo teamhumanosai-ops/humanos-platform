@@ -45,6 +45,10 @@ import {
 } from "./steps/responseStage";
 
 import {
+  OutcomeStage,
+} from "./steps/outcomeStage";
+
+import {
   Stage,
 } from "./steps/stage";
 
@@ -96,6 +100,10 @@ export class CognitiveRuntime {
       new ResponseStage(
         this.services
       )
+    );
+
+    this.register(
+      new OutcomeStage()
     );
   }
 
