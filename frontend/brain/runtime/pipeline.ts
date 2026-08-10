@@ -1,6 +1,4 @@
-import {
-  BrainState,
-} from "../brainState";
+import { BrainState } from "../brainState";
 
 import {
   RuntimeServices,
@@ -254,10 +252,10 @@ export class CognitiveRuntime {
         await stage.execute(
           current
         );
-    }
 
-    current.updatedAt =
-      new Date();
+      current.updatedAt =
+        new Date();
+    }
 
     return current;
   }
