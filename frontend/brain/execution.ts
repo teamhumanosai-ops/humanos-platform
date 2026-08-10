@@ -77,7 +77,7 @@ export function clearExecutions(): void {
 
 /*
 |--------------------------------------------------------------------------
-| Execution Operations
+| Execution Creation
 |--------------------------------------------------------------------------
 */
 
@@ -85,28 +85,44 @@ export function createExecutionFromDecision(
   decision: Decision,
   planId: string
 ): Execution {
-  const execution = generateExecution(
-    decision,
-    planId
-  );
+  const execution =
+    generateExecution(
+      decision,
+      planId
+    );
 
   saveExecution(execution);
 
   return execution;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Execution Lifecycle
+|--------------------------------------------------------------------------
+*/
+
 export function startExecution(
   id: string
 ): Execution | null {
-  const execution = getExecution(id);
+  const execution =
+    getExecution(id);
 
   if (!execution) {
     return null;
   }
 
+  if (
+    execution.status !== "pending"
+  ) {
+    return null;
+  }
+
   const updated: Execution = {
     ...execution,
+
     status: "in_progress",
+
     startedAt: new Date(),
   };
 
@@ -118,15 +134,24 @@ export function startExecution(
 export function completeExecution(
   id: string
 ): Execution | null {
-  const execution = getExecution(id);
+  const execution =
+    getExecution(id);
 
   if (!execution) {
     return null;
   }
 
+  if (
+    execution.status !== "in_progress"
+  ) {
+    return null;
+  }
+
   const updated: Execution = {
     ...execution,
+
     status: "completed",
+
     completedAt: new Date(),
   };
 
@@ -143,14 +168,23 @@ export function completeExecution(
 export function blockExecution(
   id: string
 ): Execution | null {
-  const execution = getExecution(id);
+  const execution =
+    getExecution(id);
 
   if (!execution) {
     return null;
   }
 
+  if (
+    execution.status !== "pending" &&
+    execution.status !== "in_progress"
+  ) {
+    return null;
+  }
+
   const updated: Execution = {
     ...execution,
+
     status: "blocked",
   };
 

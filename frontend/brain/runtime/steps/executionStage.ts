@@ -6,6 +6,7 @@ import {
 
 import {
   createExecutionFromDecision,
+  startExecution,
 } from "../../execution";
 
 import {
@@ -22,13 +23,18 @@ import {
  * Integrates the existing Execution Engine
  * into the Cognitive Runtime.
  *
- * The stage creates a pending execution from
- * the active decision and stores the execution
- * information in BrainState.
+ * The stage:
  *
- * It does not start or complete the execution.
- * Actual execution lifecycle operations remain
- * owned by the Execution Engine.
+ * 1. Reads the active decision.
+ * 2. Creates an execution through the
+ *    existing Execution Engine.
+ * 3. Starts the execution lifecycle.
+ * 4. Stores the resulting execution state
+ *    in BrainState.
+ *
+ * Completion is intentionally NOT performed here.
+ * Completion belongs to the execution/outcome
+ * phase once actual work has produced a result.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -73,20 +79,31 @@ export class ExecutionStage
         plan.id
       );
 
+    const startedExecution =
+      startExecution(
+        execution.id
+      );
+
+    if (!startedExecution) {
+      return state;
+    }
+
     state.currentExecutionId =
-      execution.id;
+      startedExecution.id;
 
     state.execution =
       [
-        `Execution: ${execution.title}`,
+        `Execution: ${startedExecution.title}`,
 
-        `Action: ${execution.action}`,
+        `Action: ${startedExecution.action}`,
 
-        `Status: ${execution.status}`,
+        `Status: ${startedExecution.status}`,
 
-        `Plan ID: ${execution.planId}`,
+        `Plan ID: ${startedExecution.planId}`,
 
-        `Execution ID: ${execution.id}`,
+        `Execution ID: ${startedExecution.id}`,
+
+        `Started At: ${startedExecution.startedAt?.toISOString() ?? "Unknown"}`,
       ].join("\n");
 
     return state;
