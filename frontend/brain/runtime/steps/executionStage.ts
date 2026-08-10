@@ -25,9 +25,12 @@ import {
  * Integrates the existing Execution Engine
  * into the Cognitive Runtime.
  *
- * Execution only begins after the Validation
- * stage has confirmed that the cognitive state
- * contains the required execution data.
+ * Execution remains authoritative through
+ * the existing Execution Engine lifecycle.
+ *
+ * Structured reasoning evidence is preserved
+ * in the BrainState execution artifact so the
+ * cognitive chain remains traceable.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -39,8 +42,7 @@ export class ExecutionStage
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | Do not execute after an earlier validation
-    | or runtime error.
+    | Do not execute after an earlier runtime error.
     |--------------------------------------------------------------------------
     */
 
@@ -65,13 +67,16 @@ export class ExecutionStage
     |--------------------------------------------------------------------------
     */
 
-    if (state.response) {
+    if (
+      state.response
+    ) {
       return state;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Required runtime identifiers.
+    | Execution requires an active decision
+    | and plan.
     |--------------------------------------------------------------------------
     */
 
@@ -150,7 +155,9 @@ export class ExecutionStage
         execution.id
       );
 
-    if (!startedExecution) {
+    if (
+      !startedExecution
+    ) {
       state.errors.push(
         "Execution: unable to start execution."
       );
@@ -170,6 +177,35 @@ export class ExecutionStage
     state.currentExecutionId =
       startedExecution.id;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Preserve structured reasoning evidence.
+    |--------------------------------------------------------------------------
+    */
+
+    const reasoningEvidence =
+      state.reasoningObservations.map(
+        (
+          observation,
+          index
+        ) =>
+          `${index + 1}. [${
+            observation.source
+          }] ${
+            observation.statement
+          } (confidence ${
+            observation.confidence.toFixed(
+              2
+            )
+          })`
+      );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Store execution artifact.
+    |--------------------------------------------------------------------------
+    */
+
     state.execution =
       [
         `Execution: ${startedExecution.title}`,
@@ -182,7 +218,31 @@ export class ExecutionStage
 
         `Execution ID: ${startedExecution.id}`,
 
-        `Started At: ${startedExecution.startedAt?.toISOString() ?? "Unknown"}`,
+        `Started At: ${
+          startedExecution.startedAt
+            ?.toISOString() ??
+          "Unknown"
+        }`,
+
+        ...(reasoningEvidence.length > 0
+          ? [
+              "",
+
+              "Reasoning Evidence:",
+
+              ...reasoningEvidence,
+            ]
+          : []),
+
+        ...(state.reasoningConfidence > 0
+          ? [
+              "",
+
+              `Overall Reasoning Confidence: ${state.reasoningConfidence.toFixed(
+                2
+              )}`,
+            ]
+          : []),
       ].join("\n");
 
     return state;
