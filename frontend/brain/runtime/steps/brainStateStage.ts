@@ -14,14 +14,11 @@ export class BrainStateStage extends BaseStage {
     state: BrainState
   ): Promise<BrainState> {
     /*
-     * Knowledge Graph
-     *
-     * BrainState owns both graph nodes and
-     * relationships so future reasoning,
-     * planning, and agent stages can consume
-     * the complete graph state without querying
-     * the graph subsystem independently.
-     */
+    |--------------------------------------------------------------------------
+    | Knowledge Graph
+    |--------------------------------------------------------------------------
+    */
+
     state.graph =
       graphQuery.getNodes();
 
@@ -29,8 +26,11 @@ export class BrainStateStage extends BaseStage {
       graphQuery.getEdges();
 
     /*
-     * Human Profile
-     */
+    |--------------------------------------------------------------------------
+    | Human Profile
+    |--------------------------------------------------------------------------
+    */
+
     state.profile =
       profileEngine.get();
 
@@ -47,27 +47,39 @@ export class BrainStateStage extends BaseStage {
     }
 
     /*
-     * Timeline
-     */
+    |--------------------------------------------------------------------------
+    | Timeline
+    |--------------------------------------------------------------------------
+    */
+
     const timeline =
       await buildTimelinePrompt();
 
     state.timeline =
       timeline
         .split("\n")
-        .map((line) => line.trim())
+        .map(
+          (line) =>
+            line.trim()
+        )
         .filter(Boolean);
 
     /*
-     * Reflection
-     */
+    |--------------------------------------------------------------------------
+    | Reflections
+    |--------------------------------------------------------------------------
+    */
+
     const reflections =
       await buildReflectionPrompt();
 
     state.reflections =
       reflections
         .split("\n")
-        .map((line) => line.trim())
+        .map(
+          (line) =>
+            line.trim()
+        )
         .filter(Boolean);
 
     return state;
