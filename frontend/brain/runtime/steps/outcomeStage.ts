@@ -1,9 +1,11 @@
 import {
   BrainState,
+  BrainRuntimeStatus,
 } from "../../brainState";
 
 import {
   getExecution,
+  ExecutionStatus,
 } from "../../execution";
 
 import {
@@ -26,9 +28,7 @@ import {
  * - Execution state
  * - Plan progress
  * - Runtime outcome
- *
- * The Execution Engine remains authoritative
- * for execution lifecycle state.
+ * - Overall runtime status
  */
 export class OutcomeStage
   extends BaseStage {
@@ -38,24 +38,12 @@ export class OutcomeStage
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    /*
-    |--------------------------------------------------------------------------
-    | Resolve the authoritative execution.
-    |--------------------------------------------------------------------------
-    */
-
     const execution =
       state.currentExecutionId
         ? getExecution(
             state.currentExecutionId
           )
         : undefined;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Synchronize plan information.
-    |--------------------------------------------------------------------------
-    */
 
     const plan =
       state.currentPlanId
@@ -66,8 +54,7 @@ export class OutcomeStage
 
     /*
     |--------------------------------------------------------------------------
-    | Keep BrainState plan information synchronized
-    | with the persisted plan.
+    | Synchronize plan information.
     |--------------------------------------------------------------------------
     */
 
@@ -93,8 +80,7 @@ export class OutcomeStage
 
           `Completed Milestones: ${
             plan.completedMilestones.length
-          }/${plan.milestones.length
-          }`,
+          }/${plan.milestones.length}`,
 
           "Milestones:",
 
@@ -120,8 +106,7 @@ export class OutcomeStage
 
     /*
     |--------------------------------------------------------------------------
-    | Keep BrainState execution text synchronized
-    | with the actual execution record.
+    | Synchronize execution information.
     |--------------------------------------------------------------------------
     */
 
@@ -154,8 +139,7 @@ export class OutcomeStage
 
     /*
     |--------------------------------------------------------------------------
-    | Create the runtime outcome from the
-    | authoritative execution state.
+    | Create runtime outcome.
     |--------------------------------------------------------------------------
     */
 
@@ -186,6 +170,86 @@ export class OutcomeStage
           state.executedStages,
       });
 
+    /*
+    |--------------------------------------------------------------------------
+    | Determine overall runtime status.
+    |--------------------------------------------------------------------------
+    */
+
+    state.runtimeStatus =
+      determineRuntimeStatus(
+        state,
+        execution?.status ??
+          null
+      );
+
     return state;
   }
+}
+
+function determineRuntimeStatus(
+  state: BrainState,
+  executionStatus:
+    | ExecutionStatus
+    | null
+): BrainRuntimeStatus {
+  /*
+  |--------------------------------------------------------------------------
+  | Runtime errors take precedence.
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    state.errors.length > 0
+  ) {
+    return "failed";
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Blocked execution.
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    executionStatus ===
+    "blocked"
+  ) {
+    return "blocked";
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Active execution.
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    executionStatus ===
+      "pending" ||
+    executionStatus ===
+      "in_progress"
+  ) {
+    return "in_progress";
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Successful cognitive response.
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    state.response?.trim()
+  ) {
+    return "completed";
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Conservative fallback.
+  |--------------------------------------------------------------------------
+  */
+
+  return "in_progress";
 }

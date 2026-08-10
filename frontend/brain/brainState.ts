@@ -49,6 +49,12 @@ export type BrainDiagnostic = {
   error: string | null;
 };
 
+export type BrainRuntimeStatus =
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "blocked";
+
 export type BrainState = {
   /*
   |--------------------------------------------------------------------------
@@ -58,7 +64,8 @@ export type BrainState = {
 
   conversation: string;
 
-  messages: ConversationMessage[];
+  messages:
+    ConversationMessage[];
 
   userMessage: string;
 
@@ -68,27 +75,44 @@ export type BrainState = {
   |--------------------------------------------------------------------------
   */
 
-  intent: string | null;
+  intent:
+    | string
+    | null;
 
-  context: string | null;
+  context:
+    | string
+    | null;
 
   memory: string[];
 
-  knowledge: BrainKnowledge[];
+  knowledge:
+    BrainKnowledge[];
 
   liveKnowledge: string[];
 
-  reasoning: string | null;
+  reasoning:
+    | string
+    | null;
 
-  plan: string | null;
+  plan:
+    | string
+    | null;
 
-  decision: string | null;
+  decision:
+    | string
+    | null;
 
-  execution: string | null;
+  execution:
+    | string
+    | null;
 
-  response: string | null;
+  response:
+    | string
+    | null;
 
-  outcome: RuntimeOutcome | null;
+  outcome:
+    | RuntimeOutcome
+    | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -96,19 +120,27 @@ export type BrainState = {
   |--------------------------------------------------------------------------
   */
 
-  memories: Memory[];
+  memories:
+    Memory[];
 
-  graph: GraphNode[];
+  graph:
+    GraphNode[];
 
-  graphEdges: GraphEdge[];
+  graphEdges:
+    GraphEdge[];
 
-  timeline: string[];
+  timeline:
+    string[];
 
-  reflections: string[];
+  reflections:
+    string[];
 
-  profile: HumanProfile | null;
+  profile:
+    HumanProfile
+    | null;
 
-  citations: CitationSource[];
+  citations:
+    CitationSource[];
 
   /*
   |--------------------------------------------------------------------------
@@ -116,13 +148,30 @@ export type BrainState = {
   |--------------------------------------------------------------------------
   */
 
-  currentGoal: string | null;
+  currentGoal:
+    | string
+    | null;
 
-  currentPlanId: string | null;
+  currentPlanId:
+    | string
+    | null;
 
-  currentDecisionId: string | null;
+  currentDecisionId:
+    | string
+    | null;
 
-  currentExecutionId: string | null;
+  currentExecutionId:
+    | string
+    | null;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Runtime Status
+  |--------------------------------------------------------------------------
+  */
+
+  runtimeStatus:
+    BrainRuntimeStatus;
 
   /*
   |--------------------------------------------------------------------------
@@ -130,11 +179,14 @@ export type BrainState = {
   |--------------------------------------------------------------------------
   */
 
-  executedStages: string[];
+  executedStages:
+    string[];
 
-  diagnostics: BrainDiagnostic[];
+  diagnostics:
+    BrainDiagnostic[];
 
-  errors: string[];
+  errors:
+    string[];
 
   /*
   |--------------------------------------------------------------------------
@@ -142,9 +194,11 @@ export type BrainState = {
   |--------------------------------------------------------------------------
   */
 
-  createdAt: Date;
+  createdAt:
+    Date;
 
-  updatedAt: Date;
+  updatedAt:
+    Date;
 };
 
 export function createBrainState(
@@ -152,67 +206,140 @@ export function createBrainState(
   messages: ConversationMessage[],
   userMessage: string
 ): BrainState {
-  const now = new Date();
+  const now =
+    new Date();
 
   return {
+    /*
+    |--------------------------------------------------------------------------
+    | Conversation
+    |--------------------------------------------------------------------------
+    */
+
     conversation,
 
     messages,
 
     userMessage,
 
-    intent: null,
+    /*
+    |--------------------------------------------------------------------------
+    | Cognitive State
+    |--------------------------------------------------------------------------
+    */
 
-    context: null,
+    intent:
+      null,
 
-    memory: [],
+    context:
+      null,
 
-    knowledge: [],
+    memory:
+      [],
 
-    liveKnowledge: [],
+    knowledge:
+      [],
 
-    reasoning: null,
+    liveKnowledge:
+      [],
 
-    plan: null,
+    reasoning:
+      null,
 
-    decision: null,
+    plan:
+      null,
 
-    execution: null,
+    decision:
+      null,
 
-    response: null,
+    execution:
+      null,
 
-    outcome: null,
+    response:
+      null,
 
-    memories: [],
+    outcome:
+      null,
 
-    graph: [],
+    /*
+    |--------------------------------------------------------------------------
+    | Unified Brain Context
+    |--------------------------------------------------------------------------
+    */
 
-    graphEdges: [],
+    memories:
+      [],
 
-    timeline: [],
+    graph:
+      [],
 
-    reflections: [],
+    graphEdges:
+      [],
 
-    profile: null,
+    timeline:
+      [],
 
-    citations: [],
+    reflections:
+      [],
 
-    currentGoal: null,
+    profile:
+      null,
 
-    currentPlanId: null,
+    citations:
+      [],
 
-    currentDecisionId: null,
+    /*
+    |--------------------------------------------------------------------------
+    | Runtime Context
+    |--------------------------------------------------------------------------
+    */
 
-    currentExecutionId: null,
+    currentGoal:
+      null,
 
-    executedStages: [],
+    currentPlanId:
+      null,
 
-    diagnostics: [],
+    currentDecisionId:
+      null,
 
-    errors: [],
+    currentExecutionId:
+      null,
 
-    createdAt: now,
+    /*
+    |--------------------------------------------------------------------------
+    | Runtime Status
+    |--------------------------------------------------------------------------
+    */
 
-    updatedAt: now,
+    runtimeStatus:
+      "in_progress",
+
+    /*
+    |--------------------------------------------------------------------------
+    | Runtime Diagnostics
+    |--------------------------------------------------------------------------
+    */
+
+    executedStages:
+      [],
+
+    diagnostics:
+      [],
+
+    errors:
+      [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Metadata
+    |--------------------------------------------------------------------------
+    */
+
+    createdAt:
+      now,
+
+    updatedAt:
+      now,
   };
 }
