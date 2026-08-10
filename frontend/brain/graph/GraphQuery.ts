@@ -1,5 +1,8 @@
-import { graphStore } from "./GraphStore";
 import {
+  graphStore,
+} from "./GraphStore";
+
+import type {
   GraphEdge,
   GraphEdgeType,
   GraphNode,
@@ -26,10 +29,17 @@ export class GraphQuery {
     const neighbors =
       new Map<string, GraphNode>();
 
-    for (const edge of graphStore.getEdges()) {
-      if (edge.from === nodeId) {
+    for (
+      const edge of
+        graphStore.getEdges()
+    ) {
+      if (
+        edge.from === nodeId
+      ) {
         const node =
-          graphStore.getNode(edge.to);
+          graphStore.getNode(
+            edge.to
+          );
 
         if (node) {
           neighbors.set(
@@ -39,9 +49,13 @@ export class GraphQuery {
         }
       }
 
-      if (edge.to === nodeId) {
+      if (
+        edge.to === nodeId
+      ) {
         const node =
-          graphStore.getNode(edge.from);
+          graphStore.getNode(
+            edge.from
+          );
 
         if (node) {
           neighbors.set(
@@ -69,31 +83,37 @@ export class GraphQuery {
       );
   }
 
-  getOutgoingRelationships(
+  getRelationshipsByType(
     nodeId: string,
-    type?: GraphEdgeType
+    type: GraphEdgeType
+  ): GraphEdge[] {
+    return this.getRelationships(
+      nodeId
+    ).filter(
+      (edge) =>
+        edge.type === type
+    );
+  }
+
+  getOutgoingRelationships(
+    nodeId: string
   ): GraphEdge[] {
     return graphStore
       .getEdges()
       .filter(
         (edge) =>
-          edge.from === nodeId &&
-          (type === undefined ||
-            edge.type === type)
+          edge.from === nodeId
       );
   }
 
   getIncomingRelationships(
-    nodeId: string,
-    type?: GraphEdgeType
+    nodeId: string
   ): GraphEdge[] {
     return graphStore
       .getEdges()
       .filter(
         (edge) =>
-          edge.to === nodeId &&
-          (type === undefined ||
-            edge.type === type)
+          edge.to === nodeId
       );
   }
 
@@ -101,22 +121,22 @@ export class GraphQuery {
     nodeId: string,
     type?: GraphEdgeType
   ): GraphNode[] {
-    const related =
-      new Map<string, GraphNode>();
-
     const relationships =
-      type === undefined
-        ? this.getRelationships(
-            nodeId
+      type
+        ? this.getRelationshipsByType(
+            nodeId,
+            type
           )
         : this.getRelationships(
             nodeId
-          ).filter(
-            (edge) =>
-              edge.type === type
           );
 
-    for (const edge of relationships) {
+    const nodes =
+      new Map<string, GraphNode>();
+
+    for (
+      const edge of relationships
+    ) {
       const relatedId =
         edge.from === nodeId
           ? edge.to
@@ -128,7 +148,7 @@ export class GraphQuery {
         );
 
       if (node) {
-        related.set(
+        nodes.set(
           node.id,
           node
         );
@@ -136,55 +156,93 @@ export class GraphQuery {
     }
 
     return [
-      ...related.values(),
+      ...nodes.values(),
     ];
   }
 
-  findByRelationship(
-    from: string,
-    type: GraphEdgeType,
-    to?: string
-  ): GraphEdge[] {
-    return graphStore
-      .getEdges()
-      .filter(
-        (edge) =>
-          edge.from === from &&
-          edge.type === type &&
-          (to === undefined ||
-            edge.to === to)
-      );
-  }
-
-  findRelatedByLabel(
-    label: string,
+  getOutgoingNodes(
+    nodeId: string,
     type?: GraphEdgeType
   ): GraphNode[] {
-    const normalized =
-      label.trim().toLowerCase();
+    const relationships =
+      this.getOutgoingRelationships(
+        nodeId
+      ).filter(
+        (edge) =>
+          !type ||
+          edge.type === type
+      );
 
     const nodes =
-      this.search(normalized);
-
-    const related =
       new Map<string, GraphNode>();
 
-    for (const node of nodes) {
-      for (const relatedNode of
-        this.getRelatedNodes(
+    for (
+      const edge of relationships
+    ) {
+      const node =
+        graphStore.getNode(
+          edge.to
+        );
+
+      if (node) {
+        nodes.set(
           node.id,
-          type
-        )) {
-        related.set(
-          relatedNode.id,
-          relatedNode
+          node
         );
       }
     }
 
     return [
-      ...related.values(),
+      ...nodes.values(),
     ];
+  }
+
+  getIncomingNodes(
+    nodeId: string,
+    type?: GraphEdgeType
+  ): GraphNode[] {
+    const relationships =
+      this.getIncomingRelationships(
+        nodeId
+      ).filter(
+        (edge) =>
+          !type ||
+          edge.type === type
+      );
+
+    const nodes =
+      new Map<string, GraphNode>();
+
+    for (
+      const edge of relationships
+    ) {
+      const node =
+        graphStore.getNode(
+          edge.from
+        );
+
+      if (node) {
+        nodes.set(
+          node.id,
+          node
+        );
+      }
+    }
+
+    return [
+      ...nodes.values(),
+    ];
+  }
+
+  getWeightedRelationships(
+    nodeId: string
+  ): GraphEdge[] {
+    return this.getRelationships(
+      nodeId
+    ).sort(
+      (a, b) =>
+        b.weight - a.weight
+    );
   }
 
   findByType(
@@ -195,6 +253,17 @@ export class GraphQuery {
       .filter(
         (node) =>
           node.type === type
+      );
+  }
+
+  findRelationshipsByType(
+    type: GraphEdgeType
+  ): GraphEdge[] {
+    return graphStore
+      .getEdges()
+      .filter(
+        (edge) =>
+          edge.type === type
       );
   }
 
@@ -212,16 +281,19 @@ export class GraphQuery {
 
     return graphStore
       .getNodes()
-      .filter((node) => {
-        return (
+      .filter(
+        (node) =>
           node.id
             .toLowerCase()
-            .includes(normalized) ||
+            .includes(
+              normalized
+            ) ||
           node.label
             .toLowerCase()
-            .includes(normalized)
-        );
-      });
+            .includes(
+              normalized
+            )
+      );
   }
 
   hasRelationship(
@@ -235,7 +307,7 @@ export class GraphQuery {
         (edge) =>
           edge.from === from &&
           edge.to === to &&
-          (type === undefined ||
+          (!type ||
             edge.type === type)
       );
   }
@@ -243,19 +315,31 @@ export class GraphQuery {
   getConnectedSubgraph(
     nodeId: string
   ): {
-    node: GraphNode | undefined;
-    neighbors: GraphNode[];
-    relationships: GraphEdge[];
+    node:
+      | GraphNode
+      | undefined;
+
+    neighbors:
+      GraphNode[];
+
+    relationships:
+      GraphEdge[];
   } {
     return {
       node:
-        this.getNode(nodeId),
+        this.getNode(
+          nodeId
+        ),
 
       neighbors:
-        this.getNeighbors(nodeId),
+        this.getNeighbors(
+          nodeId
+        ),
 
       relationships:
-        this.getRelationships(nodeId),
+        this.getRelationships(
+          nodeId
+        ),
     };
   }
 }
