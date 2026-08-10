@@ -59,6 +59,10 @@ import {
 } from "./steps/decisionStage";
 
 import {
+  ValidationStage,
+} from "./steps/validationStage";
+
+import {
   ExecutionStage,
 } from "./steps/executionStage";
 
@@ -146,7 +150,7 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Unified Brain State
+    | Unified BrainState
     |--------------------------------------------------------------------------
     */
 
@@ -202,6 +206,16 @@ export class CognitiveRuntime {
 
     this.register(
       new DecisionStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new ValidationStage()
     );
 
     /*
