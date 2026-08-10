@@ -1,4 +1,6 @@
-import { graphBuilder } from "./GraphBuilder";
+import {
+  graphBuilder,
+} from "./GraphBuilder";
 
 import type {
   TimelineEvent,
@@ -8,11 +10,11 @@ export class TimelineGraphAdapter {
   sync(
     event: TimelineEvent
   ): void {
-    const id =
+    const timelineId =
       buildGraphId(event);
 
     graphBuilder.addTimelineEvent(
-      id,
+      timelineId,
       event.title,
       {
         timestamp:
@@ -35,6 +37,48 @@ export class TimelineGraphAdapter {
 
         timelineId:
           event.id,
+      }
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Connect the Timeline event to its category.
+    |--------------------------------------------------------------------------
+    |
+    | Categories are represented as entity nodes so the
+    | existing GraphNode model can represent them without
+    | introducing another node type.
+    |
+    */
+
+    const categoryId =
+      `entity:timeline-category:${event.category
+        .toLowerCase()
+        .replace(/\s+/g, "-")}`;
+
+    graphBuilder.addEntity(
+      categoryId,
+      event.category,
+      {
+        source:
+          "timeline",
+
+        category:
+          event.category,
+      }
+    );
+
+    graphBuilder.connect(
+      timelineId,
+      categoryId,
+      "belongs_to",
+      event.confidence,
+      {
+        source:
+          "timeline",
+
+        relationship:
+          "category",
       }
     );
   }
