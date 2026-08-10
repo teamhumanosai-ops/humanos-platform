@@ -12,7 +12,9 @@ export class GraphQuery {
   getNode(
     id: string
   ): GraphNode | undefined {
-    return graphStore.getNode(id);
+    return graphStore.getNode(
+      id
+    );
   }
 
   getNodes(): GraphNode[] {
@@ -27,7 +29,10 @@ export class GraphQuery {
     nodeId: string
   ): GraphNode[] {
     const neighbors =
-      new Map<string, GraphNode>();
+      new Map<
+        string,
+        GraphNode
+      >();
 
     for (
       const edge of
@@ -132,7 +137,10 @@ export class GraphQuery {
           );
 
     const nodes =
-      new Map<string, GraphNode>();
+      new Map<
+        string,
+        GraphNode
+      >();
 
     for (
       const edge of relationships
@@ -174,7 +182,10 @@ export class GraphQuery {
       );
 
     const nodes =
-      new Map<string, GraphNode>();
+      new Map<
+        string,
+        GraphNode
+      >();
 
     for (
       const edge of relationships
@@ -211,7 +222,10 @@ export class GraphQuery {
       );
 
     const nodes =
-      new Map<string, GraphNode>();
+      new Map<
+        string,
+        GraphNode
+      >();
 
     for (
       const edge of relationships
@@ -241,7 +255,8 @@ export class GraphQuery {
       nodeId
     ).sort(
       (a, b) =>
-        b.weight - a.weight
+        b.weight -
+        a.weight
     );
   }
 
@@ -266,6 +281,80 @@ export class GraphQuery {
           edge.type === type
       );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Timeline Queries
+  |--------------------------------------------------------------------------
+  */
+
+  getTimelineEvents():
+    GraphNode[] {
+    return this.findByType(
+      "timeline"
+    );
+  }
+
+  getTimelineEventsByCategory(
+    category: string
+  ): GraphNode[] {
+    const normalizedCategory =
+      category
+        .trim()
+        .toLowerCase();
+
+    if (
+      !normalizedCategory
+    ) {
+      return [];
+    }
+
+    return this.getTimelineEvents()
+      .filter(
+        (node) =>
+          String(
+            node.properties
+              .category ?? ""
+          )
+            .trim()
+            .toLowerCase() ===
+          normalizedCategory
+      );
+  }
+
+  getTimelineEventCategories(
+    nodeId: string
+  ): GraphNode[] {
+    return this.getOutgoingNodes(
+      nodeId,
+      "belongs_to"
+    ).filter(
+      (node) =>
+        node.type ===
+        "entity" &&
+        node.properties.source ===
+          "timeline"
+    );
+  }
+
+  getTimelineEventsForCategory(
+    categoryId: string
+  ): GraphNode[] {
+    return this.getIncomingNodes(
+      categoryId,
+      "belongs_to"
+    ).filter(
+      (node) =>
+        node.type ===
+        "timeline"
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Search
+  |--------------------------------------------------------------------------
+  */
 
   search(
     query: string
