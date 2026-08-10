@@ -1,6 +1,14 @@
-import { Decision } from "./decision";
-import { generateExecution } from "./executionGenerator";
-import { completePlanMilestone } from "./planning";
+import {
+  Decision,
+} from "./decision";
+
+import {
+  generateExecution,
+} from "./executionGenerator";
+
+import {
+  completePlanMilestone,
+} from "./planning";
 
 export type ExecutionStatus =
   | "pending"
@@ -26,7 +34,11 @@ export type Execution = {
   createdAt: Date;
 };
 
-const executionStore = new Map<string, Execution>();
+const executionStore =
+  new Map<
+    string,
+    Execution
+  >();
 
 /*
 |--------------------------------------------------------------------------
@@ -34,14 +46,20 @@ const executionStore = new Map<string, Execution>();
 |--------------------------------------------------------------------------
 */
 
-export function getAllExecutions(): Execution[] {
-  return Array.from(executionStore.values());
+export function getAllExecutions():
+  Execution[] {
+  return Array.from(
+    executionStore.values()
+  );
 }
 
 export function getExecution(
   id: string
-): Execution | undefined {
-  return executionStore.get(id);
+):
+  Execution | undefined {
+  return executionStore.get(
+    id
+  );
 }
 
 /*
@@ -62,16 +80,21 @@ export function saveExecution(
 export function updateExecution(
   execution: Execution
 ): void {
-  saveExecution(execution);
+  saveExecution(
+    execution
+  );
 }
 
 export function deleteExecution(
   id: string
 ): void {
-  executionStore.delete(id);
+  executionStore.delete(
+    id
+  );
 }
 
-export function clearExecutions(): void {
+export function clearExecutions():
+  void {
   executionStore.clear();
 }
 
@@ -91,7 +114,9 @@ export function createExecutionFromDecision(
       planId
     );
 
-  saveExecution(execution);
+  saveExecution(
+    execution
+  );
 
   return execution;
 }
@@ -104,7 +129,8 @@ export function createExecutionFromDecision(
 
 export function startExecution(
   id: string
-): Execution | null {
+):
+  Execution | null {
   const execution =
     getExecution(id);
 
@@ -112,28 +138,41 @@ export function startExecution(
     return null;
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Only pending executions can start.
+  |--------------------------------------------------------------------------
+  */
+
   if (
-    execution.status !== "pending"
+    execution.status !==
+    "pending"
   ) {
     return null;
   }
 
-  const updated: Execution = {
+  const updated:
+    Execution = {
     ...execution,
 
-    status: "in_progress",
+    status:
+      "in_progress",
 
-    startedAt: new Date(),
+    startedAt:
+      new Date(),
   };
 
-  saveExecution(updated);
+  saveExecution(
+    updated
+  );
 
   return updated;
 }
 
 export function completeExecution(
   id: string
-): Execution | null {
+):
+  Execution | null {
   const execution =
     getExecution(id);
 
@@ -141,21 +180,40 @@ export function completeExecution(
     return null;
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Only active executions can complete.
+  |--------------------------------------------------------------------------
+  */
+
   if (
-    execution.status !== "in_progress"
+    execution.status !==
+    "in_progress"
   ) {
     return null;
   }
 
-  const updated: Execution = {
+  const updated:
+    Execution = {
     ...execution,
 
-    status: "completed",
+    status:
+      "completed",
 
-    completedAt: new Date(),
+    completedAt:
+      new Date(),
   };
 
-  saveExecution(updated);
+  saveExecution(
+    updated
+  );
+
+  /*
+  |--------------------------------------------------------------------------
+  | Completing execution advances the
+  | corresponding planning milestone.
+  |--------------------------------------------------------------------------
+  */
 
   completePlanMilestone(
     updated.planId,
@@ -167,7 +225,8 @@ export function completeExecution(
 
 export function blockExecution(
   id: string
-): Execution | null {
+):
+  Execution | null {
   const execution =
     getExecution(id);
 
@@ -175,20 +234,33 @@ export function blockExecution(
     return null;
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Only pending or active executions
+  | may become blocked.
+  |--------------------------------------------------------------------------
+  */
+
   if (
-    execution.status !== "pending" &&
-    execution.status !== "in_progress"
+    execution.status !==
+      "pending" &&
+    execution.status !==
+      "in_progress"
   ) {
     return null;
   }
 
-  const updated: Execution = {
+  const updated:
+    Execution = {
     ...execution,
 
-    status: "blocked",
+    status:
+      "blocked",
   };
 
-  saveExecution(updated);
+  saveExecution(
+    updated
+  );
 
   return updated;
 }
