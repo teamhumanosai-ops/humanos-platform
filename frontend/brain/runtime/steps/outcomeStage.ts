@@ -17,12 +17,12 @@ import {
 /**
  * OutcomeStage
  *
- * Converts the current cognitive runtime state
- * into a structured RuntimeOutcome.
+ * Finalizes the cognitive runtime by creating
+ * a RuntimeOutcome from the authoritative
+ * BrainState and Execution Engine state.
  *
- * The outcome describes what happened during the
- * cognitive runtime without falsely completing an
- * underlying execution.
+ * The Execution Engine remains the source of
+ * truth for execution lifecycle status.
  */
 export class OutcomeStage
   extends BaseStage {
@@ -34,30 +34,55 @@ export class OutcomeStage
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | Resolve actual execution lifecycle state.
+    | Resolve the authoritative execution state.
     |--------------------------------------------------------------------------
     */
 
-    let executionStatus =
-      null;
-
-    if (
+    const execution =
       state.currentExecutionId
-    ) {
-      const execution =
-        getExecution(
-          state.currentExecutionId
-        );
+        ? getExecution(
+            state.currentExecutionId
+          )
+        : undefined;
 
-      if (execution) {
-        executionStatus =
-          execution.status;
-      }
+    /*
+    |--------------------------------------------------------------------------
+    | Keep BrainState execution text aligned
+    | with the actual execution record.
+    |--------------------------------------------------------------------------
+    */
+
+    if (execution) {
+      state.execution =
+        [
+          `Execution: ${execution.title}`,
+
+          `Action: ${execution.action}`,
+
+          `Status: ${execution.status}`,
+
+          `Plan ID: ${execution.planId}`,
+
+          `Execution ID: ${execution.id}`,
+
+          `Started At: ${
+            execution.startedAt
+              ?.toISOString() ??
+            "Not started"
+          }`,
+
+          `Completed At: ${
+            execution.completedAt
+              ?.toISOString() ??
+            "Not completed"
+          }`,
+        ].join("\n");
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Create structured runtime outcome.
+    | Create the runtime outcome from the
+    | authoritative execution status.
     |--------------------------------------------------------------------------
     */
 
@@ -70,11 +95,15 @@ export class OutcomeStage
           state.errors,
 
         executionId:
+          execution?.id ??
           state.currentExecutionId,
 
-        executionStatus,
+        executionStatus:
+          execution?.status ??
+          null,
 
         planId:
+          execution?.planId ??
           state.currentPlanId,
 
         decisionId:
