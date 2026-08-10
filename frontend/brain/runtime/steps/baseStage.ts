@@ -1,4 +1,5 @@
 import { BrainState } from "../../brainState";
+import { createStageDiagnostic } from "../diagnostics";
 import { Stage } from "./stage";
 
 /**
@@ -6,6 +7,7 @@ import { Stage } from "./stage";
  *
  * Every stage automatically:
  * - records execution
+ * - records diagnostics
  * - updates timestamps
  * - captures failures
  */
@@ -15,21 +17,42 @@ export abstract class BaseStage implements Stage {
   async execute(
     state: BrainState
   ): Promise<BrainState> {
-    const startedAt = Date.now();
+    const startedAt =
+      new Date();
+
+    state.executedStages.push(
+      this.name
+    );
 
     try {
-      state.executedStages.push(this.name);
+      const result =
+        await this.process(
+          state
+        );
 
-      const result = await this.process(state);
+      const completedAt =
+        new Date();
 
-      result.updatedAt = new Date();
+      result.diagnostics.push(
+        createStageDiagnostic(
+          this.name,
+          startedAt,
+          completedAt
+        )
+      );
+
+      result.updatedAt =
+        completedAt;
 
       console.debug(
-        `[Runtime] ${this.name} (${Date.now() - startedAt} ms)`
+        `[Runtime] ${this.name} (${completedAt.getTime() - startedAt.getTime()} ms)`
       );
 
       return result;
     } catch (error) {
+      const completedAt =
+        new Date();
+
       const message =
         error instanceof Error
           ? error.message
@@ -38,6 +61,18 @@ export abstract class BaseStage implements Stage {
       state.errors.push(
         `${this.name}: ${message}`
       );
+
+      state.diagnostics.push(
+        createStageDiagnostic(
+          this.name,
+          startedAt,
+          completedAt,
+          message
+        )
+      );
+
+      state.updatedAt =
+        completedAt;
 
       console.error(
         `[Runtime] ${this.name} failed`,

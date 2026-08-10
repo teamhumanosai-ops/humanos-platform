@@ -1,10 +1,4 @@
-import {
-  BrainState,
-} from "../brainState";
-
-import {
-  createStageDiagnostic,
-} from "./diagnostics";
+import { BrainState } from "../brainState";
 
 import {
   RuntimeServices,
@@ -86,31 +80,13 @@ export class CognitiveRuntime {
     public readonly services:
       RuntimeServices
   ) {
-    /*
-    |--------------------------------------------------------------------------
-    | Input
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new InputStage()
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Intent
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new IntentStage()
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Live Knowledge
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new LiveKnowledgeStage(
@@ -118,133 +94,55 @@ export class CognitiveRuntime {
       )
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Memory Extraction
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new MemoryExtractionStage()
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Timeline Extraction
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new TimelineExtractionStage()
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Memory Retrieval
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new MemoryStage()
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Unified BrainState
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new BrainStateStage()
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Local Skills
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new SkillStage()
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Context
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new ContextStage()
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reasoning
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new ReasoningStage()
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Planning
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new PlanningStage()
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Decision
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new DecisionStage()
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validation
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new ValidationStage()
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Execution
-    |--------------------------------------------------------------------------
-    */
-
     this.register(
       new ExecutionStage()
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Response
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new ResponseStage(
         this.services
       )
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Outcome
-    |--------------------------------------------------------------------------
-    */
 
     this.register(
       new OutcomeStage()
@@ -268,48 +166,10 @@ export class CognitiveRuntime {
       const stage of
       this.stages
     ) {
-      const startedAt =
-        new Date();
-
-      try {
-        current =
-          await stage.execute(
-            current
-          );
-
-        const completedAt =
-          new Date();
-
-        current.diagnostics.push(
-          createStageDiagnostic(
-            stage.name,
-            startedAt,
-            completedAt
-          )
+      current =
+        await stage.execute(
+          current
         );
-      } catch (error) {
-        const completedAt =
-          new Date();
-
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.diagnostics.push(
-          createStageDiagnostic(
-            stage.name,
-            startedAt,
-            completedAt,
-            message
-          )
-        );
-
-        current.updatedAt =
-          completedAt;
-
-        throw error;
-      }
     }
 
     current.updatedAt =
