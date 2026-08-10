@@ -7,7 +7,7 @@ import {
 } from "../../intent";
 
 import {
-  createPlanFromMessage,
+  createPlanFromMessageWithContext,
 } from "../../planning";
 
 import {
@@ -20,20 +20,9 @@ import {
  * Integrates the existing Planning Engine
  * into the Cognitive Runtime.
  *
- * Responsibilities:
- * - Determine whether the current request
- *   requires planning
- * - Create a plan using the existing
- *   Planning Engine
- * - Store the resulting plan in BrainState
- * - Preserve relevant reasoning and graph
- *   context in the runtime plan description
- *
- * The Planning Engine remains responsible
- * for plan generation.
- *
- * BrainState remains the shared runtime
- * artifact.
+ * The Runtime supplies relevant cognitive
+ * context while the Planning Engine remains
+ * responsible for generating the plan.
  */
 export class PlanningStage
   extends BaseStage {
@@ -70,13 +59,61 @@ export class PlanningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Use the existing Planning Engine.
+    | Build graph observations from the
+    | canonical BrainState.
+    |--------------------------------------------------------------------------
+    */
+
+    const graphObservations: string[] =
+      [];
+
+    if (
+      state.graph.length > 0
+    ) {
+      graphObservations.push(
+        `The knowledge graph contains ${state.graph.length} relevant entities.`
+      );
+    }
+
+    if (
+      state.graphEdges.length > 0
+    ) {
+      graphObservations.push(
+        `The knowledge graph contains ${state.graphEdges.length} relevant relationships.`
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Preserve the reasoning signal when
+    | available.
+    |--------------------------------------------------------------------------
+    */
+
+    const reasoning =
+      state.reasoning?.trim();
+
+    if (
+      reasoning
+    ) {
+      graphObservations.push(
+        `Reasoning context: ${reasoning}`
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create the plan through the existing
+    | Planning Engine with cognitive context.
     |--------------------------------------------------------------------------
     */
 
     const plan =
-      createPlanFromMessage(
-        state.userMessage
+      createPlanFromMessageWithContext(
+        state.userMessage,
+        {
+          graphObservations,
+        }
       );
 
     if (!plan) {
@@ -97,52 +134,6 @@ export class PlanningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Build graph-aware planning context.
-    |--------------------------------------------------------------------------
-    |
-    | BrainState.reasoning is nullable in the
-    | current architecture, so only consume it
-    | when a reasoning result exists.
-    |
-    */
-
-    const graphContext =
-      state.graph.length > 0 ||
-      state.graphEdges.length > 0
-        ? [
-            "Knowledge graph context is available.",
-
-            `Graph entities: ${state.graph.length}.`,
-
-            `Graph relationships: ${state.graphEdges.length}.`,
-          ].join(" ")
-        : "";
-
-    const reasoningContext =
-      state.reasoning?.trim() ?? "";
-
-    const descriptionParts = [
-      plan.description,
-    ];
-
-    if (
-      reasoningContext
-    ) {
-      descriptionParts.push(
-        `Reasoning context: ${reasoningContext}`
-      );
-    }
-
-    if (
-      graphContext
-    ) {
-      descriptionParts.push(
-        graphContext
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
     | Store human-readable plan state.
     |--------------------------------------------------------------------------
     */
@@ -153,9 +144,7 @@ export class PlanningStage
 
         `Goal: ${plan.goal}`,
 
-        `Description: ${descriptionParts.join(
-          "\n"
-        )}`,
+        `Description: ${plan.description}`,
 
         `Next Action: ${plan.nextAction}`,
 
