@@ -1,7 +1,17 @@
-import type { BrainState } from "../brainState";
+import type {
+  BrainState,
+} from "../brainState";
 
 import type {
-  ReasoningObservation,
+  GraphEdge,
+  GraphNode,
+} from "../graph";
+
+import {
+  graphQuery,
+} from "../graph";
+
+import type {
   ReasoningResult,
 } from "./types";
 
@@ -13,102 +23,302 @@ function normalize(
     .trim();
 }
 
-function limitItems(
-  items: string[],
+function limitItems<T>(
+  items: T[],
   limit = 5
-): string[] {
-  return items
-    .map((item) =>
-      normalize(item)
-    )
-    .filter(Boolean)
-    .slice(0, limit);
+): T[] {
+  return items.slice(
+    0,
+    limit
+  );
+}
+
+function buildGraphObservations(
+  state: BrainState
+): {
+  statement: string;
+  confidence: number;
+}[] {
+  const observations: {
+    statement: string;
+    confidence: number;
+  }[] = [];
+
+  const graphNodes =
+    limitItems(
+      state.graph
+    );
+
+  if (
+    graphNodes.length > 0
+  ) {
+    const labels =
+      graphNodes.map(
+        (node) =>
+          `${node.label} (${node.type})`
+      );
+
+    observations.push({
+      statement:
+        `Relevant knowledge graph entities include: ${labels.join(
+          ", "
+        )}.`,
+
+      confidence:
+        0.85,
+    });
+  }
+
+  const graphEdges =
+    limitItems(
+      state.graphEdges
+    );
+
+  if (
+    graphEdges.length > 0
+  ) {
+    const nodesById =
+      new Map<
+        string,
+        GraphNode
+      >(
+        state.graph.map(
+          (node) => [
+            node.id,
+            node,
+          ]
+        )
+      );
+
+    const relationships =
+      graphEdges
+        .map(
+          (
+            edge: GraphEdge
+          ) => {
+            const from =
+              nodesById.get(
+                edge.from
+              );
+
+            const to =
+              nodesById.get(
+                edge.to
+              );
+
+            if (
+              !from ||
+              !to
+            ) {
+              return null;
+            }
+
+            return `${from.label} ${edge.type} ${to.label}`;
+          }
+        )
+        .filter(
+          (
+            relationship
+          ): relationship is string =>
+            Boolean(
+              relationship
+            )
+        );
+
+    if (
+      relationships.length > 0
+    ) {
+      observations.push({
+        statement:
+          `Relevant knowledge graph relationships include: ${relationships.join(
+            "; "
+          )}.`,
+
+        confidence:
+          0.9,
+      });
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Relationship-aware query
+  |--------------------------------------------------------------------------
+  |
+  | Use GraphQuery as the canonical traversal API.
+  | This avoids duplicating graph traversal logic
+  | inside the reasoning engine.
+  |
+  */
+
+  const relationshipSummary =
+    limitItems(
+      state.graph
+        .flatMap(
+          (node) =>
+            graphQuery
+              .getWeightedRelationships(
+                node.id
+              )
+              .map(
+                (edge) => ({
+                  nodeId:
+                    node.id,
+
+                  edge,
+                })
+              )
+        ),
+      8
+    );
+
+  if (
+    relationshipSummary.length > 0
+  ) {
+    const nodesById =
+      new Map<
+        string,
+        GraphNode
+      >(
+        state.graph.map(
+          (node) => [
+            node.id,
+            node,
+          ]
+        )
+      );
+
+    const weightedRelationships =
+      relationshipSummary
+        .map(
+          ({
+            edge,
+          }) => {
+            const from =
+              nodesById.get(
+                edge.from
+              );
+
+            const to =
+              nodesById.get(
+                edge.to
+              );
+
+            if (
+              !from ||
+              !to
+            ) {
+              return null;
+            }
+
+            return `${from.label} ${edge.type} ${to.label} (weight ${edge.weight.toFixed(
+              2
+            )})`;
+          }
+        )
+        .filter(
+          (
+            relationship
+          ): relationship is string =>
+            Boolean(
+              relationship
+            )
+        );
+
+    if (
+      weightedRelationships.length > 0
+    ) {
+      observations.push({
+        statement:
+          `The graph provides weighted relationship evidence: ${weightedRelationships.join(
+            "; "
+          )}.`,
+
+        confidence:
+          0.9,
+      });
+    }
+  }
+
+  return observations;
 }
 
 function buildObservations(
   state: BrainState
-): ReasoningObservation[] {
-  const observations: ReasoningObservation[] = [];
+): {
+  statement: string;
+  confidence: number;
+}[] {
+  const observations: {
+    statement: string;
+    confidence: number;
+  }[] = [];
 
-  if (state.intent) {
+  if (
+    state.intent
+  ) {
     observations.push({
       statement:
-        `The detected intent is "${state.intent}".`,
-      confidence: 0.8,
-    });
-  }
+        `The detected intent is ${state.intent}.`,
 
-  const memoryValues =
-    limitItems(
-      state.memories.map(
-        (memory) => memory.value
-      )
-    );
-
-  if (memoryValues.length > 0) {
-    observations.push({
-      statement:
-        `Relevant long-term memory is available for this request: ${memoryValues.join(
-          "; "
-        )}.`,
-      confidence: 0.9,
-    });
-  }
-
-  const graphLabels =
-    limitItems(
-      state.graph.map(
-        (node) => node.label
-      )
-    );
-
-  if (graphLabels.length > 0) {
-    observations.push({
-      statement:
-        `Relevant knowledge graph entities are available: ${graphLabels.join(
-          ", "
-        )}.`,
-      confidence: 0.85,
+      confidence:
+        0.8,
     });
   }
 
   if (
-    state.graphEdges.length > 0
+    state.memories.length > 0
   ) {
     observations.push({
       statement:
-        `Relevant relationships are available in the knowledge graph.`,
-      confidence: 0.85,
+        `Relevant long-term memory is available for this request.`,
+
+      confidence:
+        0.9,
     });
   }
 
-  const timelineItems =
-    limitItems(
-      state.timeline
-    );
+  observations.push(
+    ...buildGraphObservations(
+      state
+    )
+  );
 
-  if (timelineItems.length > 0) {
+  if (
+    state.timeline.length > 0
+  ) {
+    const timelineItems =
+      limitItems(
+        state.timeline
+      );
+
     observations.push({
       statement:
-        `Relevant timeline information is available: ${timelineItems.join(
+        `Relevant timeline information includes: ${timelineItems.join(
           "; "
         )}.`,
-      confidence: 0.85,
+
+      confidence:
+        0.85,
     });
   }
 
-  const reflectionItems =
-    limitItems(
-      state.reflections
-    );
+  if (
+    state.reflections.length > 0
+  ) {
+    const reflectionItems =
+      limitItems(
+        state.reflections
+      );
 
-  if (reflectionItems.length > 0) {
     observations.push({
       statement:
-        `Relevant reflections are available: ${reflectionItems.join(
+        `Relevant inferred patterns include: ${reflectionItems.join(
           "; "
         )}.`,
-      confidence: 0.8,
+
+      confidence:
+        0.8,
     });
   }
 
@@ -118,7 +328,8 @@ function buildObservations(
     const knowledgeSources =
       limitItems(
         state.knowledge.map(
-          (item) => item.source
+          (item) =>
+            item.source
         )
       );
 
@@ -137,7 +348,8 @@ function buildObservations(
                 ? ""
                 : "s"
             }.`,
-      confidence: 0.9,
+      confidence:
+        0.9,
     });
   }
 
@@ -147,15 +359,21 @@ function buildObservations(
     observations.push({
       statement:
         `Current external knowledge was retrieved for this request.`,
-      confidence: 0.95,
+
+      confidence:
+        0.95,
     });
   }
 
-  if (state.profile) {
+  if (
+    state.profile
+  ) {
     observations.push({
       statement:
         `A user profile is available to personalize the reasoning.`,
-      confidence: 0.85,
+
+      confidence:
+        0.85,
     });
   }
 
@@ -171,7 +389,9 @@ export function reason(
     );
 
   const observations =
-    buildObservations(state);
+    buildObservations(
+      state
+    );
 
   if (
     observations.length === 0
@@ -180,9 +400,11 @@ export function reason(
       summary:
         `The request "${userRequest}" does not currently have additional structured reasoning evidence.`,
 
-      observations: [],
+      observations:
+        [],
 
-      confidence: 0.5,
+      confidence:
+        0.5,
     };
   }
 
