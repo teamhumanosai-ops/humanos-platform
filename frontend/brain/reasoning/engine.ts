@@ -12,7 +12,9 @@ import {
 } from "../graph";
 
 import type {
+  ReasoningObservation,
   ReasoningResult,
+  ReasoningSource,
 } from "./types";
 
 function normalize(
@@ -33,16 +35,25 @@ function limitItems<T>(
   );
 }
 
+function observation(
+  statement: string,
+  confidence: number,
+  source: ReasoningSource
+): ReasoningObservation {
+  return {
+    statement,
+
+    confidence,
+
+    source,
+  };
+}
+
 function buildGraphObservations(
   state: BrainState
-): {
-  statement: string;
-  confidence: number;
-}[] {
-  const observations: {
-    statement: string;
-    confidence: number;
-  }[] = [];
+): ReasoningObservation[] {
+  const observations: ReasoningObservation[] =
+    [];
 
   const graphNodes =
     limitItems(
@@ -58,15 +69,15 @@ function buildGraphObservations(
           `${node.label} (${node.type})`
       );
 
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         `Relevant knowledge graph entities include: ${labels.join(
           ", "
         )}.`,
-
-      confidence:
         0.85,
-    });
+        "knowledge_graph"
+      )
+    );
   }
 
   const graphEdges =
@@ -128,15 +139,15 @@ function buildGraphObservations(
     if (
       relationships.length > 0
     ) {
-      observations.push({
-        statement:
+      observations.push(
+        observation(
           `Relevant knowledge graph relationships include: ${relationships.join(
             "; "
           )}.`,
-
-        confidence:
           0.9,
-      });
+          "knowledge_graph"
+        )
+      );
     }
   }
 
@@ -144,11 +155,6 @@ function buildGraphObservations(
   |--------------------------------------------------------------------------
   | Relationship-aware query
   |--------------------------------------------------------------------------
-  |
-  | Use GraphQuery as the canonical traversal API.
-  | This avoids duplicating graph traversal logic
-  | inside the reasoning engine.
-  |
   */
 
   const relationshipSummary =
@@ -228,15 +234,15 @@ function buildGraphObservations(
     if (
       weightedRelationships.length > 0
     ) {
-      observations.push({
-        statement:
+      observations.push(
+        observation(
           `The graph provides weighted relationship evidence: ${weightedRelationships.join(
             "; "
           )}.`,
-
-        confidence:
           0.9,
-      });
+          "knowledge_graph"
+        )
+      );
     }
   }
 
@@ -245,37 +251,32 @@ function buildGraphObservations(
 
 function buildObservations(
   state: BrainState
-): {
-  statement: string;
-  confidence: number;
-}[] {
-  const observations: {
-    statement: string;
-    confidence: number;
-  }[] = [];
+): ReasoningObservation[] {
+  const observations: ReasoningObservation[] =
+    [];
 
   if (
     state.intent
   ) {
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         `The detected intent is ${state.intent}.`,
-
-      confidence:
         0.8,
-    });
+        "intent"
+      )
+    );
   }
 
   if (
     state.memories.length > 0
   ) {
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         `Relevant long-term memory is available for this request.`,
-
-      confidence:
         0.9,
-    });
+        "memory"
+      )
+    );
   }
 
   observations.push(
@@ -292,15 +293,15 @@ function buildObservations(
         state.timeline
       );
 
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         `Relevant timeline information includes: ${timelineItems.join(
           "; "
         )}.`,
-
-      confidence:
         0.85,
-    });
+        "timeline"
+      )
+    );
   }
 
   if (
@@ -311,15 +312,15 @@ function buildObservations(
         state.reflections
       );
 
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         `Relevant inferred patterns include: ${reflectionItems.join(
           "; "
         )}.`,
-
-      confidence:
         0.8,
-    });
+        "reflection"
+      )
+    );
   }
 
   if (
@@ -333,8 +334,8 @@ function buildObservations(
         )
       );
 
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         knowledgeSources.length > 0
           ? `Knowledge retrieval returned ${state.knowledge.length} relevant result${
               state.knowledge.length === 1
@@ -348,33 +349,34 @@ function buildObservations(
                 ? ""
                 : "s"
             }.`,
-      confidence:
         0.9,
-    });
+        "knowledge"
+      )
+    );
   }
 
   if (
     state.liveKnowledge.length > 0
   ) {
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         `Current external knowledge was retrieved for this request.`,
-
-      confidence:
         0.95,
-    });
+        "live_knowledge"
+      )
+    );
   }
 
   if (
     state.profile
   ) {
-    observations.push({
-      statement:
+    observations.push(
+      observation(
         `A user profile is available to personalize the reasoning.`,
-
-      confidence:
         0.85,
-    });
+        "profile"
+      )
+    );
   }
 
   return observations;
@@ -412,10 +414,10 @@ export function reason(
     observations.reduce(
       (
         total,
-        observation
+        current
       ) =>
         total +
-        observation.confidence,
+        current.confidence,
       0
     ) /
     observations.length;
