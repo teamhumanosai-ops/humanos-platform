@@ -67,6 +67,10 @@ import {
 } from "./steps/responseStage";
 
 import {
+  ResponseValidationStage,
+} from "./steps/responseValidationStage";
+
+import {
   OutcomeStage,
 } from "./steps/outcomeStage";
 
@@ -235,9 +239,17 @@ export class CognitiveRuntime {
     */
 
     this.register(
-      new ResponseStage(
-        this.services
-      )
+      new ResponseStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Response Validation
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new ResponseValidationStage()
     );
 
     /*
@@ -300,11 +312,7 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Outcome must exist whenever possible.
-    |
-    | If a stage failed before OutcomeStage,
-    | finalize the current BrainState through the
-    | existing OutcomeStage.
+    | Outcome finalization
     |--------------------------------------------------------------------------
     */
 
@@ -339,50 +347,9 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Reflection is a feedback operation.
-    |
-    | If the normal pipeline stopped before ReflectionStage,
-    | do not force reflection over an incomplete cognitive
-    | cycle.
+    | Runtime timestamp
     |--------------------------------------------------------------------------
     */
-
-    const reflectionStage =
-      this.stages.find(
-        (stage) =>
-          stage.name ===
-          "Reflection"
-      );
-
-    const reflectionExecuted =
-      current.executedStages.includes(
-        "Reflection"
-      );
-
-    const runtimeFailed =
-      current.errors.length > 0;
-
-    if (
-      reflectionStage &&
-      !reflectionExecuted &&
-      !runtimeFailed
-    ) {
-      try {
-        current =
-          await reflectionStage.execute(
-            current
-          );
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.errors.push(
-          `Reflection: ${message}`
-        );
-      }
-    }
 
     current.updatedAt =
       new Date();
