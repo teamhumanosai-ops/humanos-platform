@@ -1,10 +1,17 @@
-import { aiService } from "../core/aiService";
-import { searchWeb } from "../websearch";
+import {
+  aiService,
+} from "../core/aiService";
+
+import {
+  searchWeb,
+} from "../websearch";
 
 export type RuntimeServices = {
-  aiService: typeof aiService;
+  aiService:
+    typeof aiService;
 
-  searchWeb: typeof searchWeb;
+  searchWeb:
+    typeof searchWeb;
 };
 
 export const runtimeServices:

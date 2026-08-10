@@ -1,4 +1,6 @@
-import { BrainState } from "../brainState";
+import {
+  BrainState,
+} from "../brainState";
 
 import {
   RuntimeServices,
@@ -9,16 +11,32 @@ import {
 } from "./steps/inputStage";
 
 import {
-  MemoryStage,
-} from "./steps/memoryStage";
-
-import {
   IntentStage,
 } from "./steps/intentStage";
 
 import {
+  LiveKnowledgeStage,
+} from "./steps/liveKnowledgeStage";
+
+import {
+  MemoryExtractionStage,
+} from "./steps/memoryExtractionStage";
+
+import {
+  TimelineExtractionStage,
+} from "./steps/timelineExtractionStage";
+
+import {
+  MemoryStage,
+} from "./steps/memoryStage";
+
+import {
   BrainStateStage,
 } from "./steps/brainStateStage";
+
+import {
+  SkillStage,
+} from "./steps/skillStage";
 
 import {
   ContextStage,
@@ -60,47 +78,155 @@ export class CognitiveRuntime {
     public readonly services:
       RuntimeServices
   ) {
+    /*
+    |--------------------------------------------------------------------------
+    | Input
+    |--------------------------------------------------------------------------
+    */
+
     this.register(
       new InputStage()
     );
 
-    this.register(
-      new MemoryStage()
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | Intent
+    |--------------------------------------------------------------------------
+    */
 
     this.register(
       new IntentStage()
     );
 
+    /*
+    |--------------------------------------------------------------------------
+    | Live Knowledge
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new LiveKnowledgeStage(
+        this.services
+      )
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Memory Extraction
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new MemoryExtractionStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Timeline Extraction
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new TimelineExtractionStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Memory Retrieval
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new MemoryStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unified Brain State
+    |--------------------------------------------------------------------------
+    */
+
     this.register(
       new BrainStateStage()
     );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Local Skills
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new SkillStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Context
+    |--------------------------------------------------------------------------
+    */
 
     this.register(
       new ContextStage()
     );
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reasoning
+    |--------------------------------------------------------------------------
+    */
+
     this.register(
       new ReasoningStage()
     );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Planning
+    |--------------------------------------------------------------------------
+    */
 
     this.register(
       new PlanningStage()
     );
 
+    /*
+    |--------------------------------------------------------------------------
+    | Decision
+    |--------------------------------------------------------------------------
+    */
+
     this.register(
       new DecisionStage()
     );
 
+    /*
+    |--------------------------------------------------------------------------
+    | Execution
+    |--------------------------------------------------------------------------
+    */
+
     this.register(
       new ExecutionStage()
     );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
 
     this.register(
       new ResponseStage(
         this.services
       )
     );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Outcome
+    |--------------------------------------------------------------------------
+    */
 
     this.register(
       new OutcomeStage()
