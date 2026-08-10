@@ -1,4 +1,10 @@
-import { BrainState } from "../brainState";
+import {
+  BrainState,
+} from "../brainState";
+
+import {
+  createStageDiagnostic,
+} from "./diagnostics";
 
 import {
   RuntimeServices,
@@ -248,14 +254,52 @@ export class CognitiveRuntime {
       const stage of
       this.stages
     ) {
-      current =
-        await stage.execute(
-          current
+      const startedAt =
+        new Date();
+
+      try {
+        current =
+          await stage.execute(
+            current
+          );
+
+        const completedAt =
+          new Date();
+
+        current.diagnostics.push(
+          createStageDiagnostic(
+            stage.name,
+            startedAt,
+            completedAt
+          )
+        );
+      } catch (error) {
+        const completedAt =
+          new Date();
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        current.diagnostics.push(
+          createStageDiagnostic(
+            stage.name,
+            startedAt,
+            completedAt,
+            message
+          )
         );
 
-      current.updatedAt =
-        new Date();
+        current.updatedAt =
+          completedAt;
+
+        throw error;
+      }
     }
+
+    current.updatedAt =
+      new Date();
 
     return current;
   }
