@@ -71,6 +71,10 @@ import {
 } from "./steps/outcomeStage";
 
 import {
+  ReflectionStage,
+} from "./steps/reflectionStage";
+
+import {
   Stage,
 } from "./steps/stage";
 
@@ -245,6 +249,16 @@ export class CognitiveRuntime {
     this.register(
       new OutcomeStage()
     );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reflection
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new ReflectionStage()
+    );
   }
 
   register(
@@ -272,12 +286,8 @@ export class CognitiveRuntime {
       } catch {
         /*
         |--------------------------------------------------------------------------
-        | A failed cognitive stage stops all
-        | downstream cognitive processing.
-        |
-        | We do not continue reasoning, planning,
-        | decision making, or execution with an
-        | invalid/incomplete BrainState.
+        | Stop downstream cognitive processing after
+        | a stage failure.
         |--------------------------------------------------------------------------
         */
 
@@ -290,10 +300,11 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Runtime Finalization
+    | Outcome must exist whenever possible.
     |
-    | Outcome must be produced whenever the
-    | OutcomeStage itself did not already run.
+    | If a stage failed before OutcomeStage,
+    | finalize the current BrainState through the
+    | existing OutcomeStage.
     |--------------------------------------------------------------------------
     */
 
@@ -323,6 +334,53 @@ export class CognitiveRuntime {
             `Outcome: ${message}`
           );
         }
+      }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reflection is a feedback operation.
+    |
+    | If the normal pipeline stopped before ReflectionStage,
+    | do not force reflection over an incomplete cognitive
+    | cycle.
+    |--------------------------------------------------------------------------
+    */
+
+    const reflectionStage =
+      this.stages.find(
+        (stage) =>
+          stage.name ===
+          "Reflection"
+      );
+
+    const reflectionExecuted =
+      current.executedStages.includes(
+        "Reflection"
+      );
+
+    const runtimeFailed =
+      current.errors.length > 0;
+
+    if (
+      reflectionStage &&
+      !reflectionExecuted &&
+      !runtimeFailed
+    ) {
+      try {
+        current =
+          await reflectionStage.execute(
+            current
+          );
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        current.errors.push(
+          `Reflection: ${message}`
+        );
       }
     }
 
