@@ -1,37 +1,74 @@
+import type {
+  ExecutionStatus,
+} from "../execution";
+
 export type RuntimeOutcomeStatus =
   | "completed"
   | "failed";
 
 export type RuntimeOutcome = {
-  status: RuntimeOutcomeStatus;
+  status:
+    RuntimeOutcomeStatus;
 
-  result: string | null;
+  result:
+    string | null;
 
-  errors: string[];
+  errors:
+    string[];
 
   metadata: {
-    executionId: string | null;
-    planId: string | null;
-    decisionId: string | null;
-    stagesExecuted: string[];
-    createdAt: Date;
-    completedAt: Date;
+    executionId:
+      string | null;
+
+    executionStatus:
+      ExecutionStatus | null;
+
+    planId:
+      string | null;
+
+    decisionId:
+      string | null;
+
+    stagesExecuted:
+      string[];
+
+    createdAt:
+      Date;
+
+    completedAt:
+      Date;
   };
 };
 
 export function createRuntimeOutcome(
   input: {
-    result: string | null;
-    errors: string[];
-    executionId: string | null;
-    planId: string | null;
-    decisionId: string | null;
-    stagesExecuted: string[];
+    result:
+      string | null;
+
+    errors:
+      string[];
+
+    executionId:
+      string | null;
+
+    executionStatus:
+      ExecutionStatus | null;
+
+    planId:
+      string | null;
+
+    decisionId:
+      string | null;
+
+    stagesExecuted:
+      string[];
   }
 ): RuntimeOutcome {
-  const completedAt = new Date();
+  const completedAt =
+    new Date();
 
-  const status: RuntimeOutcomeStatus =
+  const status:
+    RuntimeOutcomeStatus =
     input.errors.length > 0
       ? "failed"
       : "completed";
@@ -39,13 +76,18 @@ export function createRuntimeOutcome(
   return {
     status,
 
-    result: input.result,
+    result:
+      input.result,
 
-    errors: [...input.errors],
+    errors:
+      [...input.errors],
 
     metadata: {
       executionId:
         input.executionId,
+
+      executionStatus:
+        input.executionStatus,
 
       planId:
         input.planId,

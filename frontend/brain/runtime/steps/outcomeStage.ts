@@ -1,30 +1,66 @@
-import { BrainState } from "../../brainState";
+import {
+  BrainState,
+} from "../../brainState";
+
+import {
+  getExecution,
+} from "../../execution";
 
 import {
   createRuntimeOutcome,
 } from "../outcome";
 
-import { BaseStage } from "./baseStage";
+import {
+  BaseStage,
+} from "./baseStage";
 
 /**
  * OutcomeStage
  *
- * Converts the completed cognitive runtime
+ * Converts the current cognitive runtime state
  * into a structured RuntimeOutcome.
  *
- * This stage observes the runtime result.
- *
- * It does NOT complete the underlying Execution.
- * Execution completion requires an actual executor
- * to perform the selected action.
+ * The outcome describes what happened during the
+ * cognitive runtime without falsely completing an
+ * underlying execution.
  */
 export class OutcomeStage
   extends BaseStage {
-  readonly name = "Outcome";
+  readonly name =
+    "Outcome";
 
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
+    /*
+    |--------------------------------------------------------------------------
+    | Resolve actual execution lifecycle state.
+    |--------------------------------------------------------------------------
+    */
+
+    let executionStatus =
+      null;
+
+    if (
+      state.currentExecutionId
+    ) {
+      const execution =
+        getExecution(
+          state.currentExecutionId
+        );
+
+      if (execution) {
+        executionStatus =
+          execution.status;
+      }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create structured runtime outcome.
+    |--------------------------------------------------------------------------
+    */
+
     state.outcome =
       createRuntimeOutcome({
         result:
@@ -35,6 +71,8 @@ export class OutcomeStage
 
         executionId:
           state.currentExecutionId,
+
+        executionStatus,
 
         planId:
           state.currentPlanId,
