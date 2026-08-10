@@ -1,18 +1,82 @@
 import { BaseStage } from "./baseStage";
+
 import { BrainState } from "../../brainState";
 
-import { graphQuery } from "../../graph";
-import { profileEngine } from "../../profile/profileEngine";
-import { buildTimelinePrompt } from "../../timeline";
-import { buildReflectionPrompt } from "../../reflection";
-import { enrichmentEngine } from "../../enrichment";
+import {
+  graphQuery,
+} from "../../graph";
 
-export class BrainStateStage extends BaseStage {
+import {
+  loadMemories,
+} from "../../memory";
+
+import {
+  retrieveKnowledgeResults,
+} from "../../knowledge";
+
+import {
+  profileEngine,
+} from "../../profile/profileEngine";
+
+import {
+  buildTimelinePrompt,
+} from "../../timeline";
+
+import {
+  buildReflectionPrompt,
+} from "../../reflection";
+
+export class BrainStateStage
+  extends BaseStage {
   readonly name = "BrainState";
 
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
+    /*
+    |--------------------------------------------------------------------------
+    | Memory
+    |--------------------------------------------------------------------------
+    */
+
+    state.memories =
+      await loadMemories();
+
+    state.memory =
+      state.memories.map(
+        (memory) =>
+          memory.value
+      );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Knowledge
+    |--------------------------------------------------------------------------
+    |
+    | Knowledge retrieval now becomes part of the canonical BrainState.
+    | Context no longer needs to independently retrieve knowledge.
+    |
+    */
+
+    const knowledge =
+      await retrieveKnowledgeResults(
+        state.userMessage
+      );
+
+    state.knowledge =
+      knowledge.map(
+        (result) => ({
+          source:
+            result.source,
+
+          text:
+            result.text,
+
+          score:
+            result.score,
+        })
+      );
+
     /*
     |--------------------------------------------------------------------------
     | Knowledge Graph
@@ -27,24 +91,12 @@ export class BrainStateStage extends BaseStage {
 
     /*
     |--------------------------------------------------------------------------
-    | Human Profile
+    | Profile
     |--------------------------------------------------------------------------
     */
 
     state.profile =
       profileEngine.get();
-
-    if (state.profile) {
-      const enrichmentSuggestion =
-        enrichmentEngine.getNextQuestion(
-          state.profile
-        );
-
-      console.debug(
-        "[Human OS] Next enrichment:",
-        enrichmentSuggestion
-      );
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -66,7 +118,7 @@ export class BrainStateStage extends BaseStage {
 
     /*
     |--------------------------------------------------------------------------
-    | Reflections
+    | Reflection
     |--------------------------------------------------------------------------
     */
 
