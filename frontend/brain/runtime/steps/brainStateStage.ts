@@ -13,6 +13,11 @@ import {
 } from "../../graph";
 
 import {
+  GraphNode,
+  GraphEdge,
+} from "../../graph";
+
+import {
   profileEngine,
 } from "../../profile/profileEngine";
 
@@ -27,6 +32,141 @@ import {
 import {
   enrichmentEngine,
 } from "../../enrichment";
+
+function buildGraphContext(
+  query: string
+): {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+} {
+  const normalized =
+    query
+      .trim()
+      .toLowerCase();
+
+  if (!normalized) {
+    return {
+      nodes: [],
+      edges: [],
+    };
+  }
+
+  const terms =
+    normalized
+      .split(/\s+/)
+      .map(
+        (term) =>
+          term.replace(
+            /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,
+            ""
+          )
+      )
+      .filter(
+        (term) =>
+          term.length >= 2
+      );
+
+  const matchedNodes =
+    new Map<
+      string,
+      GraphNode
+    >();
+
+  const exactMatches =
+    graphQuery.search(
+      normalized
+    );
+
+  for (
+    const node of exactMatches
+  ) {
+    matchedNodes.set(
+      node.id,
+      node
+    );
+  }
+
+  for (
+    const term of terms
+  ) {
+    const matches =
+      graphQuery.search(
+        term
+      );
+
+    for (
+      const node of matches
+    ) {
+      matchedNodes.set(
+        node.id,
+        node
+      );
+    }
+  }
+
+  if (
+    matchedNodes.size === 0
+  ) {
+    return {
+      nodes: [],
+      edges: [],
+    };
+  }
+
+  const relevantNodes =
+    new Map<
+      string,
+      GraphNode
+    >(
+      matchedNodes
+    );
+
+  const relevantEdges =
+    new Map<
+      string,
+      GraphEdge
+    >();
+
+  for (
+    const node of
+      matchedNodes.values()
+  ) {
+    const subgraph =
+      graphQuery.getConnectedSubgraph(
+        node.id
+      );
+
+    for (
+      const neighbor of
+        subgraph.neighbors
+    ) {
+      relevantNodes.set(
+        neighbor.id,
+        neighbor
+      );
+    }
+
+    for (
+      const relationship of
+        subgraph.relationships
+    ) {
+      relevantEdges.set(
+        relationship.id,
+        relationship
+      );
+    }
+  }
+
+  return {
+    nodes: [
+      ...relevantNodes.values(),
+    ],
+
+    edges: [
+      ...relevantEdges.values(),
+    ],
+  };
+}
 
 export class BrainStateStage
   extends BaseStage {
@@ -70,13 +210,27 @@ export class BrainStateStage
     |--------------------------------------------------------------------------
     | Knowledge Graph
     |--------------------------------------------------------------------------
+    |
+    | Graph retrieval is request-aware.
+    |
+    | We first identify graph entities related to the user's request,
+    | then use the canonical GraphQuery traversal API to collect their
+    | connected relationships.
+    |
+    | BrainState remains the only shared cognitive artifact.
+    |
     */
 
+    const graphContext =
+      buildGraphContext(
+        state.userMessage
+      );
+
     state.graph =
-      graphQuery.getNodes();
+      graphContext.nodes;
 
     state.graphEdges =
-      graphQuery.getEdges();
+      graphContext.edges;
 
     /*
     |--------------------------------------------------------------------------
