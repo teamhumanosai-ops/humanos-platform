@@ -1,13 +1,11 @@
 export type ReasoningSource =
-  | "intent"
   | "memory"
   | "knowledge"
-  | "live_knowledge"
+  | "knowledge_graph"
   | "timeline"
   | "reflection"
-  | "profile"
-  | "knowledge_graph"
-  | "prediction";
+  | "prediction"
+  | "live_knowledge";
 
 export type ReasoningObservationKind =
   | "known_fact"
@@ -20,15 +18,18 @@ export type ReasoningObservation = {
 
   confidence: number;
 
-  source: ReasoningSource;
+  source:
+    ReasoningSource;
 
-  kind: ReasoningObservationKind;
+  kind:
+    ReasoningObservationKind;
 };
 
 export type ReasoningResult = {
   summary: string;
 
-  observations: ReasoningObservation[];
+  observations:
+    ReasoningObservation[];
 
   confidence: number;
 };

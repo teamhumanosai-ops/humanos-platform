@@ -7,10 +7,6 @@ import type {
   GraphNode,
 } from "../graph";
 
-import {
-  graphQuery,
-} from "../graph";
-
 import type {
   ReasoningObservation,
   ReasoningObservationKind,
@@ -22,7 +18,10 @@ function normalize(
   value: string
 ): string {
   return value
-    .replace(/\s+/g, " ")
+    .replace(
+      /\s+/g,
+      " "
+    )
     .trim();
 }
 
@@ -39,7 +38,8 @@ function limitItems<T>(
 function classifyObservation(
   source: ReasoningSource,
   confidence: number,
-  preferredKind?: ReasoningObservationKind
+  preferredKind?:
+    ReasoningObservationKind
 ): ReasoningObservationKind {
   if (
     confidence < 0.7
@@ -54,19 +54,22 @@ function classifyObservation(
   }
 
   if (
-    source === "reflection"
+    source ===
+    "reflection"
   ) {
     return "derived_inference";
   }
 
   if (
-    source === "knowledge_graph"
+    source ===
+    "knowledge_graph"
   ) {
     return "observed_relationship";
   }
 
   if (
-    source === "prediction"
+    source ===
+    "prediction"
   ) {
     return "derived_inference";
   }
@@ -74,14 +77,18 @@ function classifyObservation(
   return "known_fact";
 }
 
-function observation(
+function createObservation(
   statement: string,
   confidence: number,
   source: ReasoningSource,
-  preferredKind?: ReasoningObservationKind
+  preferredKind?:
+    ReasoningObservationKind
 ): ReasoningObservation {
   return {
-    statement,
+    statement:
+      normalize(
+        statement
+      ),
 
     confidence,
 
@@ -96,444 +103,254 @@ function observation(
   };
 }
 
+function buildMemoryObservations(
+  state: BrainState
+): ReasoningObservation[] {
+  return limitItems(
+    state.memories
+      .map(
+        (memory) =>
+          createObservation(
+            `${memory.key}: ${memory.value}`,
+            memory.confidence,
+            "memory"
+          )
+      )
+      .filter(
+        (observation) =>
+          observation.statement
+            .length > 0
+      )
+  );
+}
+
+function buildKnowledgeObservations(
+  state: BrainState
+): ReasoningObservation[] {
+  return limitItems(
+    state.knowledge
+      .map(
+        (knowledge) =>
+          createObservation(
+            knowledge.text,
+            knowledge.score,
+            "knowledge"
+          )
+      )
+      .filter(
+        (observation) =>
+          observation.statement
+            .length > 0
+      )
+  );
+}
+
 function buildGraphObservations(
   state: BrainState
 ): ReasoningObservation[] {
-  const observations:
-    ReasoningObservation[] =
-    [];
-
-  const graphNodes =
-    limitItems(
-      state.graph
-    );
-
-  if (
-    graphNodes.length > 0
-  ) {
-    const labels =
-      graphNodes.map(
-        (node) =>
-          `${node.label} (${node.type})`
-      );
-
-    observations.push(
-      observation(
-        `Relevant knowledge graph entities include: ${labels.join(
-          ", "
-        )}.`,
-        0.85,
-        "knowledge_graph",
-        "known_fact"
+  const nodesById =
+    new Map<
+      string,
+      GraphNode
+    >(
+      state.graph.map(
+        (node) => [
+          node.id,
+          node,
+        ]
       )
     );
-  }
 
-  const graphEdges =
+  const edges:
+    GraphEdge[] =
     limitItems(
       state.graphEdges
     );
 
-  if (
-    graphEdges.length > 0
-  ) {
-    const nodesById =
-      new Map<
-        string,
-        GraphNode
-      >(
-        state.graph.map(
-          (node) => [
-            node.id,
-            node,
-          ]
-        )
-      );
+  return edges
+    .map(
+      (edge) => {
+        const from =
+          nodesById.get(
+            edge.from
+          );
 
-    const relationships =
-      graphEdges
-        .map(
-          (
-            edge: GraphEdge
-          ) => {
-            const from =
-              nodesById.get(
-                edge.from
-              );
+        const to =
+          nodesById.get(
+            edge.to
+          );
 
-            const to =
-              nodesById.get(
-                edge.to
-              );
+        if (
+          !from ||
+          !to
+        ) {
+          return null;
+        }
 
-            if (
-              !from ||
-              !to
-            ) {
-              return null;
-            }
-
-            return `${from.label} ${edge.type} ${to.label}`;
-          }
-        )
-        .filter(
-          (
-            relationship
-          ): relationship is string =>
-            Boolean(
-              relationship
+        return createObservation(
+          `${from.label} ${edge.type} ${to.label}.`,
+          Math.max(
+            0,
+            Math.min(
+              1,
+              edge.weight
             )
-        );
-
-    if (
-      relationships.length > 0
-    ) {
-      observations.push(
-        observation(
-          `Relevant knowledge graph relationships include: ${relationships.join(
-            "; "
-          )}.`,
-          0.9,
+          ),
           "knowledge_graph",
           "observed_relationship"
+        );
+      }
+    )
+    .filter(
+      (
+        observation
+      ): observation is ReasoningObservation =>
+        Boolean(
+          observation
         )
-      );
-    }
-  }
-
-  const relationshipSummary =
-    limitItems(
-      state.graph.flatMap(
-        (
-          node
-        ) =>
-          graphQuery
-            .getWeightedRelationships(
-              node.id
-            )
-      ),
-      8
     );
+}
 
-  if (
-    relationshipSummary.length > 0
-  ) {
-    const nodesById =
-      new Map<
-        string,
-        GraphNode
-      >(
-        state.graph.map(
-          (node) => [
-            node.id,
-            node,
-          ]
-        )
-      );
+function buildTimelineObservations(
+  state: BrainState
+): ReasoningObservation[] {
+  return limitItems(
+    state.timeline
+      .filter(
+        Boolean
+      )
+      .map(
+        (event) =>
+          createObservation(
+            event,
+            0.85,
+            "timeline"
+          )
+      )
+  );
+}
 
-    const weightedRelationships =
-      relationshipSummary
-        .map(
-          (
-            edge: GraphEdge
-          ) => {
-            const from =
-              nodesById.get(
-                edge.from
-              );
+function buildReflectionObservations(
+  state: BrainState
+): ReasoningObservation[] {
+  return limitItems(
+    state.reflections
+      .filter(
+        Boolean
+      )
+      .map(
+        (reflection) =>
+          createObservation(
+            reflection,
+            0.8,
+            "reflection",
+            "derived_inference"
+          )
+      )
+  );
+}
 
-            const to =
-              nodesById.get(
-                edge.to
-              );
+function buildPredictionObservations(
+  state: BrainState
+): ReasoningObservation[] {
+  return limitItems(
+    state.predictions
+      .map(
+        (prediction) =>
+          createObservation(
+            prediction.statement,
+            prediction.confidence,
+            "prediction",
+            "derived_inference"
+          )
+      )
+  );
+}
 
-            if (
-              !from ||
-              !to
-            ) {
-              return null;
-            }
-
-            return `${from.label} ${edge.type} ${to.label} (weight ${edge.weight.toFixed(
-              2
-            )})`;
-          }
-        )
-        .filter(
-          (
-            relationship
-          ): relationship is string =>
-            Boolean(
-              relationship
-            )
-        );
-
-    if (
-      weightedRelationships.length > 0
-    ) {
-      observations.push(
-        observation(
-          `Weighted knowledge graph relationships provide additional evidence: ${weightedRelationships.join(
-            "; "
-          )}.`,
-          0.9,
-          "knowledge_graph",
-          "observed_relationship"
-        )
-      );
-    }
-  }
-
-  return observations;
+function buildLiveKnowledgeObservations(
+  state: BrainState
+): ReasoningObservation[] {
+  return limitItems(
+    state.liveKnowledge
+      .filter(
+        Boolean
+      )
+      .map(
+        (knowledge) =>
+          createObservation(
+            knowledge,
+            0.95,
+            "live_knowledge"
+          )
+      )
+  );
 }
 
 function buildObservations(
   state: BrainState
 ): ReasoningObservation[] {
-  const observations:
-    ReasoningObservation[] =
-    [];
+  return [
+    ...buildMemoryObservations(
+      state
+    ),
 
-  if (
-    state.intent
-  ) {
-    observations.push(
-      observation(
-        `The detected intent is ${state.intent}.`,
-        0.8,
-        "intent"
-      )
-    );
-  }
+    ...buildKnowledgeObservations(
+      state
+    ),
 
-  if (
-    state.memories.length > 0
-  ) {
-    observations.push(
-      observation(
-        `Relevant long-term memory is available for this request.`,
-        0.9,
-        "memory"
-      )
-    );
-  }
-
-  observations.push(
     ...buildGraphObservations(
       state
-    )
-  );
+    ),
 
-  if (
-    state.timeline.length > 0
-  ) {
-    const timelineItems =
-      limitItems(
-        state.timeline
-      );
+    ...buildTimelineObservations(
+      state
+    ),
 
-    observations.push(
-      observation(
-        `Relevant timeline information includes: ${timelineItems.join(
-          "; "
-        )}.`,
-        0.85,
-        "timeline"
-      )
-    );
-  }
+    ...buildReflectionObservations(
+      state
+    ),
 
-  if (
-    state.reflections.length > 0
-  ) {
-    const reflectionItems =
-      limitItems(
-        state.reflections
-      );
+    ...buildPredictionObservations(
+      state
+    ),
 
-    observations.push(
-      observation(
-        `Relevant inferred patterns include: ${reflectionItems.join(
-          "; "
-        )}.`,
-        0.8,
-        "reflection",
-        "derived_inference"
-      )
-    );
-  }
-
-  if (
-    state.knowledge.length > 0
-  ) {
-    const knowledgeSources =
-      limitItems(
-        state.knowledge.map(
-          (item) =>
-            item.source
-        )
-      );
-
-    observations.push(
-      observation(
-        knowledgeSources.length > 0
-          ? `Knowledge retrieval returned ${state.knowledge.length} relevant result${
-              state.knowledge.length === 1
-                ? ""
-                : "s"
-            } from: ${knowledgeSources.join(
-              ", "
-            )}.`
-          : `Knowledge retrieval returned ${state.knowledge.length} relevant result${
-              state.knowledge.length === 1
-                ? ""
-                : "s"
-            }.`,
-        0.9,
-        "knowledge"
-      )
-    );
-  }
-
-  if (
-    state.liveKnowledge.length > 0
-  ) {
-    observations.push(
-      observation(
-        `Current external knowledge was retrieved for this request.`,
-        0.95,
-        "live_knowledge"
-      )
-    );
-  }
-
-  if (
-    state.profile
-  ) {
-    observations.push(
-      observation(
-        `A user profile is available to personalize the reasoning.`,
-        0.85,
-        "profile"
-      )
-    );
-  }
-
-  for (
-    const prediction of
-    state.predictions
-  ) {
-    observations.push(
-      observation(
-        `Prediction: ${prediction.statement}`,
-        prediction.confidence,
-        "prediction",
-        "derived_inference"
-      )
-    );
-  }
-
-  return observations;
-}
-
-function buildCrossSourceInference(
-  observations: ReasoningObservation[]
-): ReasoningObservation | null {
-  const sources =
-    new Set(
-      observations
-        .filter(
-          (item) =>
-            item.kind ===
-            "known_fact"
-        )
-        .map(
-          (item) =>
-            item.source
-        )
-    );
-
-  if (
-    sources.size < 2
-  ) {
-    return null;
-  }
-
-  const confidence =
-    Math.min(
-      0.9,
-      0.65 +
-        sources.size *
-          0.05
-    );
-
-  return observation(
-    `Multiple independent cognitive sources provide converging evidence for the current request.`,
-    confidence,
-    "reflection",
-    "derived_inference"
-  );
+    ...buildLiveKnowledgeObservations(
+      state
+    ),
+  ];
 }
 
 export function reason(
   state: BrainState
 ): ReasoningResult {
-  const userRequest =
-    normalize(
-      state.userMessage
-    );
-
   const observations =
     buildObservations(
       state
     );
 
-  const crossSourceInference =
-    buildCrossSourceInference(
-      observations
+  const userRequest =
+    normalize(
+      state.userMessage
     );
-
-  if (
-    crossSourceInference
-  ) {
-    observations.push(
-      crossSourceInference
-    );
-  }
-
-  if (
-    observations.length === 0
-  ) {
-    return {
-      summary:
-        `The request "${userRequest}" does not currently have additional structured reasoning evidence.`,
-
-      observations:
-        [],
-
-      confidence:
-        0.5,
-    };
-  }
-
-  const confidence =
-    observations.reduce(
-      (
-        total,
-        current
-      ) =>
-        total +
-        current.confidence,
-      0
-    ) /
-    observations.length;
 
   const summary =
-    `The request "${userRequest}" was evaluated against ${observations.length} available cognitive signal${
-      observations.length === 1
-        ? ""
-        : "s"
-    }.`;
+    observations.length > 0
+      ? `The request "${userRequest}" can be answered using the available cognitive context and ${observations.length} relevant observations.`
+      : `The request "${userRequest}" does not currently have additional structured reasoning evidence.`;
+
+  const confidence =
+    observations.length === 0
+      ? 0.5
+      : observations.reduce(
+          (
+            total,
+            observation
+          ) =>
+            total +
+            observation.confidence,
+          0
+        ) /
+        observations.length;
 
   return {
     summary,

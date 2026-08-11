@@ -28,6 +28,169 @@ import {
   enrichmentEngine,
 } from "../../enrichment";
 
+const MAX_GRAPH_NODES = 20;
+
+const MIN_QUERY_TOKEN_LENGTH = 3;
+
+function getQueryTokens(
+  message: string
+): string[] {
+  return [
+    ...new Set(
+      message
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9\s-_]/g,
+          " "
+        )
+        .split(/\s+/)
+        .map(
+          (token) =>
+            token.trim()
+        )
+        .filter(
+          (token) =>
+            token.length >=
+            MIN_QUERY_TOKEN_LENGTH
+        )
+    ),
+  ];
+}
+
+function hydrateRelevantGraph(
+  userMessage: string
+): {
+  nodes: BrainState["graph"];
+  edges: BrainState["graphEdges"];
+} {
+  const matchedNodes =
+    new Map<
+      string,
+      BrainState["graph"][number]
+    >();
+
+  const tokens =
+    getQueryTokens(
+      userMessage
+    );
+
+  /*
+  |--------------------------------------------------------------------------
+  | Direct graph matches
+  |--------------------------------------------------------------------------
+  */
+
+  for (
+    const token of tokens
+  ) {
+    for (
+      const node of
+      graphQuery.search(token)
+    ) {
+      matchedNodes.set(
+        node.id,
+        node
+      );
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Relationship expansion
+  |--------------------------------------------------------------------------
+  |
+  | Once a relevant entity is found, include
+  | its immediate graph neighborhood. This gives
+  | reasoning access to the relationship rather
+  | than only the matched label.
+  |
+  */
+
+  const seedNodes = [
+    ...matchedNodes.values(),
+  ];
+
+  for (
+    const node of seedNodes
+  ) {
+    for (
+      const relatedNode of
+      graphQuery.getRelatedNodes(
+        node.id
+      )
+    ) {
+      matchedNodes.set(
+        relatedNode.id,
+        relatedNode
+      );
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Empty-match fallback
+  |--------------------------------------------------------------------------
+  |
+  | General conversation should still have access
+  | to graph context when no direct entity match
+  | exists. Limit the fallback to avoid injecting
+  | the entire graph into every prompt.
+  |
+  */
+
+  if (
+    matchedNodes.size === 0
+  ) {
+    for (
+      const node of
+      graphQuery.getNodes()
+        .slice(
+          0,
+          MAX_GRAPH_NODES
+        )
+    ) {
+      matchedNodes.set(
+        node.id,
+        node
+      );
+    }
+  }
+
+  const nodes =
+    [
+      ...matchedNodes.values(),
+    ].slice(
+      0,
+      MAX_GRAPH_NODES
+    );
+
+  const nodeIds =
+    new Set(
+      nodes.map(
+        (node) =>
+          node.id
+      )
+    );
+
+  const edges =
+    graphQuery
+      .getEdges()
+      .filter(
+        (edge) =>
+          nodeIds.has(
+            edge.from
+          ) &&
+          nodeIds.has(
+            edge.to
+          )
+      );
+
+  return {
+    nodes,
+    edges,
+  };
+}
+
 export class BrainStateStage
   extends BaseStage {
   readonly name =
@@ -72,20 +235,22 @@ export class BrainStateStage
     | Reasoning Graph
     |--------------------------------------------------------------------------
     |
-    | The Knowledge Graph is now part of the
-    | canonical BrainState runtime artifact.
-    |
-    | GraphQuery remains responsible for graph
-    | traversal and relationship semantics.
-    | BrainState owns the runtime representation.
+    | Hydrate only the graph information relevant
+    | to the current request plus its immediate
+    | relationship neighborhood.
     |
     */
 
+    const graphContext =
+      hydrateRelevantGraph(
+        state.userMessage
+      );
+
     state.graph =
-      graphQuery.getNodes();
+      graphContext.nodes;
 
     state.graphEdges =
-      graphQuery.getEdges();
+      graphContext.edges;
 
     /*
     |--------------------------------------------------------------------------
@@ -96,7 +261,9 @@ export class BrainStateStage
     state.profile =
       profileEngine.get();
 
-    if (state.profile) {
+    if (
+      state.profile
+    ) {
       const enrichmentSuggestion =
         enrichmentEngine.getNextQuestion(
           state.profile
