@@ -1,15 +1,10 @@
 import {
   BrainState,
-  BrainKnowledge,
 } from "../brainState";
 
 import type {
   HumanProfile,
 } from "../profile/types";
-
-import type {
-  CitationSource,
-} from "../websearch/citations";
 
 export type StructuredContext = {
   prompt: string;
@@ -28,13 +23,275 @@ export type StructuredContext = {
   liveKnowledge: string;
 
   citations:
-    CitationSource[];
+    BrainCitation[];
 
   predictions: string;
 
   profile:
-    HumanProfile | null;
+    HumanProfile
+    | null;
 };
+
+export type BrainKnowledge = {
+  source: string;
+
+  text: string;
+
+  score: number;
+};
+
+export type BrainCitation = {
+  index: number;
+
+  title: string;
+
+  url: string;
+
+  domain: string;
+
+  publishedDate?: string;
+};
+
+function normalize(
+  value: string
+): string {
+  return value
+    .toLowerCase()
+    .replace(
+      /[^a-z0-9]+/g,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+}
+
+function tokenize(
+  value: string
+): string[] {
+  const normalized =
+    normalize(
+      value
+    );
+
+  if (
+    !normalized
+  ) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      normalized
+        .split(" ")
+        .filter(
+          (token) =>
+            token.length >= 3
+        )
+    ),
+  ];
+}
+
+function scoreGraphNode(
+  node:
+    BrainState["graph"][number],
+  queryTokens:
+    string[]
+): number {
+  if (
+    queryTokens.length === 0
+  ) {
+    return 0;
+  }
+
+  const label =
+    normalize(
+      node.label
+    );
+
+  const id =
+    normalize(
+      node.id
+    );
+
+  const propertyText =
+    normalize(
+      Object.values(
+        node.properties
+      )
+        .filter(
+          (
+            value
+          ): value is
+            | string
+            | number
+            | boolean =>
+            typeof value ===
+              "string" ||
+            typeof value ===
+              "number" ||
+            typeof value ===
+              "boolean"
+        )
+        .join(" ")
+    );
+
+  let score = 0;
+
+  for (
+    const token of
+    queryTokens
+  ) {
+    if (
+      label === token
+    ) {
+      score += 10;
+      continue;
+    }
+
+    if (
+      label.includes(
+        token
+      )
+    ) {
+      score += 5;
+      continue;
+    }
+
+    if (
+      id.includes(
+        token
+      )
+    ) {
+      score += 3;
+      continue;
+    }
+
+    if (
+      propertyText.includes(
+        token
+      )
+    ) {
+      score += 2;
+    }
+  }
+
+  return score;
+}
+
+function getRelevantGraphNodes(
+  state: BrainState
+): BrainState["graph"] {
+  if (
+    state.graph.length === 0
+  ) {
+    return [];
+  }
+
+  const queryTokens =
+    tokenize(
+      state.userMessage
+    );
+
+  if (
+    queryTokens.length === 0
+  ) {
+    return [];
+  }
+
+  const scored =
+    state.graph
+      .map(
+        (node) => ({
+          node,
+
+          score:
+            scoreGraphNode(
+              node,
+              queryTokens
+            ),
+        })
+      )
+      .filter(
+        (item) =>
+          item.score > 0
+      )
+      .sort(
+        (a, b) =>
+          b.score -
+          a.score
+      );
+
+  return scored
+    .slice(
+      0,
+      8
+    )
+    .map(
+      (item) =>
+        item.node
+    );
+}
+
+function getConnectedGraphNodes(
+  state: BrainState,
+  relevantNodes:
+    BrainState["graph"]
+):
+  BrainState["graph"] {
+  if (
+    relevantNodes.length === 0
+  ) {
+    return [];
+  }
+
+  const relevantIds =
+    new Set(
+      relevantNodes.map(
+        (node) =>
+          node.id
+      )
+    );
+
+  const connectedIds =
+    new Set(
+      relevantIds
+    );
+
+  for (
+    const edge of
+    state.graphEdges
+  ) {
+    if (
+      relevantIds.has(
+        edge.from
+      )
+    ) {
+      connectedIds.add(
+        edge.to
+      );
+    }
+
+    if (
+      relevantIds.has(
+        edge.to
+      )
+    ) {
+      connectedIds.add(
+        edge.from
+      );
+    }
+  }
+
+  return state.graph.filter(
+    (node) =>
+      connectedIds.has(
+        node.id
+      )
+  );
+}
 
 function buildGraphContext(
   state: BrainState
@@ -45,9 +302,26 @@ function buildGraphContext(
     return "";
   }
 
+  const relevantNodes =
+    getRelevantGraphNodes(
+      state
+    );
+
+  if (
+    relevantNodes.length === 0
+  ) {
+    return "";
+  }
+
+  const contextualNodes =
+    getConnectedGraphNodes(
+      state,
+      relevantNodes
+    );
+
   const nodesById =
     new Map(
-      state.graph.map(
+      contextualNodes.map(
         (node) => [
           node.id,
           node,
@@ -55,59 +329,92 @@ function buildGraphContext(
       )
     );
 
+  const relevantIds =
+    new Set(
+      relevantNodes.map(
+        (node) =>
+          node.id
+      )
+    );
+
   const sections =
-    state.graph
-      .slice(0, 20)
-      .map(
-        (node) => {
-          const relationships =
-            state.graphEdges.filter(
-              (edge) =>
+    relevantNodes.map(
+      (node) => {
+        const relationships =
+          state.graphEdges.filter(
+            (edge) => {
+              const touchesNode =
                 edge.from ===
                   node.id ||
                 edge.to ===
+                  node.id;
+
+              if (
+                !touchesNode
+              ) {
+                return false;
+              }
+
+              const relatedId =
+                edge.from ===
+                node.id
+                  ? edge.to
+                  : edge.from;
+
+              return (
+                nodesById.has(
+                  relatedId
+                ) ||
+                relevantIds.has(
+                  relatedId
+                )
+              );
+            }
+          );
+
+        const related =
+          relationships
+            .map(
+              (edge) => {
+                const relatedId =
+                  edge.from ===
                   node.id
+                    ? edge.to
+                    : edge.from;
+
+                const relatedNode =
+                  nodesById.get(
+                    relatedId
+                  );
+
+                if (
+                  !relatedNode
+                ) {
+                  return null;
+                }
+
+                return [
+                  `  • ${edge.type}:`,
+                  `${relatedNode.label}`,
+                  `(${relatedNode.type})`,
+                ].join(" ");
+              }
+            )
+            .filter(
+              (
+                value
+              ): value is string =>
+                Boolean(
+                  value
+                )
             );
 
-          const related =
-            relationships
-              .map(
-                (edge) => {
-                  const relatedId =
-                    edge.from ===
-                    node.id
-                      ? edge.to
-                      : edge.from;
-
-                  const relatedNode =
-                    nodesById.get(
-                      relatedId
-                    );
-
-                  if (
-                    !relatedNode
-                  ) {
-                    return null;
-                  }
-
-                  return `  • ${edge.type}: ${relatedNode.label} (${relatedNode.type})`;
-                }
-              )
-              .filter(
-                (
-                  value
-                ): value is string =>
-                  Boolean(
-                    value
-                  )
-              );
-
-          return [
-            `${node.label} (${node.type})`,
-            ...related,
-          ].join("\n");
-        }
-      );
+        return [
+          `${node.label} (${node.type})`,
+          ...related,
+        ].join("\n");
+      }
+    );
 
   if (
     sections.length === 0
@@ -116,16 +423,25 @@ function buildGraphContext(
   }
 
   return `
-Knowledge Graph Context:
+Relevant Knowledge Graph Context:
 
 ${sections.join("\n\n")}
 
-Use graph information when it helps connect
-entities, memories, knowledge, timeline events,
-or other related concepts.
+The graph context above was selected
+because it is relevant to the user's
+current request.
 
-Do not invent relationships that are not present
-in the graph.
+Connected nodes may provide additional
+context around the matched concepts.
+
+Use graph information only when it helps
+answer the request.
+
+Treat relationships as observations,
+not assumptions.
+
+Do not invent relationships that are not
+present in the graph.
 `;
 }
 
@@ -143,16 +459,17 @@ Current Live Web Information:
 
 ${state.liveKnowledge.join("\n\n")}
 
-The information above was retrieved from the
-live web for the current request.
+The information above was retrieved from
+the live web for the current request.
 
-Prefer this evidence for time-sensitive questions.
+Prefer this evidence for time-sensitive
+questions.
 
-Do not invent information that is not supported
-by the retrieved evidence.
+Do not invent information that is not
+supported by the retrieved evidence.
 
-If the evidence is incomplete or conflicting,
-state that clearly.
+If the evidence is incomplete or
+conflicting, state that clearly.
 `;
 }
 
@@ -188,13 +505,14 @@ ${citations.join("\n\n")}
 
 Citation rules:
 
-- Treat each [number] as the source identifier
-  for the corresponding evidence.
+- Treat each [number] as the source
+  identifier for the corresponding evidence.
 - Do not invent citation numbers.
-- Do not attribute information to a source that
-  does not support it.
-- When live web evidence is used, preserve the
-  relationship between evidence and its source.
+- Do not attribute information to a source
+  that does not support it.
+- When live web evidence is used, preserve
+  the relationship between evidence and
+  its source.
 `;
 }
 
@@ -244,7 +562,9 @@ ${state.memories
   .join("\n")}
 
 Use these naturally in conversation.
+
 Prefer higher-importance memories.
+
 Never invent facts.
 `;
 }
@@ -312,10 +632,11 @@ ${state.predictions
   )
   .join("\n")}
 
-Predictions are possibilities derived from available
-cognitive evidence.
+Predictions are possibilities derived
+from available cognitive evidence.
 
-Do not treat predictions as established facts.
+Do not treat predictions as established
+facts.
 `;
 }
 
@@ -365,11 +686,12 @@ export async function buildContext(
 ): Promise<StructuredContext> {
   /*
   |--------------------------------------------------------------------------
-  | BrainState is the source of truth.
+  | BrainState is the canonical source.
   |--------------------------------------------------------------------------
   |
-  | No memory, graph, knowledge, or web retrieval
-  | is performed here.
+  | Context does not independently retrieve
+  | memory, graph, timeline, knowledge, or
+  | live information.
   |
   */
 
@@ -454,24 +776,26 @@ Use the available information naturally.
 Personal information should come from
 the Human Profile and Memory.
 
-Historical information should use the Timeline.
+Historical information should use the
+Timeline.
 
-Inferred patterns should use Reflections.
+Observed patterns should use Reflections.
 
-Predictions represent possibilities, not facts.
+Predictions represent possibilities,
+not established facts.
 
-Connected entities and relationships should
-use the Knowledge Graph.
+Connected entities and relationships
+should use the Knowledge Graph.
 
 Stored factual knowledge should use the
 Knowledge Base.
 
-Current or time-sensitive information should
-use Live Web Information and its corresponding
-Evidence Sources.
+Current or time-sensitive information
+should use Live Web Information and its
+corresponding Evidence Sources.
 
-When using live web information, ground factual
-claims in the retrieved evidence.
+When using live web information, ground
+factual claims in the retrieved evidence.
 
 Never invent facts, memories, relationships,
 sources, URLs, or citation numbers.
