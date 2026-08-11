@@ -31,6 +31,10 @@ import type {
   Prediction,
 } from "./prediction";
 
+import type {
+  CognitiveInference,
+} from "./inference";
+
 export type ConversationMessage = {
   role:
     | "user"
@@ -97,12 +101,14 @@ export type BrainState = {
     | string
     | null;
 
-  memory: string[];
+  memory:
+    string[];
 
   knowledge:
     BrainKnowledge[];
 
-  liveKnowledge: string[];
+  liveKnowledge:
+    string[];
 
   reasoning:
     | string
@@ -113,6 +119,9 @@ export type BrainState = {
 
   reasoningConfidence:
     number;
+
+  inferences:
+    CognitiveInference[];
 
   plan:
     | string
@@ -242,7 +251,8 @@ export type BrainState = {
 
 export function createBrainState(
   conversation: string,
-  messages: ConversationMessage[],
+  messages:
+    ConversationMessage[],
   userMessage: string
 ): BrainState {
   const now =
@@ -290,6 +300,9 @@ export function createBrainState(
 
     reasoningConfidence:
       0,
+
+    inferences:
+      [],
 
     plan:
       null,

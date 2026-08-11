@@ -15,17 +15,13 @@ import {
  *
  * Converts the cognitive information already
  * assembled in BrainState into structured
- * reasoning signals for the response layer.
+ * reasoning signals.
  *
- * The reasoning engine produces both:
+ * The reasoning engine remains responsible
+ * for producing ReasoningResult.
  *
- * - human-readable reasoning
- * - structured reasoning evidence
- *
- * BrainState stores both representations so
- * downstream Planning, Decision, Execution,
- * and future cognitive stages can consume the
- * structured evidence directly.
+ * BrainState remains responsible for
+ * retaining the structured runtime artifact.
  */
 export class ReasoningStage
   extends BaseStage {
@@ -37,18 +33,21 @@ export class ReasoningStage
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | Stop if an earlier stage already produced
-    | a final response.
+    | If a previous stage has already produced
+    | a final response, there is nothing left
+    | to reason about for this execution.
     |--------------------------------------------------------------------------
     */
 
-    if (state.response) {
+    if (
+      state.response
+    ) {
       return state;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Generate structured reasoning
+    | Evaluate the canonical BrainState.
     |--------------------------------------------------------------------------
     */
 
@@ -57,7 +56,7 @@ export class ReasoningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Canonical structured evidence
+    | Preserve the structured reasoning artifact.
     |--------------------------------------------------------------------------
     */
 
@@ -69,7 +68,8 @@ export class ReasoningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Human-readable reasoning representation
+    | Preserve the human-readable reasoning
+    | representation for downstream response use.
     |--------------------------------------------------------------------------
     */
 
@@ -79,7 +79,7 @@ export class ReasoningStage
 
         ...result.observations.map(
           (observation) =>
-            `- ${observation.statement} Confidence: ${observation.confidence.toFixed(
+            `- ${observation.statement} [${observation.kind}] Source: ${observation.source} Confidence: ${observation.confidence.toFixed(
               2
             )}`
         ),

@@ -55,6 +55,10 @@ import {
 } from "./steps/reasoningStage";
 
 import {
+  InferenceStage,
+} from "./steps/inferenceStage";
+
+import {
   PlanningStage,
 } from "./steps/planningStage";
 
@@ -174,10 +178,6 @@ export class CognitiveRuntime {
     |--------------------------------------------------------------------------
     | Reasoning Graph
     |--------------------------------------------------------------------------
-    |
-    | Hydrates graph relationships into BrainState
-    | before prediction, context, and reasoning.
-    |
     */
 
     this.register(
@@ -222,6 +222,20 @@ export class CognitiveRuntime {
 
     this.register(
       new ReasoningStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cognitive Inference
+    |--------------------------------------------------------------------------
+    |
+    | Inference consumes the structured reasoning
+    | evidence produced immediately above.
+    |
+    */
+
+    this.register(
+      new InferenceStage()
     );
 
     /*
@@ -349,11 +363,6 @@ export class CognitiveRuntime {
     |--------------------------------------------------------------------------
     | Outcome finalization
     |--------------------------------------------------------------------------
-    |
-    | Outcome must still be produced when an earlier
-    | stage fails because it is the runtime's durable
-    | summary of what happened.
-    |
     */
 
     if (
@@ -389,40 +398,44 @@ export class CognitiveRuntime {
     |--------------------------------------------------------------------------
     | Reflection finalization
     |--------------------------------------------------------------------------
-    |
-    | Reflection is allowed to run only when the
-    | cognitive cycle completed without runtime errors.
-    |
     */
 
-    if (
-      current.errors.length === 0 &&
-      !current.reflections.length
-    ) {
-      const reflectionStage =
-        this.stages.find(
-          (stage) =>
-            stage.name ===
-            "Reflection"
-        );
+    const reflectionStage =
+      this.stages.find(
+        (stage) =>
+          stage.name ===
+          "Reflection"
+      );
 
-      if (
-        reflectionStage
+    const reflectionExecuted =
+      current.executedStages.includes(
+        "Reflection"
+      );
+
+    const runtimeFailed =
+      current.errors.length > 0;
+
+    if (
+      reflectionStage &&
+      !reflectionExecuted &&
+      !runtimeFailed
+    ) {
+      try {
+        current =
+          await reflectionStage.execute(
+            current
+          );
+      } catch (
+        error
       ) {
-        try {
-          current =
-            await reflectionStage.execute(
-              current
-            );
-        } catch {
-          /*
-          |--------------------------------------------------------------------------
-          | Reflection is a post-processing capability.
-          | A reflection failure must not destroy the
-          | already-generated user response.
-          |--------------------------------------------------------------------------
-          */
-        }
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        current.errors.push(
+          `Reflection: ${message}`
+        );
       }
     }
 
