@@ -36,17 +36,57 @@ function limitItems<T>(
   );
 }
 
+function classifyObservation(
+  source: ReasoningSource,
+  confidence: number,
+  preferredKind?: ReasoningObservationKind
+): ReasoningObservationKind {
+  if (
+    confidence < 0.7
+  ) {
+    return "uncertainty";
+  }
+
+  if (
+    preferredKind
+  ) {
+    return preferredKind;
+  }
+
+  if (
+    source === "reflection"
+  ) {
+    return "derived_inference";
+  }
+
+  if (
+    source === "knowledge_graph"
+  ) {
+    return "observed_relationship";
+  }
+
+  return "known_fact";
+}
+
 function observation(
   statement: string,
   confidence: number,
   source: ReasoningSource,
-  kind: ReasoningObservationKind
+  preferredKind?: ReasoningObservationKind
 ): ReasoningObservation {
   return {
     statement,
+
     confidence,
+
     source,
-    kind,
+
+    kind:
+      classifyObservation(
+        source,
+        confidence,
+        preferredKind
+      ),
   };
 }
 
@@ -154,19 +194,6 @@ function buildGraphObservations(
     }
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Relationship-aware graph reasoning
-  |--------------------------------------------------------------------------
-  |
-  | GraphQuery remains the canonical traversal API.
-  |
-  | getWeightedRelationships() accepts a node ID
-  | and returns GraphEdge[] ordered by relationship
-  | weight.
-  |
-  */
-
   const relationshipSummary =
     limitItems(
       state.graph.flatMap(
@@ -266,8 +293,7 @@ function buildObservations(
       observation(
         `The detected intent is ${state.intent}.`,
         0.8,
-        "intent",
-        "known_fact"
+        "intent"
       )
     );
   }
@@ -279,8 +305,7 @@ function buildObservations(
       observation(
         `Relevant long-term memory is available for this request.`,
         0.9,
-        "memory",
-        "known_fact"
+        "memory"
       )
     );
   }
@@ -305,8 +330,7 @@ function buildObservations(
           "; "
         )}.`,
         0.85,
-        "timeline",
-        "known_fact"
+        "timeline"
       )
     );
   }
@@ -358,8 +382,7 @@ function buildObservations(
                 : "s"
             }.`,
         0.9,
-        "knowledge",
-        "known_fact"
+        "knowledge"
       )
     );
   }
@@ -371,8 +394,7 @@ function buildObservations(
       observation(
         `Current external knowledge was retrieved for this request.`,
         0.95,
-        "live_knowledge",
-        "known_fact"
+        "live_knowledge"
       )
     );
   }
@@ -384,8 +406,7 @@ function buildObservations(
       observation(
         `A user profile is available to personalize the reasoning.`,
         0.85,
-        "profile",
-        "known_fact"
+        "profile"
       )
     );
   }
@@ -393,37 +414,108 @@ function buildObservations(
   return observations;
 }
 
+function buildCrossSourceInference(
+  observations: ReasoningObservation[]
+): ReasoningObservation | null {
+  const sources =
+    new Set(
+      observations
+        .filter(
+          (
+            item
+          ) =>
+            item.kind ===
+            "known_fact"
+        )
+        .map(
+          (
+            item
+          ) =>
+            item.source
+        )
+    );
+
+  if (
+    sources.size < 2
+  ) {
+    return null;
+  }
+
+  const confidence =
+    Math.min(
+      0.9,
+      0.65 +
+        sources.size *
+          0.05
+    );
+
+  return observation(
+    `Multiple independent cognitive sources provide converging evidence for the current request.`,
+    confidence,
+    "reflection",
+    "derived_inference"
+  );
+}
+
 export function reason(
   state: BrainState
 ): ReasoningResult {
-  const observations =
-    buildObservations(
-      state
-    );
-
   const userRequest =
     normalize(
       state.userMessage
     );
 
-  const summary =
-    observations.length > 0
-      ? `The request "${userRequest}" can be evaluated using the available cognitive context and ${observations.length} relevant observations.`
-      : `The request "${userRequest}" does not currently have additional structured reasoning evidence.`;
+  const observations =
+    buildObservations(
+      state
+    );
+
+  const crossSourceInference =
+    buildCrossSourceInference(
+      observations
+    );
+
+  if (
+    crossSourceInference
+  ) {
+    observations.push(
+      crossSourceInference
+    );
+  }
+
+  if (
+    observations.length === 0
+  ) {
+    return {
+      summary:
+        `The request "${userRequest}" does not currently have additional structured reasoning evidence.`,
+
+      observations:
+        [],
+
+      confidence:
+        0.5,
+    };
+  }
 
   const confidence =
-    observations.length === 0
-      ? 0.5
-      : observations.reduce(
-          (
-            total,
-            current
-          ) =>
-            total +
-            current.confidence,
-          0
-        ) /
-        observations.length;
+    observations.reduce(
+      (
+        total,
+        current
+      ) =>
+        total +
+        current.confidence,
+      0
+    ) /
+    observations.length;
+
+  const summary =
+    `The request "${userRequest}" was evaluated against ${observations.length} available cognitive signal${
+      observations.length === 1
+        ? ""
+        : "s"
+    }.`;
 
   return {
     summary,
