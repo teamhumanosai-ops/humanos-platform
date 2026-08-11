@@ -13,6 +13,7 @@ import {
 
 import type {
   ReasoningObservation,
+  ReasoningObservationKind,
   ReasoningResult,
   ReasoningSource,
 } from "./types";
@@ -38,14 +39,14 @@ function limitItems<T>(
 function observation(
   statement: string,
   confidence: number,
-  source: ReasoningSource
+  source: ReasoningSource,
+  kind: ReasoningObservationKind
 ): ReasoningObservation {
   return {
     statement,
-
     confidence,
-
     source,
+    kind,
   };
 }
 
@@ -75,7 +76,8 @@ function buildGraphObservations(
           ", "
         )}.`,
         0.85,
-        "knowledge_graph"
+        "knowledge_graph",
+        "known_fact"
       )
     );
   }
@@ -145,7 +147,8 @@ function buildGraphObservations(
             "; "
           )}.`,
           0.9,
-          "knowledge_graph"
+          "knowledge_graph",
+          "observed_relationship"
         )
       );
     }
@@ -153,28 +156,28 @@ function buildGraphObservations(
 
   /*
   |--------------------------------------------------------------------------
-  | Relationship-aware query
+  | Relationship-aware graph reasoning
   |--------------------------------------------------------------------------
+  |
+  | GraphQuery remains the canonical traversal API.
+  |
+  | getWeightedRelationships() accepts a node ID
+  | and returns GraphEdge[] ordered by relationship
+  | weight.
+  |
   */
 
   const relationshipSummary =
     limitItems(
-      state.graph
-        .flatMap(
-          (node) =>
-            graphQuery
-              .getWeightedRelationships(
-                node.id
-              )
-              .map(
-                (edge) => ({
-                  nodeId:
-                    node.id,
-
-                  edge,
-                })
-              )
-        ),
+      state.graph.flatMap(
+        (
+          node
+        ) =>
+          graphQuery
+            .getWeightedRelationships(
+              node.id
+            )
+      ),
       8
     );
 
@@ -197,9 +200,9 @@ function buildGraphObservations(
     const weightedRelationships =
       relationshipSummary
         .map(
-          ({
-            edge,
-          }) => {
+          (
+            edge: GraphEdge
+          ) => {
             const from =
               nodesById.get(
                 edge.from
@@ -236,11 +239,12 @@ function buildGraphObservations(
     ) {
       observations.push(
         observation(
-          `The graph provides weighted relationship evidence: ${weightedRelationships.join(
+          `Weighted knowledge graph relationships provide additional evidence: ${weightedRelationships.join(
             "; "
           )}.`,
           0.9,
-          "knowledge_graph"
+          "knowledge_graph",
+          "observed_relationship"
         )
       );
     }
@@ -262,7 +266,8 @@ function buildObservations(
       observation(
         `The detected intent is ${state.intent}.`,
         0.8,
-        "intent"
+        "intent",
+        "known_fact"
       )
     );
   }
@@ -274,7 +279,8 @@ function buildObservations(
       observation(
         `Relevant long-term memory is available for this request.`,
         0.9,
-        "memory"
+        "memory",
+        "known_fact"
       )
     );
   }
@@ -299,7 +305,8 @@ function buildObservations(
           "; "
         )}.`,
         0.85,
-        "timeline"
+        "timeline",
+        "known_fact"
       )
     );
   }
@@ -318,7 +325,8 @@ function buildObservations(
           "; "
         )}.`,
         0.8,
-        "reflection"
+        "reflection",
+        "derived_inference"
       )
     );
   }
@@ -350,7 +358,8 @@ function buildObservations(
                 : "s"
             }.`,
         0.9,
-        "knowledge"
+        "knowledge",
+        "known_fact"
       )
     );
   }
@@ -362,7 +371,8 @@ function buildObservations(
       observation(
         `Current external knowledge was retrieved for this request.`,
         0.95,
-        "live_knowledge"
+        "live_knowledge",
+        "known_fact"
       )
     );
   }
@@ -374,7 +384,8 @@ function buildObservations(
       observation(
         `A user profile is available to personalize the reasoning.`,
         0.85,
-        "profile"
+        "profile",
+        "known_fact"
       )
     );
   }
@@ -385,49 +396,34 @@ function buildObservations(
 export function reason(
   state: BrainState
 ): ReasoningResult {
-  const userRequest =
-    normalize(
-      state.userMessage
-    );
-
   const observations =
     buildObservations(
       state
     );
 
-  if (
-    observations.length === 0
-  ) {
-    return {
-      summary:
-        `The request "${userRequest}" does not currently have additional structured reasoning evidence.`,
-
-      observations:
-        [],
-
-      confidence:
-        0.5,
-    };
-  }
-
-  const confidence =
-    observations.reduce(
-      (
-        total,
-        current
-      ) =>
-        total +
-        current.confidence,
-      0
-    ) /
-    observations.length;
+  const userRequest =
+    normalize(
+      state.userMessage
+    );
 
   const summary =
-    `The request "${userRequest}" was evaluated against ${observations.length} available cognitive signal${
-      observations.length === 1
-        ? ""
-        : "s"
-    }.`;
+    observations.length > 0
+      ? `The request "${userRequest}" can be evaluated using the available cognitive context and ${observations.length} relevant observations.`
+      : `The request "${userRequest}" does not currently have additional structured reasoning evidence.`;
+
+  const confidence =
+    observations.length === 0
+      ? 0.5
+      : observations.reduce(
+          (
+            total,
+            current
+          ) =>
+            total +
+            current.confidence,
+          0
+        ) /
+        observations.length;
 
   return {
     summary,
