@@ -5,17 +5,12 @@ import {
 } from "../../brainState";
 
 import {
-  retrieveKnowledgeResults,
-} from "../../knowledge";
-
-import {
   graphQuery,
 } from "../../graph";
 
 import {
-  GraphNode,
-  GraphEdge,
-} from "../../graph";
+  retrieveKnowledgeResults,
+} from "../../knowledge";
 
 import {
   profileEngine,
@@ -33,141 +28,6 @@ import {
   enrichmentEngine,
 } from "../../enrichment";
 
-function buildGraphContext(
-  query: string
-): {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-} {
-  const normalized =
-    query
-      .trim()
-      .toLowerCase();
-
-  if (!normalized) {
-    return {
-      nodes: [],
-      edges: [],
-    };
-  }
-
-  const terms =
-    normalized
-      .split(/\s+/)
-      .map(
-        (term) =>
-          term.replace(
-            /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,
-            ""
-          )
-      )
-      .filter(
-        (term) =>
-          term.length >= 2
-      );
-
-  const matchedNodes =
-    new Map<
-      string,
-      GraphNode
-    >();
-
-  const exactMatches =
-    graphQuery.search(
-      normalized
-    );
-
-  for (
-    const node of exactMatches
-  ) {
-    matchedNodes.set(
-      node.id,
-      node
-    );
-  }
-
-  for (
-    const term of terms
-  ) {
-    const matches =
-      graphQuery.search(
-        term
-      );
-
-    for (
-      const node of matches
-    ) {
-      matchedNodes.set(
-        node.id,
-        node
-      );
-    }
-  }
-
-  if (
-    matchedNodes.size === 0
-  ) {
-    return {
-      nodes: [],
-      edges: [],
-    };
-  }
-
-  const relevantNodes =
-    new Map<
-      string,
-      GraphNode
-    >(
-      matchedNodes
-    );
-
-  const relevantEdges =
-    new Map<
-      string,
-      GraphEdge
-    >();
-
-  for (
-    const node of
-      matchedNodes.values()
-  ) {
-    const subgraph =
-      graphQuery.getConnectedSubgraph(
-        node.id
-      );
-
-    for (
-      const neighbor of
-        subgraph.neighbors
-    ) {
-      relevantNodes.set(
-        neighbor.id,
-        neighbor
-      );
-    }
-
-    for (
-      const relationship of
-        subgraph.relationships
-    ) {
-      relevantEdges.set(
-        relationship.id,
-        relationship
-      );
-    }
-  }
-
-  return {
-    nodes: [
-      ...relevantNodes.values(),
-    ],
-
-    edges: [
-      ...relevantEdges.values(),
-    ],
-  };
-}
-
 export class BrainStateStage
   extends BaseStage {
   readonly name =
@@ -181,9 +41,10 @@ export class BrainStateStage
     | Knowledge Retrieval
     |--------------------------------------------------------------------------
     |
-    | Knowledge retrieval is part of the canonical BrainState hydration
-    | process. The retrieval subsystem remains responsible for search;
-    | BrainState becomes the shared runtime representation.
+    | Knowledge retrieval remains responsible for
+    | searching the knowledge base. BrainState stores
+    | the structured retrieval results for downstream
+    | cognitive stages.
     |
     */
 
@@ -208,29 +69,23 @@ export class BrainStateStage
 
     /*
     |--------------------------------------------------------------------------
-    | Knowledge Graph
+    | Reasoning Graph
     |--------------------------------------------------------------------------
     |
-    | Graph retrieval is request-aware.
+    | The Knowledge Graph is now part of the
+    | canonical BrainState runtime artifact.
     |
-    | We first identify graph entities related to the user's request,
-    | then use the canonical GraphQuery traversal API to collect their
-    | connected relationships.
-    |
-    | BrainState remains the only shared cognitive artifact.
+    | GraphQuery remains responsible for graph
+    | traversal and relationship semantics.
+    | BrainState owns the runtime representation.
     |
     */
 
-    const graphContext =
-      buildGraphContext(
-        state.userMessage
-      );
-
     state.graph =
-      graphContext.nodes;
+      graphQuery.getNodes();
 
     state.graphEdges =
-      graphContext.edges;
+      graphQuery.getEdges();
 
     /*
     |--------------------------------------------------------------------------
