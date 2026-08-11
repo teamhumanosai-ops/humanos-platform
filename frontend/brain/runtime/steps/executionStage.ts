@@ -8,7 +8,6 @@ import {
 
 import {
   createExecutionFromDecision,
-  startExecution,
 } from "../../execution";
 
 import {
@@ -25,12 +24,17 @@ import {
  * Integrates the existing Execution Engine
  * into the Cognitive Runtime.
  *
- * Execution remains authoritative through
- * the existing Execution Engine lifecycle.
+ * The stage creates a pending execution from
+ * the active decision and stores the execution
+ * information in BrainState.
  *
- * Structured reasoning evidence is preserved
- * in the BrainState execution artifact so the
- * cognitive chain remains traceable.
+ * It does not start or complete the execution.
+ * Actual execution lifecycle operations remain
+ * owned by the Execution Engine.
+ *
+ * Safety:
+ * Execution creation is blocked when an earlier
+ * runtime stage has already recorded an error.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -42,29 +46,13 @@ export class ExecutionStage
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | Do not execute after an earlier runtime error.
+    | Existing response
     |--------------------------------------------------------------------------
-    */
-
-    if (
-      state.errors.length > 0
-    ) {
-      state.execution =
-        [
-          "Execution blocked.",
-
-          "Reason:",
-
-          ...state.errors,
-        ].join("\n");
-
-      return state;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Do not execute when a response already exists.
-    |--------------------------------------------------------------------------
+    |
+    | A local skill or earlier stage has already
+    | produced the final response. There is no
+    | additional execution work to create.
+    |
     */
 
     if (
@@ -75,8 +63,24 @@ export class ExecutionStage
 
     /*
     |--------------------------------------------------------------------------
-    | Execution requires an active decision
-    | and plan.
+    | Runtime safety gate
+    |--------------------------------------------------------------------------
+    |
+    | ValidationStage and other upstream stages may
+    | have recorded errors. Never create an execution
+    | from an invalid cognitive state.
+    |
+    */
+
+    if (
+      state.errors.length > 0
+    ) {
+      return state;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Required runtime identifiers
     |--------------------------------------------------------------------------
     */
 
@@ -89,7 +93,7 @@ export class ExecutionStage
 
     /*
     |--------------------------------------------------------------------------
-    | Load decision.
+    | Resolve active decision
     |--------------------------------------------------------------------------
     */
 
@@ -98,20 +102,15 @@ export class ExecutionStage
         state.currentDecisionId
       );
 
-    if (!decision) {
-      state.errors.push(
-        "Execution: active decision could not be found."
-      );
-
-      state.execution =
-        "Execution blocked.";
-
+    if (
+      !decision
+    ) {
       return state;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Load plan.
+    | Resolve active plan
     |--------------------------------------------------------------------------
     */
 
@@ -120,22 +119,20 @@ export class ExecutionStage
         state.currentPlanId
       );
 
-    if (!plan) {
-      state.errors.push(
-        "Execution: active plan could not be found."
-      );
-
-      state.execution =
-        "Execution blocked.";
-
+    if (
+      !plan
+    ) {
       return state;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Create execution through the existing
-    | Execution Engine.
+    | Create pending execution
     |--------------------------------------------------------------------------
+    |
+    | Execution lifecycle remains owned by the
+    | Execution Engine.
+    |
     */
 
     const execution =
@@ -146,103 +143,30 @@ export class ExecutionStage
 
     /*
     |--------------------------------------------------------------------------
-    | Start execution lifecycle.
-    |--------------------------------------------------------------------------
-    */
-
-    const startedExecution =
-      startExecution(
-        execution.id
-      );
-
-    if (
-      !startedExecution
-    ) {
-      state.errors.push(
-        "Execution: unable to start execution."
-      );
-
-      state.execution =
-        "Execution blocked.";
-
-      return state;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Store execution identity in BrainState.
+    | Store execution identity
     |--------------------------------------------------------------------------
     */
 
     state.currentExecutionId =
-      startedExecution.id;
+      execution.id;
 
     /*
     |--------------------------------------------------------------------------
-    | Preserve structured reasoning evidence.
-    |--------------------------------------------------------------------------
-    */
-
-    const reasoningEvidence =
-      state.reasoningObservations.map(
-        (
-          observation,
-          index
-        ) =>
-          `${index + 1}. [${
-            observation.source
-          }] ${
-            observation.statement
-          } (confidence ${
-            observation.confidence.toFixed(
-              2
-            )
-          })`
-      );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Store execution artifact.
+    | Store human-readable execution state
     |--------------------------------------------------------------------------
     */
 
     state.execution =
       [
-        `Execution: ${startedExecution.title}`,
+        `Execution: ${execution.title}`,
 
-        `Action: ${startedExecution.action}`,
+        `Action: ${execution.action}`,
 
-        `Status: ${startedExecution.status}`,
+        `Status: ${execution.status}`,
 
-        `Plan ID: ${startedExecution.planId}`,
+        `Plan ID: ${execution.planId}`,
 
-        `Execution ID: ${startedExecution.id}`,
-
-        `Started At: ${
-          startedExecution.startedAt
-            ?.toISOString() ??
-          "Unknown"
-        }`,
-
-        ...(reasoningEvidence.length > 0
-          ? [
-              "",
-
-              "Reasoning Evidence:",
-
-              ...reasoningEvidence,
-            ]
-          : []),
-
-        ...(state.reasoningConfidence > 0
-          ? [
-              "",
-
-              `Overall Reasoning Confidence: ${state.reasoningConfidence.toFixed(
-                2
-              )}`,
-            ]
-          : []),
+        `Execution ID: ${execution.id}`,
       ].join("\n");
 
     return state;

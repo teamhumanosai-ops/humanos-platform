@@ -1,4 +1,6 @@
-import { BrainState } from "../brainState";
+import {
+  BrainState,
+} from "../brainState";
 
 import {
   RuntimeServices,
@@ -9,12 +11,24 @@ import {
 } from "./steps/inputStage";
 
 import {
-  MemoryStage,
-} from "./steps/memoryStage";
-
-import {
   IntentStage,
 } from "./steps/intentStage";
+
+import {
+  LiveKnowledgeStage,
+} from "./steps/liveKnowledgeStage";
+
+import {
+  MemoryExtractionStage,
+} from "./steps/memoryExtractionStage";
+
+import {
+  TimelineExtractionStage,
+} from "./steps/timelineExtractionStage";
+
+import {
+  MemoryStage,
+} from "./steps/memoryStage";
 
 import {
   BrainStateStage,
@@ -23,6 +37,10 @@ import {
 import {
   PredictionStage,
 } from "./steps/predictionStage";
+
+import {
+  SkillStage,
+} from "./steps/skillStage";
 
 import {
   ContextStage,
@@ -98,6 +116,38 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
+    | Live Knowledge
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new LiveKnowledgeStage(
+        this.services
+      )
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Memory Extraction
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new MemoryExtractionStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Timeline Extraction
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new TimelineExtractionStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
     | Memory Retrieval
     |--------------------------------------------------------------------------
     */
@@ -108,7 +158,7 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Unified BrainState
+    | Unified Brain State
     |--------------------------------------------------------------------------
     */
 
@@ -118,12 +168,22 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Prediction
+    | Prediction Intelligence
     |--------------------------------------------------------------------------
     */
 
     this.register(
       new PredictionStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Local Skills
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new SkillStage()
     );
 
     /*
@@ -238,7 +298,8 @@ export class CognitiveRuntime {
   async execute(
     state: BrainState
   ): Promise<BrainState> {
-    let current = state;
+    let current =
+      state;
 
     for (
       const stage of
@@ -252,8 +313,10 @@ export class CognitiveRuntime {
       } catch {
         /*
         |--------------------------------------------------------------------------
-        | Stop downstream cognitive processing after
-        | a stage failure.
+        | BaseStage already records the error and
+        | diagnostic information. The runtime stops
+        | downstream cognitive processing so that
+        | later stages cannot operate on invalid state.
         |--------------------------------------------------------------------------
         */
 
@@ -268,6 +331,11 @@ export class CognitiveRuntime {
     |--------------------------------------------------------------------------
     | Outcome finalization
     |--------------------------------------------------------------------------
+    |
+    | Outcome must still be produced when an earlier
+    | stage fails because it is the runtime's durable
+    | summary of what happened.
+    |
     */
 
     if (
@@ -288,17 +356,13 @@ export class CognitiveRuntime {
             await outcomeStage.execute(
               current
             );
-        } catch (
-          error
-        ) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : String(error);
-
-          current.errors.push(
-            `Outcome: ${message}`
-          );
+        } catch {
+          /*
+          |--------------------------------------------------------------------------
+          | Outcome failure should not hide the
+          | original runtime failure.
+          |--------------------------------------------------------------------------
+          */
         }
       }
     }
@@ -307,44 +371,40 @@ export class CognitiveRuntime {
     |--------------------------------------------------------------------------
     | Reflection finalization
     |--------------------------------------------------------------------------
+    |
+    | Reflection is allowed to run only when the
+    | cognitive cycle completed without runtime errors.
+    |
     */
 
-    const reflectionStage =
-      this.stages.find(
-        (stage) =>
-          stage.name ===
-          "Reflection"
-      );
-
-    const reflectionExecuted =
-      current.executedStages.includes(
-        "Reflection"
-      );
-
-    const runtimeFailed =
-      current.errors.length > 0;
-
     if (
-      reflectionStage &&
-      !reflectionExecuted &&
-      !runtimeFailed
+      current.errors.length === 0 &&
+      !current.reflections.length
     ) {
-      try {
-        current =
-          await reflectionStage.execute(
-            current
-          );
-      } catch (
-        error
-      ) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.errors.push(
-          `Reflection: ${message}`
+      const reflectionStage =
+        this.stages.find(
+          (stage) =>
+            stage.name ===
+            "Reflection"
         );
+
+      if (
+        reflectionStage
+      ) {
+        try {
+          current =
+            await reflectionStage.execute(
+              current
+            );
+        } catch {
+          /*
+          |--------------------------------------------------------------------------
+          | Reflection is a post-processing capability.
+          | A reflection failure must not destroy the
+          | already-generated user response.
+          |--------------------------------------------------------------------------
+          */
+        }
       }
     }
 
