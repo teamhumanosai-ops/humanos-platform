@@ -35,6 +35,10 @@ import {
 } from "./steps/brainStateStage";
 
 import {
+  ReasoningGraphStage,
+} from "./steps/reasoningGraphStage";
+
+import {
   PredictionStage,
 } from "./steps/predictionStage";
 
@@ -158,12 +162,26 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Unified Brain State
+    | Unified BrainState
     |--------------------------------------------------------------------------
     */
 
     this.register(
       new BrainStateStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reasoning Graph
+    |--------------------------------------------------------------------------
+    |
+    | Hydrates graph relationships into BrainState
+    | before prediction, context, and reasoning.
+    |
+    */
+
+    this.register(
+      new ReasoningGraphStage()
     );
 
     /*
