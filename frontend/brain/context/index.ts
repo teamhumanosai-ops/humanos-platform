@@ -181,6 +181,87 @@ function scoreGraphNode(
   return score;
 }
 
+function scoreGraphEdge(
+  edge:
+    BrainState["graphEdges"][number],
+  nodesById:
+    Map<
+      string,
+      BrainState["graph"][number]
+    >,
+  queryTokens:
+    string[]
+): number {
+  const from =
+    nodesById.get(
+      edge.from
+    );
+
+  const to =
+    nodesById.get(
+      edge.to
+    );
+
+  if (
+    !from ||
+    !to
+  ) {
+    return 0;
+  }
+
+  const relationship =
+    normalize(
+      edge.type
+    );
+
+  const fromLabel =
+    normalize(
+      from.label
+    );
+
+  const toLabel =
+    normalize(
+      to.label
+    );
+
+  let score =
+    Math.max(
+      0,
+      edge.weight
+    );
+
+  for (
+    const token of
+    queryTokens
+  ) {
+    if (
+      relationship.includes(
+        token
+      )
+    ) {
+      score += 5;
+    }
+
+    if (
+      fromLabel.includes(
+        token
+      )
+    ) {
+      score += 3;
+    }
+
+    if (
+      toLabel.includes(
+        token
+      )
+    ) {
+      score += 3;
+    }
+  }
+
+  return score;
+}
+
 function getRelevantGraphNodes(
   state: BrainState
 ): BrainState["graph"] {
@@ -235,12 +316,84 @@ function getRelevantGraphNodes(
     );
 }
 
-function getConnectedGraphNodes(
+function getRelevantGraphEdges(
   state: BrainState,
   relevantNodes:
     BrainState["graph"]
-):
-  BrainState["graph"] {
+): BrainState["graphEdges"] {
+  if (
+    relevantNodes.length === 0
+  ) {
+    return [];
+  }
+
+  const queryTokens =
+    tokenize(
+      state.userMessage
+    );
+
+  const relevantIds =
+    new Set(
+      relevantNodes.map(
+        (node) =>
+          node.id
+      )
+    );
+
+  const nodesById =
+    new Map(
+      state.graph.map(
+        (node) => [
+          node.id,
+          node,
+        ]
+      )
+    );
+
+  return state.graphEdges
+    .filter(
+      (edge) =>
+        relevantIds.has(
+          edge.from
+        ) ||
+        relevantIds.has(
+          edge.to
+        )
+    )
+    .map(
+      (edge) => ({
+        edge,
+
+        score:
+          scoreGraphEdge(
+            edge,
+            nodesById,
+            queryTokens
+          ),
+      })
+    )
+    .sort(
+      (a, b) =>
+        b.score -
+        a.score
+    )
+    .slice(
+      0,
+      16
+    )
+    .map(
+      (item) =>
+        item.edge
+    );
+}
+
+function getConnectedGraphNodes(
+  state: BrainState,
+  relevantNodes:
+    BrainState["graph"],
+  relevantEdges:
+    BrainState["graphEdges"]
+): BrainState["graph"] {
   if (
     relevantNodes.length === 0
   ) {
@@ -262,7 +415,7 @@ function getConnectedGraphNodes(
 
   for (
     const edge of
-    state.graphEdges
+    relevantEdges
   ) {
     if (
       relevantIds.has(
@@ -285,12 +438,17 @@ function getConnectedGraphNodes(
     }
   }
 
-  return state.graph.filter(
-    (node) =>
-      connectedIds.has(
-        node.id
-      )
-  );
+  return state.graph
+    .filter(
+      (node) =>
+        connectedIds.has(
+          node.id
+        )
+    )
+    .slice(
+      0,
+      12
+    );
 }
 
 function buildGraphContext(
@@ -313,10 +471,17 @@ function buildGraphContext(
     return "";
   }
 
+  const relevantEdges =
+    getRelevantGraphEdges(
+      state,
+      relevantNodes
+    );
+
   const contextualNodes =
     getConnectedGraphNodes(
       state,
-      relevantNodes
+      relevantNodes,
+      relevantEdges
     );
 
   const nodesById =
@@ -329,51 +494,18 @@ function buildGraphContext(
       )
     );
 
-  const relevantIds =
-    new Set(
-      relevantNodes.map(
-        (node) =>
-          node.id
-      )
-    );
-
   const sections =
     relevantNodes.map(
       (node) => {
         const relationships =
-          state.graphEdges.filter(
-            (edge) => {
-              const touchesNode =
+          relevantEdges
+            .filter(
+              (edge) =>
                 edge.from ===
                   node.id ||
                 edge.to ===
-                  node.id;
-
-              if (
-                !touchesNode
-              ) {
-                return false;
-              }
-
-              const relatedId =
-                edge.from ===
-                node.id
-                  ? edge.to
-                  : edge.from;
-
-              return (
-                nodesById.has(
-                  relatedId
-                ) ||
-                relevantIds.has(
-                  relatedId
-                )
-              );
-            }
-          );
-
-        const related =
-          relationships
+                  node.id
+            )
             .map(
               (edge) => {
                 const relatedId =
@@ -397,6 +529,9 @@ function buildGraphContext(
                   `  • ${edge.type}:`,
                   `${relatedNode.label}`,
                   `(${relatedNode.type})`,
+                  `[weight ${edge.weight.toFixed(
+                    2
+                  )}]`,
                 ].join(" ");
               }
             )
@@ -411,7 +546,7 @@ function buildGraphContext(
 
         return [
           `${node.label} (${node.type})`,
-          ...related,
+          ...relationships,
         ].join("\n");
       }
     );
@@ -428,13 +563,14 @@ Relevant Knowledge Graph Context:
 ${sections.join("\n\n")}
 
 The graph context above was selected
-because it is relevant to the user's
-current request.
+using the user's current request,
+entity relevance, relationship relevance,
+and graph relationship weight.
 
-Connected nodes may provide additional
-context around the matched concepts.
+Only the most relevant graph entities
+and relationships are included.
 
-Use graph information only when it helps
+Use graph information when it helps
 answer the request.
 
 Treat relationships as observations,
