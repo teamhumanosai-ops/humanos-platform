@@ -1,6 +1,4 @@
-import {
-  BrainState,
-} from "../brainState";
+import { BrainState } from "../brainState";
 
 import {
   RuntimeServices,
@@ -11,32 +9,20 @@ import {
 } from "./steps/inputStage";
 
 import {
-  IntentStage,
-} from "./steps/intentStage";
-
-import {
-  LiveKnowledgeStage,
-} from "./steps/liveKnowledgeStage";
-
-import {
-  MemoryExtractionStage,
-} from "./steps/memoryExtractionStage";
-
-import {
-  TimelineExtractionStage,
-} from "./steps/timelineExtractionStage";
-
-import {
   MemoryStage,
 } from "./steps/memoryStage";
+
+import {
+  IntentStage,
+} from "./steps/intentStage";
 
 import {
   BrainStateStage,
 } from "./steps/brainStateStage";
 
 import {
-  SkillStage,
-} from "./steps/skillStage";
+  PredictionStage,
+} from "./steps/predictionStage";
 
 import {
   ContextStage,
@@ -112,38 +98,6 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Live Knowledge
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new LiveKnowledgeStage(
-        this.services
-      )
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Memory Extraction
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new MemoryExtractionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Timeline Extraction
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new TimelineExtractionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
     | Memory Retrieval
     |--------------------------------------------------------------------------
     */
@@ -164,12 +118,12 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Local Skills
+    | Prediction
     |--------------------------------------------------------------------------
     */
 
     this.register(
-      new SkillStage()
+      new PredictionStage()
     );
 
     /*
@@ -326,13 +280,17 @@ export class CognitiveRuntime {
             "Outcome"
         );
 
-      if (outcomeStage) {
+      if (
+        outcomeStage
+      ) {
         try {
           current =
             await outcomeStage.execute(
               current
             );
-        } catch (error) {
+        } catch (
+          error
+        ) {
           const message =
             error instanceof Error
               ? error.message
@@ -347,9 +305,48 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Runtime timestamp
+    | Reflection finalization
     |--------------------------------------------------------------------------
     */
+
+    const reflectionStage =
+      this.stages.find(
+        (stage) =>
+          stage.name ===
+          "Reflection"
+      );
+
+    const reflectionExecuted =
+      current.executedStages.includes(
+        "Reflection"
+      );
+
+    const runtimeFailed =
+      current.errors.length > 0;
+
+    if (
+      reflectionStage &&
+      !reflectionExecuted &&
+      !runtimeFailed
+    ) {
+      try {
+        current =
+          await reflectionStage.execute(
+            current
+          );
+      } catch (
+        error
+      ) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        current.errors.push(
+          `Reflection: ${message}`
+        );
+      }
+    }
 
     current.updatedAt =
       new Date();
