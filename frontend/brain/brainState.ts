@@ -23,6 +23,10 @@ import type {
   RuntimeOutcome,
 } from "./runtime/outcome";
 
+import type {
+  Goal,
+} from "./planning";
+
 export type ConversationMessage = {
   role:
     | "user"
@@ -94,7 +98,8 @@ export type BrainState = {
   knowledge:
     BrainKnowledge[];
 
-  liveKnowledge: string[];
+  liveKnowledge:
+    string[];
 
   reasoning:
     | string
@@ -153,6 +158,16 @@ export type BrainState = {
 
   citations:
     CitationSource[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Goal Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  goal:
+    Goal
+    | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -305,6 +320,15 @@ export function createBrainState(
 
     citations:
       [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Goal Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    goal:
+      null,
 
     /*
     |--------------------------------------------------------------------------

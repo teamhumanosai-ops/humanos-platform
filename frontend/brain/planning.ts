@@ -7,8 +7,34 @@ export type PlanStatus =
   | "completed"
   | "paused";
 
-export type PlanningContext = {
-  graphObservations?: string[];
+export type GoalStatus =
+  | "active"
+  | "completed"
+  | "paused"
+  | "blocked";
+
+export type Goal = {
+  id: string;
+
+  statement: string;
+
+  status: GoalStatus;
+
+  progress: number;
+
+  priority: number;
+
+  confidence: number;
+
+  nextAction: string;
+
+  obstacles: string[];
+
+  dependencies: string[];
+
+  createdAt: Date;
+
+  updatedAt: Date;
 };
 
 export type Plan = {
@@ -42,6 +68,62 @@ const planStore =
 
 /*
 |--------------------------------------------------------------------------
+| Goal Intelligence
+|--------------------------------------------------------------------------
+*/
+
+export function createGoalFromPlan(
+  plan: Plan
+): Goal {
+  const progress =
+    plan.milestones.length === 0
+      ? 100
+      : Math.round(
+          (
+            plan.completedMilestones.length /
+            plan.milestones.length
+          ) *
+          100
+        );
+
+  const status: GoalStatus =
+    plan.status === "completed"
+      ? "completed"
+      : "active";
+
+  return {
+    id: plan.id,
+
+    statement:
+      plan.goal,
+
+    status,
+
+    progress,
+
+    priority:
+      plan.priority,
+
+    confidence:
+      plan.confidence,
+
+    nextAction:
+      plan.nextAction,
+
+    obstacles: [],
+
+    dependencies: [],
+
+    createdAt:
+      plan.createdAt,
+
+    updatedAt:
+      plan.updatedAt,
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
 | Query API
 |--------------------------------------------------------------------------
 */
@@ -67,15 +149,6 @@ export function getPlan(
 export function createPlanFromMessage(
   message: string
 ): Plan | null {
-  return createPlanFromMessageWithContext(
-    message
-  );
-}
-
-export function createPlanFromMessageWithContext(
-  message: string,
-  context: PlanningContext = {}
-): Plan | null {
   const goal =
     extractGoal(message);
 
@@ -85,46 +158,6 @@ export function createPlanFromMessageWithContext(
 
   const plan =
     generatePlan(goal);
-
-  const graphObservations =
-    context.graphObservations
-      ?.filter(
-        (observation) =>
-          observation.trim().length > 0
-      )
-      .slice(0, 3) ?? [];
-
-  if (
-    graphObservations.length > 0
-  ) {
-    const graphMilestone =
-      "Use relevant knowledge graph relationships to guide execution.";
-
-    if (
-      !plan.milestones.includes(
-        graphMilestone
-      )
-    ) {
-      plan.milestones = [
-        graphMilestone,
-        ...plan.milestones,
-      ];
-    }
-
-    plan.description =
-      [
-        plan.description,
-
-        "Graph context:",
-        ...graphObservations.map(
-          (observation) =>
-            `- ${observation}`
-        ),
-      ].join("\n");
-
-    plan.nextAction =
-      graphMilestone;
-  }
 
   savePlan(plan);
 

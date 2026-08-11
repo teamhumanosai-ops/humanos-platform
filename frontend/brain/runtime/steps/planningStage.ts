@@ -7,7 +7,8 @@ import {
 } from "../../intent";
 
 import {
-  createPlanFromMessageWithContext,
+  createGoalFromPlan,
+  createPlanFromMessage,
 } from "../../planning";
 
 import {
@@ -20,9 +21,12 @@ import {
  * Integrates the existing Planning Engine
  * into the Cognitive Runtime.
  *
- * The Runtime supplies relevant cognitive
- * context while the Planning Engine remains
- * responsible for generating the plan.
+ * The Planning Engine remains responsible
+ * for plan generation.
+ *
+ * This stage additionally promotes the
+ * generated plan into structured Goal
+ * Intelligence inside BrainState.
  */
 export class PlanningStage
   extends BaseStage {
@@ -32,25 +36,11 @@ export class PlanningStage
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    /*
-    |--------------------------------------------------------------------------
-    | Do not create a plan when a local skill
-    | has already produced the response.
-    |--------------------------------------------------------------------------
-    */
-
     if (
       state.response
     ) {
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Planning currently applies to startup
-    | planning intent.
-    |--------------------------------------------------------------------------
-    */
 
     if (
       state.intent !==
@@ -59,146 +49,62 @@ export class PlanningStage
       return state;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Build planning evidence from the
-    | canonical BrainState.
-    |--------------------------------------------------------------------------
-    */
-
-    const graphObservations:
-      string[] = [];
-
-    if (
-      state.graph.length > 0
-    ) {
-      graphObservations.push(
-        `The knowledge graph contains ${state.graph.length} relevant entities.`
-      );
-    }
-
-    if (
-      state.graphEdges.length > 0
-    ) {
-      graphObservations.push(
-        `The knowledge graph contains ${state.graphEdges.length} relevant relationships.`
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Structured reasoning evidence
-    |--------------------------------------------------------------------------
-    |
-    | Planning consumes the machine-readable
-    | reasoning observations instead of relying
-    | only on the formatted reasoning string.
-    |
-    */
-
-    for (
-      const observation of
-        state.reasoningObservations
-    ) {
-      graphObservations.push(
-        `Reasoning evidence (${observation.source}, confidence ${observation.confidence.toFixed(
-          2
-        )}): ${observation.statement}`
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Preserve the aggregate reasoning confidence.
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      state.reasoningConfidence > 0
-    ) {
-      graphObservations.push(
-        `Overall reasoning confidence: ${state.reasoningConfidence.toFixed(
-          2
-        )}.`
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Backward-compatible reasoning fallback.
-    |--------------------------------------------------------------------------
-    |
-    | Existing BrainState consumers may still
-    | provide only the formatted reasoning text.
-    |
-    */
-
-    if (
-      state.reasoningObservations.length ===
-        0
-    ) {
-      const reasoning =
-        state.reasoning?.trim();
-
-      if (
-        reasoning
-      ) {
-        graphObservations.push(
-          `Reasoning context: ${reasoning}`
-        );
-      }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create the plan through the existing
-    | Planning Engine with cognitive context.
-    |--------------------------------------------------------------------------
-    */
-
     const plan =
-      createPlanFromMessageWithContext(
-        state.userMessage,
-        {
-          graphObservations,
-        }
+      createPlanFromMessage(
+        state.userMessage
       );
 
     if (!plan) {
       return state;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Store runtime plan identity.
-    |--------------------------------------------------------------------------
-    */
+    const goal =
+      createGoalFromPlan(
+        plan
+      );
+
+    state.goal =
+      goal;
 
     state.currentGoal =
-      plan.goal;
+      goal.statement;
 
     state.currentPlanId =
       plan.id;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Store human-readable plan state.
-    |--------------------------------------------------------------------------
-    */
 
     state.plan =
       [
         `Plan: ${plan.title}`,
 
-        `Goal: ${plan.goal}`,
+        `Goal: ${goal.statement}`,
+
+        `Goal Status: ${goal.status}`,
+
+        `Progress: ${goal.progress}%`,
 
         `Description: ${plan.description}`,
 
-        `Next Action: ${plan.nextAction}`,
+        `Next Action: ${goal.nextAction}`,
 
-        `Priority: ${plan.priority}`,
+        `Priority: ${goal.priority}`,
 
-        `Confidence: ${plan.confidence}`,
+        `Confidence: ${goal.confidence}`,
+
+        `Obstacles: ${
+          goal.obstacles.length > 0
+            ? goal.obstacles.join(
+                "; "
+              )
+            : "None identified"
+        }`,
+
+        `Dependencies: ${
+          goal.dependencies.length > 0
+            ? goal.dependencies.join(
+                "; "
+              )
+            : "None identified"
+        }`,
 
         "Milestones:",
 
