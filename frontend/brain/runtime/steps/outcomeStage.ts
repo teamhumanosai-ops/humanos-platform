@@ -9,6 +9,8 @@ import {
 } from "../../execution";
 
 import {
+  createGoalFromPlan,
+  enrichGoalFromContext,
   getPlan,
 } from "../../planning";
 
@@ -27,6 +29,7 @@ import {
  *
  * - Execution state
  * - Plan progress
+ * - Goal progress
  * - Runtime outcome
  * - Overall runtime status
  */
@@ -54,29 +57,122 @@ export class OutcomeStage
 
     /*
     |--------------------------------------------------------------------------
-    | Synchronize plan information.
+    | Synchronize plan and goal information.
     |--------------------------------------------------------------------------
+    |
+    | Execution completion can update the underlying plan before OutcomeStage
+    | runs. Rebuild the Goal from that current plan so BrainState reflects
+    | the latest progress and next action.
+    |
     */
 
     if (plan) {
+      const initialGoal =
+        createGoalFromPlan(
+          plan
+        );
+
+      const goal =
+        enrichGoalFromContext(
+          initialGoal,
+          {
+            graphObservations:
+              [],
+
+            graphNodes:
+              state.graph.map(
+                (node) => ({
+                  id:
+                    node.id,
+
+                  label:
+                    node.label,
+
+                  type:
+                    node.type,
+                })
+              ),
+
+            graphEdges:
+              state.graphEdges.map(
+                (edge) => ({
+                  from:
+                    edge.from,
+
+                  to:
+                    edge.to,
+
+                  type:
+                    edge.type,
+                })
+              ),
+
+            reasoningObservations:
+              state.reasoningObservations,
+
+            timeline:
+              state.timeline,
+
+            reflections:
+              state.reflections,
+
+            memories:
+              state.memories.map(
+                (memory) =>
+                  memory.value
+              ),
+          }
+        );
+
+      if (
+        execution?.status ===
+        "blocked"
+      ) {
+        goal.status =
+          "blocked";
+      }
+
+      state.goal =
+        goal;
+
       state.currentGoal =
-        plan.goal;
+        goal.statement;
 
       state.plan =
         [
           `Plan: ${plan.title}`,
 
-          `Goal: ${plan.goal}`,
+          `Goal: ${goal.statement}`,
+
+          `Goal Status: ${goal.status}`,
+
+          `Progress: ${goal.progress}%`,
 
           `Description: ${plan.description}`,
 
           `Status: ${plan.status}`,
 
-          `Next Action: ${plan.nextAction}`,
+          `Next Action: ${goal.nextAction}`,
 
-          `Priority: ${plan.priority}`,
+          `Priority: ${goal.priority}`,
 
-          `Confidence: ${plan.confidence}`,
+          `Confidence: ${goal.confidence}`,
+
+          `Obstacles: ${
+            goal.obstacles.length > 0
+              ? goal.obstacles.join(
+                  "; "
+                )
+              : "None identified"
+          }`,
+
+          `Dependencies: ${
+            goal.dependencies.length > 0
+              ? goal.dependencies.join(
+                  "; "
+                )
+              : "None identified"
+          }`,
 
           `Completed Milestones: ${
             plan.completedMilestones.length
