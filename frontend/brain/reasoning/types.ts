@@ -6,7 +6,8 @@ export type ReasoningSource =
   | "timeline"
   | "reflection"
   | "profile"
-  | "knowledge_graph";
+  | "knowledge_graph"
+  | "prediction";
 
 export type ReasoningObservationKind =
   | "known_fact"

@@ -65,6 +65,12 @@ function classifyObservation(
     return "observed_relationship";
   }
 
+  if (
+    source === "prediction"
+  ) {
+    return "derived_inference";
+  }
+
   return "known_fact";
 }
 
@@ -93,7 +99,8 @@ function observation(
 function buildGraphObservations(
   state: BrainState
 ): ReasoningObservation[] {
-  const observations: ReasoningObservation[] =
+  const observations:
+    ReasoningObservation[] =
     [];
 
   const graphNodes =
@@ -283,7 +290,8 @@ function buildGraphObservations(
 function buildObservations(
   state: BrainState
 ): ReasoningObservation[] {
-  const observations: ReasoningObservation[] =
+  const observations:
+    ReasoningObservation[] =
     [];
 
   if (
@@ -411,6 +419,20 @@ function buildObservations(
     );
   }
 
+  for (
+    const prediction of
+    state.predictions
+  ) {
+    observations.push(
+      observation(
+        `Prediction: ${prediction.statement}`,
+        prediction.confidence,
+        "prediction",
+        "derived_inference"
+      )
+    );
+  }
+
   return observations;
 }
 
@@ -421,16 +443,12 @@ function buildCrossSourceInference(
     new Set(
       observations
         .filter(
-          (
-            item
-          ) =>
+          (item) =>
             item.kind ===
             "known_fact"
         )
         .map(
-          (
-            item
-          ) =>
+          (item) =>
             item.source
         )
     );

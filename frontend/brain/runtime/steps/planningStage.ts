@@ -68,6 +68,21 @@ export class PlanningStage
     }
 
     if (
+      state.predictions.length > 0
+    ) {
+      for (
+        const prediction of
+        state.predictions
+      ) {
+        graphObservations.push(
+          `Prediction (${prediction.kind}, confidence ${prediction.confidence.toFixed(
+            2
+          )}): ${prediction.statement}`
+        );
+      }
+    }
+
+    if (
       state.reasoningConfidence > 0
     ) {
       graphObservations.push(
