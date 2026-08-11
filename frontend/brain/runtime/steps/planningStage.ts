@@ -7,27 +7,15 @@ import {
 } from "../../intent";
 
 import {
+  createPlanFromMessageWithContext,
   createGoalFromPlan,
-  createPlanFromMessage,
+  enrichGoalFromContext,
 } from "../../planning";
 
 import {
   BaseStage,
 } from "./baseStage";
 
-/**
- * PlanningStage
- *
- * Integrates the existing Planning Engine
- * into the Cognitive Runtime.
- *
- * The Planning Engine remains responsible
- * for plan generation.
- *
- * This stage additionally promotes the
- * generated plan into structured Goal
- * Intelligence inside BrainState.
- */
 export class PlanningStage
   extends BaseStage {
   readonly name =
@@ -49,18 +37,168 @@ export class PlanningStage
       return state;
     }
 
+    const graphObservations:
+      string[] = [];
+
+    if (
+      state.graph.length > 0
+    ) {
+      graphObservations.push(
+        `The knowledge graph contains ${state.graph.length} relevant entities.`
+      );
+    }
+
+    if (
+      state.graphEdges.length > 0
+    ) {
+      graphObservations.push(
+        `The knowledge graph contains ${state.graphEdges.length} relevant relationships.`
+      );
+    }
+
+    for (
+      const observation of
+      state.reasoningObservations
+    ) {
+      graphObservations.push(
+        `Reasoning evidence (${observation.source}, confidence ${observation.confidence.toFixed(
+          2
+        )}): ${observation.statement}`
+      );
+    }
+
+    if (
+      state.reasoningConfidence > 0
+    ) {
+      graphObservations.push(
+        `Overall reasoning confidence: ${state.reasoningConfidence.toFixed(
+          2
+        )}.`
+      );
+    }
+
+    const reasoning =
+      state.reasoning?.trim();
+
+    if (
+      reasoning &&
+      state.reasoningObservations.length ===
+        0
+    ) {
+      graphObservations.push(
+        `Reasoning context: ${reasoning}`
+      );
+    }
+
     const plan =
-      createPlanFromMessage(
-        state.userMessage
+      createPlanFromMessageWithContext(
+        state.userMessage,
+        {
+          graphObservations,
+
+          graphNodes:
+            state.graph.map(
+              (node) => ({
+                id:
+                  node.id,
+
+                label:
+                  node.label,
+
+                type:
+                  node.type,
+              })
+            ),
+
+          graphEdges:
+            state.graphEdges.map(
+              (edge) => ({
+                from:
+                  edge.from,
+
+                to:
+                  edge.to,
+
+                type:
+                  edge.type,
+              })
+            ),
+
+          reasoningObservations:
+            state.reasoningObservations,
+
+          timeline:
+            state.timeline,
+
+          reflections:
+            state.reflections,
+
+          memories:
+            state.memories.map(
+              (memory) =>
+                memory.value
+            ),
+        }
       );
 
     if (!plan) {
       return state;
     }
 
-    const goal =
+    const initialGoal =
       createGoalFromPlan(
         plan
+      );
+
+    const goal =
+      enrichGoalFromContext(
+        initialGoal,
+        {
+          graphObservations,
+
+          graphNodes:
+            state.graph.map(
+              (node) => ({
+                id:
+                  node.id,
+
+                label:
+                  node.label,
+
+                type:
+                  node.type,
+              })
+            ),
+
+          graphEdges:
+            state.graphEdges.map(
+              (edge) => ({
+                from:
+                  edge.from,
+
+                to:
+                  edge.to,
+
+                type:
+                  edge.type,
+              })
+            ),
+
+          reasoningObservations:
+            state.reasoningObservations,
+
+          timeline:
+            state.timeline,
+
+          reflections:
+            state.reflections,
+
+          memories:
+            state.memories.map(
+              (memory) =>
+                memory.value
+            ),
+        }
       );
 
     state.goal =
