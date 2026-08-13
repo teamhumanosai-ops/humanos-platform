@@ -13,13 +13,15 @@ import {
 /**
  * ReasoningGraphStage
  *
- * Integrates the existing Knowledge Graph
- * relationships into the runtime BrainState.
+ * Keeps Knowledge Graph relationships aligned with the
+ * graph nodes already selected for the current BrainState.
  *
- * BrainStateStage already hydrates graph nodes.
- * This stage adds the graph relationships so
- * downstream reasoning can use both nodes and
- * edges from the same cognitive artifact.
+ * BrainStateStage is responsible for selecting the relevant
+ * graph nodes and relationships for the current request.
+ *
+ * This stage therefore preserves that relevance boundary
+ * while ensuring the graph relationship data is available
+ * to downstream reasoning.
  */
 export class ReasoningGraphStage
   extends BaseStage {
@@ -31,29 +33,80 @@ export class ReasoningGraphStage
   ): Promise<BrainState> {
     /*
     |--------------------------------------------------------------------------
-    | Graph nodes are already hydrated by BrainStateStage.
+    | No graph context
     |--------------------------------------------------------------------------
     */
 
     if (
       state.graph.length === 0
     ) {
+      state.graphEdges = [];
+
       return state;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Hydrate graph relationships into BrainState.
+    | Preserve relevant graph relationships
     |--------------------------------------------------------------------------
     |
-    | Reasoning already consumes state.graphEdges.
-    | The stage therefore does not create another
-    | graph context object or mutate state.context.
+    | BrainStateStage already selected the relevant graph
+    | relationships for the current request.
+    |
+    | Do not replace that filtered set with every relationship
+    | stored in the global graph.
     |
     */
 
-    state.graphEdges =
-      graphQuery.getEdges();
+    const relevantNodeIds =
+      new Set(
+        state.graph.map(
+          (node) =>
+            node.id
+        )
+      );
+
+    const existingRelevantEdges =
+      state.graphEdges.filter(
+        (edge) =>
+          relevantNodeIds.has(
+            edge.from
+          ) &&
+          relevantNodeIds.has(
+            edge.to
+          )
+      );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fallback
+    |--------------------------------------------------------------------------
+    |
+    | If the upstream BrainState hydration did not provide
+    | relationships, derive them from the graph query layer
+    | but still enforce the current BrainState relevance boundary.
+    |
+    */
+
+    if (
+      existingRelevantEdges.length === 0
+    ) {
+      state.graphEdges =
+        graphQuery
+          .getEdges()
+          .filter(
+            (edge) =>
+              relevantNodeIds.has(
+                edge.from
+              ) &&
+              relevantNodeIds.has(
+                edge.to
+              )
+          );
+    } else {
+      state.graphEdges =
+        existingRelevantEdges;
+    }
 
     return state;
   }
