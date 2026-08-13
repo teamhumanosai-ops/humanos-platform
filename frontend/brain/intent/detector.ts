@@ -16,6 +16,71 @@ function containsYear(
   return /\b20\d{2}\b/.test(text);
 }
 
+function asksForCurrentRole(
+  text: string
+): boolean {
+  const rolePhrases = [
+    "ceo",
+    "chief executive officer",
+    "president",
+    "prime minister",
+    "chancellor",
+    "chairman",
+    "chairwoman",
+    "chairperson",
+    "founder",
+    "governor",
+    "mayor",
+    "director",
+    "head of",
+  ];
+
+  const questionPhrases = [
+    "who is",
+    "who's",
+    "who currently",
+    "who is currently",
+    "who was appointed",
+    "who became",
+    "who took over",
+  ];
+
+  return (
+    containsAny(
+      text,
+      questionPhrases
+    ) &&
+    containsAny(
+      text,
+      rolePhrases
+    )
+  );
+}
+
+function asksForCurrentState(
+  text: string
+): boolean {
+  const currentStatePhrases = [
+    "as of",
+    "currently",
+    "at the moment",
+    "right now",
+    "as of now",
+    "what is the current",
+    "what's the current",
+    "what are the current",
+    "what's currently",
+    "what is currently",
+    "how much is",
+    "how many are",
+  ];
+
+  return containsAny(
+    text,
+    currentStatePhrases
+  );
+}
+
 export function detectIntent(
   message: string
 ): Intent {
@@ -25,8 +90,12 @@ export function detectIntent(
       .trim();
 
   if (
-    text.includes("plan my startup") ||
-    text.includes("startup")
+    text.includes(
+      "plan my startup"
+    ) ||
+    text.includes(
+      "startup"
+    )
   ) {
     return Intent.STARTUP_PLANNING;
   }
@@ -42,6 +111,7 @@ export function detectIntent(
    * - What is today's score?
    * - What are the latest OpenAI updates?
    */
+
   const liveIndicators = [
     "today",
     "latest",
@@ -123,10 +193,19 @@ export function detectIntent(
       liveEntities
     );
 
+  /*
+   * Explicit temporal language always has
+   * priority over general conversation.
+   */
+
   if (
     asksForLiveInformation ||
-    (containsLiveEntity &&
-      containsYear(text))
+    asksForCurrentRole(text) ||
+    asksForCurrentState(text) ||
+    (
+      containsLiveEntity &&
+      containsYear(text)
+    )
   ) {
     return Intent.LIVE_SEARCH;
   }
