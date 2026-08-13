@@ -7,15 +7,34 @@ import {
 } from "../../intent";
 
 import {
-  createPlanFromMessageWithContext,
-  createGoalFromPlan,
-  enrichGoalFromContext,
+  createPlanFromMessage,
+  findRelevantActivePlan,
 } from "../../planning";
 
 import {
   BaseStage,
 } from "./baseStage";
 
+/**
+ * PlanningStage
+ *
+ * Integrates the existing Planning Engine
+ * into the Cognitive Runtime.
+ *
+ * Responsibilities:
+ * - Determine whether the current request
+ *   requires planning
+ * - Resume a relevant persisted plan when
+ *   the user explicitly asks to continue it
+ * - Create a new plan when planning is requested
+ * - Store the resulting plan in BrainState
+ *
+ * The Planning Engine remains responsible
+ * for plan generation and persistence.
+ *
+ * BrainState remains the shared runtime
+ * artifact.
+ */
 export class PlanningStage
   extends BaseStage {
   readonly name =
@@ -37,190 +56,29 @@ export class PlanningStage
       return state;
     }
 
-    const graphObservations:
-      string[] = [];
+    const message =
+      state.userMessage.trim();
 
-    if (
-      state.graph.length > 0
-    ) {
-      graphObservations.push(
-        `The knowledge graph contains ${state.graph.length} relevant entities.`
+    const continuationRequested =
+      /\b(continue|resume|next\s+step|next\s+action|keep\s+going|make\s+progress|progress|pick\s+up|update)\b/i.test(
+        message
       );
-    }
-
-    if (
-      state.graphEdges.length > 0
-    ) {
-      graphObservations.push(
-        `The knowledge graph contains ${state.graphEdges.length} relevant relationships.`
-      );
-    }
-
-    for (
-      const observation of
-      state.reasoningObservations
-    ) {
-      graphObservations.push(
-        `Reasoning evidence (${observation.source}, confidence ${observation.confidence.toFixed(
-          2
-        )}): ${observation.statement}`
-      );
-    }
-
-    if (
-      state.predictions.length > 0
-    ) {
-      for (
-        const prediction of
-        state.predictions
-      ) {
-        graphObservations.push(
-          `Prediction (${prediction.kind}, confidence ${prediction.confidence.toFixed(
-            2
-          )}): ${prediction.statement}`
-        );
-      }
-    }
-
-    if (
-      state.reasoningConfidence > 0
-    ) {
-      graphObservations.push(
-        `Overall reasoning confidence: ${state.reasoningConfidence.toFixed(
-          2
-        )}.`
-      );
-    }
-
-    const reasoning =
-      state.reasoning?.trim();
-
-    if (
-      reasoning &&
-      state.reasoningObservations.length ===
-        0
-    ) {
-      graphObservations.push(
-        `Reasoning context: ${reasoning}`
-      );
-    }
 
     const plan =
-      createPlanFromMessageWithContext(
-        state.userMessage,
-        {
-          graphObservations,
-
-          graphNodes:
-            state.graph.map(
-              (node) => ({
-                id:
-                  node.id,
-
-                label:
-                  node.label,
-
-                type:
-                  node.type,
-              })
-            ),
-
-          graphEdges:
-            state.graphEdges.map(
-              (edge) => ({
-                from:
-                  edge.from,
-
-                to:
-                  edge.to,
-
-                type:
-                  edge.type,
-              })
-            ),
-
-          reasoningObservations:
-            state.reasoningObservations,
-
-          timeline:
-            state.timeline,
-
-          reflections:
-            state.reflections,
-
-          memories:
-            state.memories.map(
-              (memory) =>
-                memory.value
-            ),
-        }
-      );
+      continuationRequested
+        ? findRelevantActivePlan(
+            message
+          )
+        : createPlanFromMessage(
+            message
+          );
 
     if (!plan) {
       return state;
     }
 
-    const initialGoal =
-      createGoalFromPlan(
-        plan
-      );
-
-    const goal =
-      enrichGoalFromContext(
-        initialGoal,
-        {
-          graphObservations,
-
-          graphNodes:
-            state.graph.map(
-              (node) => ({
-                id:
-                  node.id,
-
-                label:
-                  node.label,
-
-                type:
-                  node.type,
-              })
-            ),
-
-          graphEdges:
-            state.graphEdges.map(
-              (edge) => ({
-                from:
-                  edge.from,
-
-                to:
-                  edge.to,
-
-                type:
-                  edge.type,
-              })
-            ),
-
-          reasoningObservations:
-            state.reasoningObservations,
-
-          timeline:
-            state.timeline,
-
-          reflections:
-            state.reflections,
-
-          memories:
-            state.memories.map(
-              (memory) =>
-                memory.value
-            ),
-        }
-      );
-
-    state.goal =
-      goal;
-
     state.currentGoal =
-      goal.statement;
+      plan.goal;
 
     state.currentPlanId =
       plan.id;
@@ -229,35 +87,15 @@ export class PlanningStage
       [
         `Plan: ${plan.title}`,
 
-        `Goal: ${goal.statement}`,
-
-        `Goal Status: ${goal.status}`,
-
-        `Progress: ${goal.progress}%`,
+        `Goal: ${plan.goal}`,
 
         `Description: ${plan.description}`,
 
-        `Next Action: ${goal.nextAction}`,
+        `Next Action: ${plan.nextAction}`,
 
-        `Priority: ${goal.priority}`,
+        `Priority: ${plan.priority}`,
 
-        `Confidence: ${goal.confidence}`,
-
-        `Obstacles: ${
-          goal.obstacles.length > 0
-            ? goal.obstacles.join(
-                "; "
-              )
-            : "None identified"
-        }`,
-
-        `Dependencies: ${
-          goal.dependencies.length > 0
-            ? goal.dependencies.join(
-                "; "
-              )
-            : "None identified"
-        }`,
+        `Confidence: ${plan.confidence}`,
 
         "Milestones:",
 
@@ -268,7 +106,23 @@ export class PlanningStage
           ) =>
             `${index + 1}. ${milestone}`
         ),
-      ].join("\n");
+
+        "Completed Milestones:",
+
+        ...(plan.completedMilestones.length > 0
+          ? plan.completedMilestones.map(
+              (
+                milestone,
+                index
+              ) =>
+                `${index + 1}. ${milestone}`
+            )
+          : [
+              "None",
+            ]),
+      ].join(
+        "\n"
+      );
 
     return state;
   }
