@@ -1,6 +1,26 @@
-import { extractGoal } from "./goalExtractor";
-import { generatePlan } from "./planGenerator";
-import { completeMilestone } from "./progressTracker";
+import {
+  eq,
+} from "drizzle-orm";
+
+import {
+  db,
+} from "../database/db";
+
+import {
+  plans,
+} from "../database/schema";
+
+import {
+  extractGoal,
+} from "./goalExtractor";
+
+import {
+  generatePlan,
+} from "./planGenerator";
+
+import {
+  completeMilestone,
+} from "./progressTracker";
 
 export type PlanStatus =
   | "active"
@@ -90,9 +110,6 @@ export type Plan = {
 
   updatedAt: Date;
 };
-
-const planStore =
-  new Map<string, Plan>();
 
 /*
 |--------------------------------------------------------------------------
@@ -288,8 +305,7 @@ function buildObstacles(
   context: PlanningContext
 ): string[] {
   const candidates = [
-    ...(context.reasoningObservations ??
-      [])
+    ...(context.reasoningObservations ?? [])
       .filter(
         (observation) =>
           observation.kind ===
@@ -302,20 +318,17 @@ function buildObstacles(
           observation.statement
       ),
 
-    ...(context.timeline ??
-      [])
+    ...(context.timeline ?? [])
       .filter(
         containsObstacleSignal
       ),
 
-    ...(context.reflections ??
-      [])
+    ...(context.reflections ?? [])
       .filter(
         containsObstacleSignal
       ),
 
-    ...(context.memories ??
-      [])
+    ...(context.memories ?? [])
       .filter(
         containsObstacleSignal
       ),
@@ -430,21 +443,143 @@ export function enrichGoalFromContext(
 
 /*
 |--------------------------------------------------------------------------
+| Persistence
+|--------------------------------------------------------------------------
+*/
+
+function serializePlan(
+  plan: Plan
+) {
+  return {
+    id:
+      plan.id,
+
+    title:
+      plan.title,
+
+    goal:
+      plan.goal,
+
+    description:
+      plan.description,
+
+    status:
+      plan.status,
+
+    milestones:
+      JSON.stringify(
+        plan.milestones
+      ),
+
+    completedMilestones:
+      JSON.stringify(
+        plan.completedMilestones
+      ),
+
+    nextAction:
+      plan.nextAction,
+
+    priority:
+      plan.priority,
+
+    confidence:
+      plan.confidence,
+
+    createdAt:
+      plan.createdAt.toISOString(),
+
+    updatedAt:
+      plan.updatedAt.toISOString(),
+  };
+}
+
+function deserializePlan(
+  row: typeof plans.$inferSelect
+): Plan {
+  return {
+    id:
+      row.id,
+
+    title:
+      row.title,
+
+    goal:
+      row.goal,
+
+    description:
+      row.description,
+
+    status:
+      row.status as PlanStatus,
+
+    milestones:
+      JSON.parse(
+        row.milestones
+      ) as string[],
+
+    completedMilestones:
+      JSON.parse(
+        row.completedMilestones
+      ) as string[],
+
+    nextAction:
+      row.nextAction,
+
+    priority:
+      row.priority,
+
+    confidence:
+      row.confidence,
+
+    createdAt:
+      new Date(
+        row.createdAt
+      ),
+
+    updatedAt:
+      new Date(
+        row.updatedAt
+      ),
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
 | Query API
 |--------------------------------------------------------------------------
 */
 
 export function getAllPlans(): Plan[] {
-  return Array.from(
-    planStore.values()
-  );
+  return db
+    .select()
+    .from(plans)
+    .all()
+    .map(
+      deserializePlan
+    );
 }
 
 export function getPlan(
   id: string
 ): Plan | undefined {
-  return planStore.get(
-    id
+  const row =
+    db
+      .select()
+      .from(plans)
+      .where(
+        eq(
+          plans.id,
+          id
+        )
+      )
+      .get();
+
+  if (!row) {
+    return undefined;
+  }
+
+  return deserializePlan(
+    row
   );
 }
 
@@ -518,7 +653,9 @@ export function createPlanFromMessageWithContext(
           (observation) =>
             `- ${observation}`
         ),
-      ].join("\n");
+      ].join(
+        "\n"
+      );
 
     plan.nextAction =
       graphMilestone;
@@ -534,13 +671,58 @@ export function createPlanFromMessageWithContext(
 export function savePlan(
   plan: Plan
 ): void {
-  plan.updatedAt =
-    new Date();
+  const updatedPlan: Plan = {
+    ...plan,
 
-  planStore.set(
-    plan.id,
-    plan
-  );
+    updatedAt:
+      new Date(),
+  };
+
+  const row =
+    serializePlan(
+      updatedPlan
+    );
+
+  db
+    .insert(plans)
+    .values(row)
+    .onConflictDoUpdate({
+      target:
+        plans.id,
+
+      set: {
+        title:
+          row.title,
+
+        goal:
+          row.goal,
+
+        description:
+          row.description,
+
+        status:
+          row.status,
+
+        milestones:
+          row.milestones,
+
+        completedMilestones:
+          row.completedMilestones,
+
+        nextAction:
+          row.nextAction,
+
+        priority:
+          row.priority,
+
+        confidence:
+          row.confidence,
+
+        updatedAt:
+          row.updatedAt,
+      },
+    })
+    .run();
 }
 
 export function updatePlan(
@@ -554,13 +736,25 @@ export function updatePlan(
 export function deletePlan(
   id: string
 ): void {
-  planStore.delete(
-    id
-  );
+  db
+    .delete(
+      plans
+    )
+    .where(
+      eq(
+        plans.id,
+        id
+      )
+    )
+    .run();
 }
 
 export function clearPlans(): void {
-  planStore.clear();
+  db
+    .delete(
+      plans
+    )
+    .run();
 }
 
 /*
