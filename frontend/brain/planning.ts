@@ -406,15 +406,12 @@ export function enrichGoalFromContext(
       context
     );
 
-  const progress =
-    goal.progress;
-
   let status:
     GoalStatus =
     "active";
 
   if (
-    progress >= 100
+    goal.progress >= 100
   ) {
     status =
       "completed";
@@ -429,8 +426,6 @@ export function enrichGoalFromContext(
     ...goal,
 
     status,
-
-    progress,
 
     obstacles,
 
@@ -581,6 +576,68 @@ export function getPlan(
   return deserializePlan(
     row
   );
+}
+
+export function findRelevantActivePlan(
+  message: string
+): Plan | undefined {
+  const terms =
+    goalTerms(
+      message
+    );
+
+  if (
+    terms.length === 0
+  ) {
+    return undefined;
+  }
+
+  const activePlans =
+    getAllPlans().filter(
+      (plan) =>
+        plan.status ===
+        "active"
+    );
+
+  let bestPlan:
+    Plan | undefined;
+
+  let bestScore = 0;
+
+  for (
+    const plan of activePlans
+  ) {
+    const planText =
+      normalize(
+        [
+          plan.title,
+          plan.goal,
+          plan.description,
+          plan.nextAction,
+          ...plan.milestones,
+        ].join(" ")
+      );
+
+    const score =
+      terms.filter(
+        (term) =>
+          planText.includes(
+            term
+          )
+      ).length;
+
+    if (
+      score > bestScore
+    ) {
+      bestScore =
+        score;
+
+      bestPlan =
+        plan;
+    }
+  }
+
+  return bestPlan;
 }
 
 /*
