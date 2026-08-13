@@ -1,5 +1,8 @@
 export type InferenceKind =
+  | "known_fact"
+  | "observed_relationship"
   | "derived_inference"
+  | "hypothesis"
   | "uncertainty";
 
 export type InferenceEvidence = {
