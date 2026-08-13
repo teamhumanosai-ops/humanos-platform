@@ -49,14 +49,16 @@ export const timelineEvents = sqliteTable(
     category: text("category")
       .notNull(),
 
-    confidence: integer("confidence")
-      .notNull(),
+    confidence: integer(
+      "confidence"
+    ).notNull(),
 
     source: text("source")
       .notNull(),
 
-    createdAt: text("created_at")
-      .notNull(),
+    createdAt: text(
+      "created_at"
+    ).notNull(),
   }
 );
 
@@ -64,18 +66,75 @@ export const reflections = sqliteTable(
   "reflections",
   {
     id: integer("id")
-      .primaryKey({ autoIncrement: true }),
+      .primaryKey({
+        autoIncrement: true,
+      }),
 
-    summary: text("summary")
+    summary: text(
+      "summary"
+    ).notNull(),
+
+    evidence: text(
+      "evidence"
+    ).notNull(),
+
+    confidence: integer(
+      "confidence"
+    ).notNull(),
+
+    createdAt: text(
+      "created_at"
+    ).notNull(),
+  }
+);
+
+export const plans = sqliteTable(
+  "plans",
+  {
+    id: text("id")
+      .primaryKey(),
+
+    title: text("title")
       .notNull(),
 
-    evidence: text("evidence")
+    goal: text("goal")
       .notNull(),
 
-    confidence: integer("confidence")
-      .notNull(),
+    description: text(
+      "description"
+    ).notNull(),
 
-    createdAt: text("created_at")
-      .notNull(),
+    status: text("status")
+      .notNull()
+      .default("active"),
+
+    milestones: text(
+      "milestones"
+    ).notNull(),
+
+    completedMilestones:
+      text(
+        "completed_milestones"
+      ).notNull(),
+
+    nextAction: text(
+      "next_action"
+    ).notNull(),
+
+    priority: integer(
+      "priority"
+    ).notNull(),
+
+    confidence: integer(
+      "confidence"
+    ).notNull(),
+
+    createdAt: text(
+      "created_at"
+    ).notNull(),
+
+    updatedAt: text(
+      "updated_at"
+    ).notNull(),
   }
 );
