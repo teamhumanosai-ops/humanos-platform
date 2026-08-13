@@ -13,9 +13,11 @@ import {
  * response before the runtime finalizes the outcome.
  *
  * This stage does not attempt to judge whether the
- * model's answer is factually correct. Its purpose is
- * to detect structural response failures that the
- * runtime can identify deterministically.
+ * model's answer is factually correct.
+ *
+ * Its purpose is to detect structural response failures
+ * that the runtime can identify deterministically,
+ * including evidence-grounding failures.
  */
 export class ResponseValidationStage
   extends BaseStage {
@@ -65,7 +67,112 @@ export class ResponseValidationStage
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Citation validation
+    |--------------------------------------------------------------------------
+    |
+    | When citation sources exist, every citation marker
+    | used by the response must correspond to an actual
+    | citation supplied by the runtime.
+    |
+    | This prevents the model from inventing citation
+    | numbers such as [7] when only [1] and [2] exist.
+    |
+    */
+
+    if (
+      state.citations.length > 0
+    ) {
+      const citationMarkers =
+        this.extractCitationMarkers(
+          response
+        );
+
+      const validCitationIndexes =
+        new Set(
+          state.citations.map(
+            (citation) =>
+              citation.index
+          )
+        );
+
+      const invalidMarkers =
+        citationMarkers.filter(
+          (index) =>
+            !validCitationIndexes.has(
+              index
+            )
+        );
+
+      for (
+        const index of
+        new Set(invalidMarkers)
+      ) {
+        state.errors.push(
+          `ResponseValidation: response contains unsupported citation marker [${index}].`
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Evidence usage
+      |--------------------------------------------------------------------------
+      |
+      | For live/current-information responses, the
+      | presence of retrieved citation evidence should
+      | normally result in at least one valid citation
+      | marker in the generated response.
+      |
+      | We intentionally do not require citations for
+      | every sentence because deterministic validation
+      | cannot safely determine which individual claims
+      | require which source.
+      |
+      */
+
+      if (
+        state.liveKnowledge.length > 0 &&
+        citationMarkers.length === 0
+      ) {
+        state.errors.push(
+          "ResponseValidation: live evidence is available but the response contains no citation markers."
+        );
+      }
+    }
+
     return state;
+  }
+
+  private extractCitationMarkers(
+    response: string
+  ): number[] {
+    const markers: number[] = [];
+
+    const pattern =
+      /\[(\d+)\]/g;
+
+    let match =
+      pattern.exec(
+        response
+      );
+
+    while (
+      match
+    ) {
+      markers.push(
+        Number(
+          match[1]
+        )
+      );
+
+      match =
+        pattern.exec(
+          response
+        );
+    }
+
+    return markers;
   }
 
   private isUnsupportedNoInformationResponse(
