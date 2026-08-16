@@ -1,47 +1,99 @@
-import { addNote, getNotes, Note } from "./index";
+import {
+  addNote,
+  getNotes,
+} from "./store";
 
-function createId() {
+import type {
+  Note,
+} from "./types";
+
+function createId(): string {
   return crypto.randomUUID();
 }
 
 export async function noteSkill(
   message: string
 ): Promise<string | null> {
-  const lower = message.toLowerCase();
+  const lower =
+    message
+      .trim()
+      .toLowerCase();
 
-  // Save note
-  if (lower.startsWith("save note:")) {
-    const content = message.substring(10).trim();
+  /*
+  |--------------------------------------------------------------------------
+  | Save Note
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    lower.startsWith(
+      "save note:"
+    )
+  ) {
+    const content =
+      message
+        .trim()
+        .slice(
+          "save note:".length
+        )
+        .trim();
+
+    if (!content) {
+      return "Please provide the note content after 'Save note:'.";
+    }
 
     const note: Note = {
       id: createId(),
-      title: "Untitled",
+
+      title:
+        "Untitled",
+
       content,
-      createdAt: new Date().toISOString(),
+
+      createdAt:
+        new Date().toISOString(),
     };
 
-    await addNote(note);
+    await addNote(
+      note
+    );
 
     return "✅ Note saved successfully.";
   }
 
-  // Show notes
-  if (
-    lower === "show notes" ||
-    lower === "list notes"
-  ) {
-    const notes = await getNotes();
+  /*
+  |--------------------------------------------------------------------------
+  | Show Notes
+  |--------------------------------------------------------------------------
+  */
 
-    if (notes.length === 0) {
+  if (
+    lower ===
+      "show notes" ||
+    lower ===
+      "list notes"
+  ) {
+    const notes =
+      await getNotes();
+
+    if (
+      notes.length ===
+      0
+    ) {
       return "You don't have any notes yet.";
     }
 
     return notes
       .map(
-        (n, i) =>
-          `${i + 1}. ${n.title}\n${n.content}`
+        (
+          note,
+          index
+        ) =>
+          `${index + 1}. ${note.title}\n${note.content}`
       )
-      .join("\n\n");
+      .join(
+        "\n\n"
+      );
   }
 
   return null;

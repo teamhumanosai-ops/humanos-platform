@@ -10,10 +10,30 @@ function includesAny(
   );
 }
 
+const NOTE_TERMS = [
+  "save note",
+  "save this as a note",
+  "write this down",
+  "take a note",
+  "make a note",
+  "add a note",
+  "show notes",
+  "list notes",
+];
+
+const CALENDAR_TERMS = [
+  "calendar",
+  "meeting",
+  "appointment",
+  "schedule",
+  "scheduled",
+  "event",
+  "book an appointment",
+];
+
 const CURRENT_INFORMATION_TERMS = [
   "today",
   "tonight",
-  "tomorrow",
   "right now",
   "currently",
   "current",
@@ -45,8 +65,6 @@ const CURRENT_RESULT_TERMS = [
   "standings",
   "ranking",
   "rankings",
-  "schedule",
-  "fixtures",
   "release date",
   "released",
   "latest version",
@@ -138,6 +156,48 @@ const PLANNING_TERMS = [
   "build a plan",
 ];
 
+const PLANNING_GOAL_PATTERNS = [
+  "i want to build",
+  "i want to create",
+  "i want to develop",
+  "i want to launch",
+  "i want to start",
+  "i want to organize",
+  "i want to organise",
+  "help me build",
+  "help me create",
+  "help me develop",
+  "help me launch",
+  "help me organize",
+  "help me organise",
+];
+
+const TASK_TERMS = [
+  "task",
+  "tasks",
+  "todo",
+  "to-do",
+  "remind me",
+  "reminder",
+  "finish",
+  "complete",
+  "need to",
+  "trying to",
+  "work on",
+  "buy",
+  "prepare",
+  "organize",
+  "organise",
+  "handle",
+  "review",
+  "update",
+  "fix",
+  "clean",
+  "call",
+  "send",
+  "pay",
+];
+
 export function detectIntent(
   message: string
 ): Intent {
@@ -156,8 +216,50 @@ export function detectIntent(
 
   /*
   |--------------------------------------------------------------------------
+  | Notes have priority over task language.
+  |--------------------------------------------------------------------------
+  |
+  | Example:
+  |
+  | "Save note: Remember to finish the planner"
+  |
+  | contains "finish", but it is still NOTE_TAKING.
+  |
+  */
+
+  if (
+    includesAny(
+      text,
+      NOTE_TERMS
+    ) ||
+    text.includes("note")
+  ) {
+    return Intent.NOTE_TAKING;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Calendar
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    includesAny(
+      text,
+      CALENDAR_TERMS
+    )
+  ) {
+    return Intent.CALENDAR;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
   | Startup Planning
   |--------------------------------------------------------------------------
+  |
+  | Startup planning remains a specialized planning intent,
+  | but it ultimately uses the same Planning Engine.
+  |
   */
 
   if (
@@ -168,13 +270,10 @@ export function detectIntent(
       "startup"
     ) ||
     text.includes(
-      "start a business"
-    ) ||
-    text.includes(
-      "business idea"
-    ) ||
-    text.includes(
       "business plan"
+    ) ||
+    text.includes(
+      "start a business"
     )
   ) {
     return Intent.STARTUP_PLANNING;
@@ -223,15 +322,16 @@ export function detectIntent(
   |--------------------------------------------------------------------------
   | Generic Planning
   |--------------------------------------------------------------------------
-  |
-  | Keep planning separate from startup planning.
-  |
   */
 
   if (
     includesAny(
       text,
       PLANNING_TERMS
+    ) ||
+    includesAny(
+      text,
+      PLANNING_GOAL_PATTERNS
     )
   ) {
     return Intent.PLANNING;
@@ -239,71 +339,17 @@ export function detectIntent(
 
   /*
   |--------------------------------------------------------------------------
-  | Calendar
+  | Task Management
   |--------------------------------------------------------------------------
   */
 
   if (
-    text.includes(
-      "calendar"
-    ) ||
-    text.includes(
-      "meeting"
-    ) ||
-    text.includes(
-      "appointment"
-    ) ||
-    text.includes(
-      "schedule"
-    )
-  ) {
-    return Intent.CALENDAR;
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Tasks
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    text.includes(
-      "task"
-    ) ||
-    text.includes(
-      "todo"
-    ) ||
-    text.includes(
-      "to-do"
-    ) ||
-    text.includes(
-      "remind me"
-    ) ||
-    text.includes(
-      "reminder"
+    includesAny(
+      text,
+      TASK_TERMS
     )
   ) {
     return Intent.TASK_MANAGEMENT;
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Notes
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    text.includes(
-      "note"
-    ) ||
-    text.includes(
-      "write this down"
-    ) ||
-    text.includes(
-      "save this"
-    )
-  ) {
-    return Intent.NOTE_TAKING;
   }
 
   /*

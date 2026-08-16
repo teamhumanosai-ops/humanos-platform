@@ -20,16 +20,30 @@ import {
  * Integrates the existing Planning Engine
  * into the Cognitive Runtime.
  *
- * Planning is activated for:
+ * Planning is capability-based rather than
+ * domain-specific.
  *
- * - Explicit planning requests
- * - Startup planning
- * - Actionable task-management requests
+ * The same Planning Engine can serve:
  *
- * TASK_MANAGEMENT does not automatically mean
- * that a task capability exists. The existing
- * Planning Engine must still be able to extract
- * a real goal before a plan is created.
+ * - startup goals
+ * - work goals
+ * - personal goals
+ * - learning goals
+ * - household goals
+ * - financial goals
+ * - health goals
+ * - project goals
+ * - actionable task requests
+ *
+ * TASK_MANAGEMENT only creates a plan when
+ * the Planning Engine can extract an actionable
+ * goal from the user's message.
+ *
+ * Informational requests such as:
+ *
+ * "Show me my tasks"
+ *
+ * therefore do not fabricate a plan.
  */
 export class PlanningStage
   extends BaseStage {
@@ -64,39 +78,42 @@ export class PlanningStage
 
     /*
     |--------------------------------------------------------------------------
-    | Task capability boundary
+    | One Planning Engine
     |--------------------------------------------------------------------------
     |
-    | TASK_MANAGEMENT is allowed to use the existing
-    | Planning Engine only when the message expresses
-    | an actionable goal that the existing goal
-    | extractor understands.
-    |
-    | This prevents informational task requests such
-    | as "show me my tasks" from creating fabricated
-    | plans.
+    | Both explicit planning and actionable task
+    | requests use exactly the same Planning Engine.
     |
     */
-
-    if (
-      taskIntent &&
-      !hasActionableTaskGoal(
-        state.userMessage
-      )
-    ) {
-      return state;
-    }
 
     const plan =
       createPlanFromMessage(
         state.userMessage
       );
 
+    /*
+    |--------------------------------------------------------------------------
+    | No actionable goal
+    |--------------------------------------------------------------------------
+    |
+    | This is expected for informational requests
+    | such as "Show me my tasks".
+    |
+    | Do not fabricate a plan.
+    |
+    */
+
     if (
       !plan
     ) {
       return state;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BrainState integration
+    |--------------------------------------------------------------------------
+    */
 
     state.currentGoal =
       plan.goal;
@@ -133,46 +150,4 @@ export class PlanningStage
 
     return state;
   }
-}
-
-/*
-|--------------------------------------------------------------------------
-| Actionable task detection
-|--------------------------------------------------------------------------
-*/
-
-function hasActionableTaskGoal(
-  message: string
-): boolean {
-  const text =
-    message
-      .trim()
-      .toLowerCase();
-
-  const actionablePatterns = [
-    /\bi want to\b/,
-    /\bi need to\b/,
-    /\bhelp me\b/,
-    /\bi'm trying to\b/,
-    /\bim trying to\b/,
-    /\bmy goal is\b/,
-    /\bfinish\b/,
-    /\bcomplete\b/,
-    /\bdo\b/,
-    /\bget\b/,
-    /\bprepare\b/,
-    /\borganize\b/,
-    /\borganise\b/,
-    /\bhandle\b/,
-    /\bwork on\b/,
-  ];
-
-  return actionablePatterns.some(
-    (
-      pattern
-    ) =>
-      pattern.test(
-        text
-      )
-  );
 }
