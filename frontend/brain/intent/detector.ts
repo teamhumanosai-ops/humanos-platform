@@ -4,8 +4,9 @@ function includesAny(
   text: string,
   terms: readonly string[]
 ): boolean {
-  return terms.some((term) =>
-    text.includes(term)
+  return terms.some(
+    (term) =>
+      text.includes(term)
   );
 }
 
@@ -13,7 +14,6 @@ const CURRENT_INFORMATION_TERMS = [
   "today",
   "tonight",
   "tomorrow",
-  "right now",
   "right now",
   "currently",
   "current",
@@ -123,13 +123,32 @@ const LIVE_QUESTION_PATTERNS = [
   "is it true that",
 ];
 
+const PLANNING_TERMS = [
+  "plan",
+  "planning",
+  "roadmap",
+  "road map",
+  "strategy",
+  "strategize",
+  "action plan",
+  "game plan",
+  "step by step plan",
+  "make a plan",
+  "create a plan",
+  "build a plan",
+];
+
 export function detectIntent(
   message: string
 ): Intent {
-  const text = message
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
+  const text =
+    message
+      .trim()
+      .toLowerCase()
+      .replace(
+        /\s+/g,
+        " "
+      );
 
   if (!text) {
     return Intent.GENERAL_CHAT;
@@ -142,11 +161,21 @@ export function detectIntent(
   */
 
   if (
-    text.includes("plan my startup") ||
-    text.includes("startup") ||
-    text.includes("start a business") ||
-    text.includes("business idea") ||
-    text.includes("business plan")
+    text.includes(
+      "plan my startup"
+    ) ||
+    text.includes(
+      "startup"
+    ) ||
+    text.includes(
+      "start a business"
+    ) ||
+    text.includes(
+      "business idea"
+    ) ||
+    text.includes(
+      "business plan"
+    )
   ) {
     return Intent.STARTUP_PLANNING;
   }
@@ -155,10 +184,6 @@ export function detectIntent(
   |--------------------------------------------------------------------------
   | Live / Current Information
   |--------------------------------------------------------------------------
-  |
-  | These requests must reach LiveKnowledgeStage because that stage
-  | performs the actual web retrieval and evidence collection.
-  |
   */
 
   if (
@@ -196,15 +221,41 @@ export function detectIntent(
 
   /*
   |--------------------------------------------------------------------------
+  | Generic Planning
+  |--------------------------------------------------------------------------
+  |
+  | Keep planning separate from startup planning.
+  |
+  */
+
+  if (
+    includesAny(
+      text,
+      PLANNING_TERMS
+    )
+  ) {
+    return Intent.PLANNING;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
   | Calendar
   |--------------------------------------------------------------------------
   */
 
   if (
-    text.includes("calendar") ||
-    text.includes("meeting") ||
-    text.includes("schedule") ||
-    text.includes("appointment")
+    text.includes(
+      "calendar"
+    ) ||
+    text.includes(
+      "meeting"
+    ) ||
+    text.includes(
+      "appointment"
+    ) ||
+    text.includes(
+      "schedule"
+    )
   ) {
     return Intent.CALENDAR;
   }
@@ -216,11 +267,21 @@ export function detectIntent(
   */
 
   if (
-    text.includes("task") ||
-    text.includes("todo") ||
-    text.includes("to-do") ||
-    text.includes("remind me") ||
-    text.includes("reminder")
+    text.includes(
+      "task"
+    ) ||
+    text.includes(
+      "todo"
+    ) ||
+    text.includes(
+      "to-do"
+    ) ||
+    text.includes(
+      "remind me"
+    ) ||
+    text.includes(
+      "reminder"
+    )
   ) {
     return Intent.TASK_MANAGEMENT;
   }
@@ -232,9 +293,15 @@ export function detectIntent(
   */
 
   if (
-    text.includes("note") ||
-    text.includes("write this down") ||
-    text.includes("save this")
+    text.includes(
+      "note"
+    ) ||
+    text.includes(
+      "write this down"
+    ) ||
+    text.includes(
+      "save this"
+    )
   ) {
     return Intent.NOTE_TAKING;
   }
@@ -246,9 +313,15 @@ export function detectIntent(
   */
 
   if (
-    text.includes("pdf") ||
-    text.includes("document") ||
-    text.includes("file")
+    text.includes(
+      "pdf"
+    ) ||
+    text.includes(
+      "document"
+    ) ||
+    text.includes(
+      "file"
+    )
   ) {
     return Intent.DOCUMENT;
   }
@@ -260,20 +333,24 @@ export function detectIntent(
   */
 
   if (
-    text.includes("explain") ||
-    text.includes("teach me") ||
-    text.includes("learn") ||
-    text.includes("how does") ||
-    text.includes("what is")
+    text.includes(
+      "explain"
+    ) ||
+    text.includes(
+      "teach me"
+    ) ||
+    text.includes(
+      "learn"
+    ) ||
+    text.includes(
+      "how does"
+    ) ||
+    text.includes(
+      "what is"
+    )
   ) {
     return Intent.LEARNING;
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Default
-  |--------------------------------------------------------------------------
-  */
 
   return Intent.GENERAL_CHAT;
 }

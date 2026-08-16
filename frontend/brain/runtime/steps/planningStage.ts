@@ -8,7 +8,6 @@ import {
 
 import {
   createPlanFromMessage,
-  findRelevantActivePlan,
 } from "../../planning";
 
 import {
@@ -24,13 +23,12 @@ import {
  * Responsibilities:
  * - Determine whether the current request
  *   requires planning
- * - Resume a relevant persisted plan when
- *   the user explicitly asks to continue it
- * - Create a new plan when planning is requested
+ * - Create a plan using the existing
+ *   Planning Engine
  * - Store the resulting plan in BrainState
  *
  * The Planning Engine remains responsible
- * for plan generation and persistence.
+ * for plan generation.
  *
  * BrainState remains the shared runtime
  * artifact.
@@ -49,29 +47,22 @@ export class PlanningStage
       return state;
     }
 
+    const planningIntent =
+      state.intent ===
+        Intent.STARTUP_PLANNING ||
+      state.intent ===
+        Intent.PLANNING;
+
     if (
-      state.intent !==
-      Intent.STARTUP_PLANNING
+      !planningIntent
     ) {
       return state;
     }
 
-    const message =
-      state.userMessage.trim();
-
-    const continuationRequested =
-      /\b(continue|resume|next\s+step|next\s+action|keep\s+going|make\s+progress|progress|pick\s+up|update)\b/i.test(
-        message
-      );
-
     const plan =
-      continuationRequested
-        ? findRelevantActivePlan(
-            message
-          )
-        : createPlanFromMessage(
-            message
-          );
+      createPlanFromMessage(
+        state.userMessage
+      );
 
     if (!plan) {
       return state;
@@ -106,20 +97,6 @@ export class PlanningStage
           ) =>
             `${index + 1}. ${milestone}`
         ),
-
-        "Completed Milestones:",
-
-        ...(plan.completedMilestones.length > 0
-          ? plan.completedMilestones.map(
-              (
-                milestone,
-                index
-              ) =>
-                `${index + 1}. ${milestone}`
-            )
-          : [
-              "None",
-            ]),
       ].join(
         "\n"
       );
