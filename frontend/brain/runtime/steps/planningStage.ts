@@ -20,18 +20,16 @@ import {
  * Integrates the existing Planning Engine
  * into the Cognitive Runtime.
  *
- * Responsibilities:
- * - Determine whether the current request
- *   requires planning
- * - Create a plan using the existing
- *   Planning Engine
- * - Store the resulting plan in BrainState
+ * Planning is activated for:
  *
- * The Planning Engine remains responsible
- * for plan generation.
+ * - Explicit planning requests
+ * - Startup planning
+ * - Actionable task-management requests
  *
- * BrainState remains the shared runtime
- * artifact.
+ * TASK_MANAGEMENT does not automatically mean
+ * that a task capability exists. The existing
+ * Planning Engine must still be able to extract
+ * a real goal before a plan is created.
  */
 export class PlanningStage
   extends BaseStage {
@@ -53,8 +51,38 @@ export class PlanningStage
       state.intent ===
         Intent.PLANNING;
 
+    const taskIntent =
+      state.intent ===
+      Intent.TASK_MANAGEMENT;
+
     if (
-      !planningIntent
+      !planningIntent &&
+      !taskIntent
+    ) {
+      return state;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Task capability boundary
+    |--------------------------------------------------------------------------
+    |
+    | TASK_MANAGEMENT is allowed to use the existing
+    | Planning Engine only when the message expresses
+    | an actionable goal that the existing goal
+    | extractor understands.
+    |
+    | This prevents informational task requests such
+    | as "show me my tasks" from creating fabricated
+    | plans.
+    |
+    */
+
+    if (
+      taskIntent &&
+      !hasActionableTaskGoal(
+        state.userMessage
+      )
     ) {
       return state;
     }
@@ -64,7 +92,9 @@ export class PlanningStage
         state.userMessage
       );
 
-    if (!plan) {
+    if (
+      !plan
+    ) {
       return state;
     }
 
@@ -103,4 +133,46 @@ export class PlanningStage
 
     return state;
   }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Actionable task detection
+|--------------------------------------------------------------------------
+*/
+
+function hasActionableTaskGoal(
+  message: string
+): boolean {
+  const text =
+    message
+      .trim()
+      .toLowerCase();
+
+  const actionablePatterns = [
+    /\bi want to\b/,
+    /\bi need to\b/,
+    /\bhelp me\b/,
+    /\bi'm trying to\b/,
+    /\bim trying to\b/,
+    /\bmy goal is\b/,
+    /\bfinish\b/,
+    /\bcomplete\b/,
+    /\bdo\b/,
+    /\bget\b/,
+    /\bprepare\b/,
+    /\borganize\b/,
+    /\borganise\b/,
+    /\bhandle\b/,
+    /\bwork on\b/,
+  ];
+
+  return actionablePatterns.some(
+    (
+      pattern
+    ) =>
+      pattern.test(
+        text
+      )
+  );
 }
