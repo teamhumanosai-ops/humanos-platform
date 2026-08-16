@@ -4,6 +4,10 @@ import {
 } from "../../brainState";
 
 import {
+  getDecision,
+} from "../../decision";
+
+import {
   getExecution,
   ExecutionStatus,
 } from "../../execution";
@@ -27,11 +31,16 @@ import {
  *
  * Finalizes the cognitive runtime by synchronizing:
  *
+ * - Plan state
+ * - Goal state
+ * - Decision state
  * - Execution state
- * - Plan progress
- * - Goal progress
  * - Runtime outcome
  * - Overall runtime status
+ *
+ * The stage also validates that the runtime identifiers
+ * resolve to a coherent cognitive artifact chain using
+ * relationships that actually exist in the current models.
  */
 export class OutcomeStage
   extends BaseStage {
@@ -48,6 +57,13 @@ export class OutcomeStage
           )
         : undefined;
 
+    const decision =
+      state.currentDecisionId
+        ? getDecision(
+            state.currentDecisionId
+          )
+        : undefined;
+
     const plan =
       state.currentPlanId
         ? getPlan(
@@ -57,13 +73,30 @@ export class OutcomeStage
 
     /*
     |--------------------------------------------------------------------------
-    | Synchronize plan and goal information.
+    | Validate cognitive artifact chain
     |--------------------------------------------------------------------------
-    |
-    | Execution completion can update the underlying plan before OutcomeStage
-    | runs. Rebuild the Goal from that current plan so BrainState reflects
-    | the latest progress and next action.
-    |
+    */
+
+    const chainErrors =
+      validateArtifactChain(
+        state,
+        plan,
+        decision,
+        execution
+      );
+
+    if (
+      chainErrors.length > 0
+    ) {
+      state.errors.push(
+        ...chainErrors
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Synchronize plan and goal information
+    |--------------------------------------------------------------------------
     */
 
     if (plan) {
@@ -76,36 +109,11 @@ export class OutcomeStage
         enrichGoalFromContext(
           initialGoal,
           {
-            graphObservations:
-              [],
-
             graphNodes:
-              state.graph.map(
-                (node) => ({
-                  id:
-                    node.id,
-
-                  label:
-                    node.label,
-
-                  type:
-                    node.type,
-                })
-              ),
+              state.graph,
 
             graphEdges:
-              state.graphEdges.map(
-                (edge) => ({
-                  from:
-                    edge.from,
-
-                  to:
-                    edge.to,
-
-                  type:
-                    edge.type,
-                })
-              ),
+              state.graphEdges,
 
             reasoningObservations:
               state.reasoningObservations,
@@ -117,10 +125,7 @@ export class OutcomeStage
               state.reflections,
 
             memories:
-              state.memories.map(
-                (memory) =>
-                  memory.value
-              ),
+              state.memory,
           }
         );
 
@@ -197,12 +202,47 @@ export class OutcomeStage
               } ${milestone}`;
             }
           ),
-        ].join("\n");
+        ].join(
+          "\n"
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Synchronize execution information.
+    | Synchronize decision information
+    |--------------------------------------------------------------------------
+    */
+
+    if (decision) {
+      state.decision =
+        [
+          `Decision: ${decision.title}`,
+
+          `Description: ${decision.description}`,
+
+          `Selected Action: ${decision.selectedAction}`,
+
+          "Alternatives:",
+
+          ...decision.alternatives.map(
+            (
+              alternative,
+              index
+            ) =>
+              `${index + 1}. ${alternative}`
+          ),
+
+          `Reason: ${decision.reason}`,
+
+          `Confidence: ${decision.confidence}`,
+        ].join(
+          "\n"
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Synchronize execution information
     |--------------------------------------------------------------------------
     */
 
@@ -230,12 +270,14 @@ export class OutcomeStage
               ?.toISOString() ??
             "Not completed"
           }`,
-        ].join("\n");
+        ].join(
+          "\n"
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Create runtime outcome.
+    | Create runtime outcome
     |--------------------------------------------------------------------------
     */
 
@@ -268,7 +310,7 @@ export class OutcomeStage
 
     /*
     |--------------------------------------------------------------------------
-    | Determine overall runtime status.
+    | Determine overall runtime status
     |--------------------------------------------------------------------------
     */
 
@@ -282,6 +324,108 @@ export class OutcomeStage
     return state;
   }
 }
+
+/*
+|--------------------------------------------------------------------------
+| Cognitive artifact chain validation
+|--------------------------------------------------------------------------
+*/
+
+function validateArtifactChain(
+  state: BrainState,
+  plan:
+    ReturnType<
+      typeof getPlan
+    >,
+  decision:
+    ReturnType<
+      typeof getDecision
+    >,
+  execution:
+    ReturnType<
+      typeof getExecution
+    >
+): string[] {
+  const errors:
+    string[] = [];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Plan resolution
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    state.currentPlanId &&
+    !plan
+  ) {
+    errors.push(
+      `Outcome: plan ${state.currentPlanId} could not be resolved.`
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Decision resolution
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    state.currentDecisionId &&
+    !decision
+  ) {
+    errors.push(
+      `Outcome: decision ${state.currentDecisionId} could not be resolved.`
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Execution resolution
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    state.currentExecutionId &&
+    !execution
+  ) {
+    errors.push(
+      `Outcome: execution ${state.currentExecutionId} could not be resolved.`
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Execution → Plan relationship
+  |--------------------------------------------------------------------------
+  |
+  | Execution is the existing artifact that explicitly owns planId.
+  |
+  */
+
+  if (
+    execution &&
+    state.currentPlanId &&
+    execution.planId !==
+      state.currentPlanId
+  ) {
+    errors.push(
+      `Outcome: execution ${execution.id} does not belong to plan ${state.currentPlanId}.`
+    );
+  }
+
+  return [
+    ...new Set(
+      errors
+    ),
+  ];
+}
+
+/*
+|--------------------------------------------------------------------------
+| Runtime status
+|--------------------------------------------------------------------------
+*/
 
 function determineRuntimeStatus(
   state: BrainState,
@@ -327,6 +471,19 @@ function determineRuntimeStatus(
       "in_progress"
   ) {
     return "in_progress";
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Completed execution.
+  |--------------------------------------------------------------------------
+  */
+
+  if (
+    executionStatus ===
+    "completed"
+  ) {
+    return "completed";
   }
 
   /*
