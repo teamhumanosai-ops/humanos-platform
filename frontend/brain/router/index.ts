@@ -1,20 +1,45 @@
-import { memorySkill } from "../skills/memorySkill";
-import { noteSkill } from "../notes";
+import {
+  Intent,
+} from "../intent";
+
+import {
+  memorySkill,
+} from "../skills/memorySkill";
+
+import {
+  noteSkill,
+} from "../notes";
 
 export async function executeSkills(
-  message: string
+  message: string,
+  intent: string | null
 ): Promise<string | null> {
   const memoryResponse =
-    await memorySkill(message);
+    await memorySkill(
+      message
+    );
 
-  if (memoryResponse) {
+  if (
+    memoryResponse
+  ) {
     return memoryResponse;
   }
 
-  const noteResponse =
-    await noteSkill(message);
+  if (
+    intent !==
+    Intent.NOTE_TAKING
+  ) {
+    return null;
+  }
 
-  if (noteResponse) {
+  const noteResponse =
+    await noteSkill(
+      message
+    );
+
+  if (
+    noteResponse
+  ) {
     return noteResponse;
   }
 
