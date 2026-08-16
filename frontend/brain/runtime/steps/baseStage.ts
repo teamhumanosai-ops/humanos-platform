@@ -1,6 +1,14 @@
-import { BrainState } from "../../brainState";
-import { createStageDiagnostic } from "../diagnostics";
-import { Stage } from "./stage";
+import {
+  BrainState,
+} from "../../brainState";
+
+import {
+  createStageDiagnostic,
+} from "../diagnostics";
+
+import {
+  Stage,
+} from "./stage";
 
 /**
  * Base implementation for all Human OS cognitive stages.
@@ -10,9 +18,14 @@ import { Stage } from "./stage";
  * - records diagnostics
  * - updates timestamps
  * - captures failures
+ *
+ * A stage failure is always recorded on the shared BrainState
+ * before the error is re-thrown to CognitiveRuntime.
  */
-export abstract class BaseStage implements Stage {
-  abstract readonly name: string;
+export abstract class BaseStage
+  implements Stage {
+  abstract readonly name:
+    string;
 
   async execute(
     state: BrainState
@@ -58,8 +71,11 @@ export abstract class BaseStage implements Stage {
           ? error.message
           : String(error);
 
+      const stageError =
+        `${this.name}: ${message}`;
+
       state.errors.push(
-        `${this.name}: ${message}`
+        stageError
       );
 
       state.diagnostics.push(

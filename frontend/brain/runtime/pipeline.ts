@@ -3,6 +3,10 @@ import {
 } from "../brainState";
 
 import {
+  createRuntimeOutcome,
+} from "./outcome";
+
+import {
   RuntimeServices,
 } from "./runtimeServices";
 
@@ -228,10 +232,6 @@ export class CognitiveRuntime {
     |--------------------------------------------------------------------------
     | Cognitive Inference
     |--------------------------------------------------------------------------
-    |
-    | Inference consumes the structured reasoning
-    | evidence produced immediately above.
-    |
     */
 
     this.register(
@@ -345,10 +345,10 @@ export class CognitiveRuntime {
       } catch {
         /*
         |--------------------------------------------------------------------------
-        | BaseStage already records the error and
-        | diagnostic information. The runtime stops
-        | downstream cognitive processing so that
-        | later stages cannot operate on invalid state.
+        | BaseStage records the error and diagnostic.
+        |
+        | Stop downstream cognitive processing so later stages
+        | cannot operate on invalid or incomplete state.
         |--------------------------------------------------------------------------
         */
 
@@ -362,6 +362,10 @@ export class CognitiveRuntime {
     /*
     |--------------------------------------------------------------------------
     | Outcome finalization
+    |--------------------------------------------------------------------------
+    |
+    | Outcome must exist whenever possible because it is the durable
+    | summary of the cognitive cycle.
     |--------------------------------------------------------------------------
     */
 
@@ -383,13 +387,17 @@ export class CognitiveRuntime {
             await outcomeStage.execute(
               current
             );
-        } catch {
-          /*
-          |--------------------------------------------------------------------------
-          | Outcome failure should not hide the
-          | original runtime failure.
-          |--------------------------------------------------------------------------
-          */
+        } catch (
+          error
+        ) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : String(error);
+
+          current.errors.push(
+            `Outcome: ${message}`
+          );
         }
       }
     }
@@ -397,6 +405,10 @@ export class CognitiveRuntime {
     /*
     |--------------------------------------------------------------------------
     | Reflection finalization
+    |--------------------------------------------------------------------------
+    |
+    | Reflection is a post-processing feedback operation.
+    | It must never be forced over a failed cognitive cycle.
     |--------------------------------------------------------------------------
     */
 
@@ -413,7 +425,8 @@ export class CognitiveRuntime {
       );
 
     const runtimeFailed =
-      current.errors.length > 0;
+      current.errors.length >
+      0;
 
     if (
       reflectionStage &&
@@ -436,8 +449,53 @@ export class CognitiveRuntime {
         current.errors.push(
           `Reflection: ${message}`
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Outcome was finalized before Reflection.
+        |
+        | Reflection is the final cognitive stage, so if it fails,
+        | synchronize the already-created outcome with the failure.
+        |--------------------------------------------------------------------------
+        */
+
+        current.outcome =
+          createRuntimeOutcome({
+            result:
+              current.response,
+
+            errors:
+              current.errors,
+
+            executionId:
+              current.currentExecutionId,
+
+            executionStatus:
+              current.outcome
+                ?.metadata
+                .executionStatus ??
+              null,
+
+            planId:
+              current.currentPlanId,
+
+            decisionId:
+              current.currentDecisionId,
+
+            stagesExecuted:
+              current.executedStages,
+          });
+
+        current.runtimeStatus =
+          "failed";
       }
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Runtime timestamp
+    |--------------------------------------------------------------------------
+    */
 
     current.updatedAt =
       new Date();
