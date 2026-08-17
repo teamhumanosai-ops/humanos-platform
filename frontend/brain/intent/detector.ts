@@ -31,116 +31,6 @@ const CALENDAR_TERMS = [
   "book an appointment",
 ];
 
-const CURRENT_INFORMATION_TERMS = [
-  "today",
-  "tonight",
-  "right now",
-  "currently",
-  "current",
-  "latest",
-  "recent",
-  "recently",
-  "this week",
-  "this month",
-  "this year",
-  "breaking",
-  "breaking news",
-  "news",
-  "update",
-  "updates",
-  "up-to-date",
-  "up to date",
-  "as of now",
-  "as of today",
-];
-
-const CURRENT_RESULT_TERMS = [
-  "who won",
-  "winner",
-  "champion",
-  "result",
-  "results",
-  "score",
-  "scores",
-  "standings",
-  "ranking",
-  "rankings",
-  "release date",
-  "released",
-  "latest version",
-  "new version",
-  "version",
-];
-
-const CURRENT_PEOPLE_TERMS = [
-  "current president",
-  "current prime minister",
-  "current ceo",
-  "current leader",
-  "who is the president",
-  "who is the prime minister",
-  "who is the ceo",
-  "who is currently",
-];
-
-const CURRENT_MARKET_TERMS = [
-  "price",
-  "stock price",
-  "share price",
-  "market price",
-  "pricing",
-  "cost",
-  "exchange rate",
-  "interest rate",
-  "bitcoin price",
-  "crypto price",
-];
-
-const CURRENT_WEATHER_TERMS = [
-  "weather",
-  "forecast",
-  "temperature",
-  "rain today",
-  "snow today",
-];
-
-const CURRENT_SPORTS_TERMS = [
-  "fifa",
-  "world cup",
-  "nba",
-  "nfl",
-  "nhl",
-  "mlb",
-  "ipl",
-  "cricket",
-  "premier league",
-  "champions league",
-  "formula 1",
-  "formula one",
-  "f1",
-  "tennis",
-  "football",
-  "basketball",
-  "baseball",
-  "soccer",
-];
-
-const LIVE_QUESTION_PATTERNS = [
-  "what happened today",
-  "what happened recently",
-  "what's happening",
-  "whats happening",
-  "what is happening",
-  "what are the latest",
-  "what is the latest",
-  "what's the latest",
-  "whats the latest",
-  "what is the current",
-  "what's the current",
-  "whats the current",
-  "is it true that",
-];
-
 const PLANNING_TERMS = [
   "plan",
   "planning",
@@ -196,7 +86,236 @@ const TASK_TERMS = [
   "call",
   "send",
   "pay",
+  "book",
+  "study",
+  "practice",
+  "research",
+  "write",
+  "read",
+  "implement",
+  "build",
+  "create",
+  "develop",
+  "launch",
+  "install",
+  "set up",
+  "setup",
 ];
+
+const LIVE_INFORMATION_TERMS = [
+  "today",
+  "tonight",
+  "tomorrow",
+  "right now",
+  "currently",
+  "current",
+  "latest",
+  "recent",
+  "recently",
+  "this week",
+  "this month",
+  "this year",
+  "breaking",
+  "breaking news",
+  "news",
+  "update",
+  "updates",
+  "up-to-date",
+  "up to date",
+  "as of now",
+  "as of today",
+];
+
+const LIVE_RESULT_TERMS = [
+  "who won",
+  "winner",
+  "champion",
+  "result",
+  "results",
+  "score",
+  "scores",
+  "standings",
+  "ranking",
+  "rankings",
+  "release date",
+  "released",
+  "latest version",
+  "new version",
+  "version",
+];
+
+const LIVE_PEOPLE_TERMS = [
+  "current president",
+  "current prime minister",
+  "current ceo",
+  "current leader",
+  "who is the president",
+  "who is the prime minister",
+  "who is the ceo",
+  "who is currently",
+];
+
+const LIVE_MARKET_TERMS = [
+  "price",
+  "stock price",
+  "share price",
+  "market price",
+  "pricing",
+  "cost",
+  "exchange rate",
+  "interest rate",
+  "bitcoin price",
+  "crypto price",
+];
+
+const LIVE_WEATHER_TERMS = [
+  "weather",
+  "forecast",
+  "temperature",
+  "rain today",
+  "snow today",
+];
+
+const LIVE_SPORTS_TERMS = [
+  "fifa",
+  "world cup",
+  "nba",
+  "nfl",
+  "nhl",
+  "mlb",
+  "ipl",
+  "cricket",
+  "premier league",
+  "champions league",
+  "formula 1",
+  "formula one",
+  "f1",
+  "tennis",
+  "football",
+  "basketball",
+  "baseball",
+  "soccer",
+];
+
+const LIVE_QUESTION_PATTERNS = [
+  "what happened today",
+  "what happened recently",
+  "what's happening",
+  "whats happening",
+  "what is happening",
+  "what are the latest",
+  "what is the latest",
+  "what's the latest",
+  "whats the latest",
+  "what is the current",
+  "what's the current",
+  "whats the current",
+  "what is today's",
+  "what's today's",
+  "whats today's",
+  "what is the latest news",
+  "what's the latest news",
+  "whats the latest news",
+  "is it true that",
+];
+
+const DOCUMENT_TERMS = [
+  "pdf",
+  "document",
+  "file",
+];
+
+const LEARNING_TERMS = [
+  "explain",
+  "teach me",
+  "learn",
+  "how does",
+  "what is",
+];
+
+const INFORMATIONAL_TASK_PATTERNS = [
+  "show me my tasks",
+  "show my tasks",
+  "list my tasks",
+  "list tasks",
+  "what are my tasks",
+  "what tasks do i have",
+  "what do i need to do",
+  "what should i do",
+];
+
+function isExplicitPlanningRequest(
+  text: string
+): boolean {
+  return (
+    includesAny(
+      text,
+      PLANNING_TERMS
+    ) ||
+    includesAny(
+      text,
+      PLANNING_GOAL_PATTERNS
+    )
+  );
+}
+
+function isActionableTaskRequest(
+  text: string
+): boolean {
+  if (
+    includesAny(
+      text,
+      INFORMATIONAL_TASK_PATTERNS
+    )
+  ) {
+    return false;
+  }
+
+  return includesAny(
+    text,
+    TASK_TERMS
+  );
+}
+
+function isExplicitLiveQuestion(
+  text: string
+): boolean {
+  return (
+    includesAny(
+      text,
+      LIVE_QUESTION_PATTERNS
+    ) ||
+    includesAny(
+      text,
+      LIVE_RESULT_TERMS
+    ) ||
+    includesAny(
+      text,
+      LIVE_PEOPLE_TERMS
+    ) ||
+    includesAny(
+      text,
+      LIVE_MARKET_TERMS
+    ) ||
+    includesAny(
+      text,
+      LIVE_WEATHER_TERMS
+    ) ||
+    includesAny(
+      text,
+      LIVE_SPORTS_TERMS
+    )
+  );
+}
+
+function containsLiveContext(
+  text: string
+): boolean {
+  return includesAny(
+    text,
+    LIVE_INFORMATION_TERMS
+  );
+}
 
 export function detectIntent(
   message: string
@@ -216,14 +335,16 @@ export function detectIntent(
 
   /*
   |--------------------------------------------------------------------------
-  | Notes have priority over task language.
+  | Notes
   |--------------------------------------------------------------------------
+  |
+  | Notes always win over task language inside the note content.
   |
   | Example:
   |
-  | "Save note: Remember to finish the planner"
+  | "Save note: Finish the planner today"
   |
-  | contains "finish", but it is still NOTE_TAKING.
+  | must remain NOTE_TAKING.
   |
   */
 
@@ -256,10 +377,6 @@ export function detectIntent(
   |--------------------------------------------------------------------------
   | Startup Planning
   |--------------------------------------------------------------------------
-  |
-  | Startup planning remains a specialized planning intent,
-  | but it ultimately uses the same Planning Engine.
-  |
   */
 
   if (
@@ -270,10 +387,13 @@ export function detectIntent(
       "startup"
     ) ||
     text.includes(
-      "business plan"
+      "start a business"
     ) ||
     text.includes(
-      "start a business"
+      "business idea"
+    ) ||
+    text.includes(
+      "business plan"
     )
   ) {
     return Intent.STARTUP_PLANNING;
@@ -281,57 +401,17 @@ export function detectIntent(
 
   /*
   |--------------------------------------------------------------------------
-  | Live / Current Information
+  | Explicit planning requests
   |--------------------------------------------------------------------------
+  |
+  | Planning intent is evaluated before broad live-information
+  | words such as "today" or "current".
+  |
   */
 
   if (
-    includesAny(
-      text,
-      CURRENT_INFORMATION_TERMS
-    ) ||
-    includesAny(
-      text,
-      CURRENT_RESULT_TERMS
-    ) ||
-    includesAny(
-      text,
-      CURRENT_PEOPLE_TERMS
-    ) ||
-    includesAny(
-      text,
-      CURRENT_MARKET_TERMS
-    ) ||
-    includesAny(
-      text,
-      CURRENT_WEATHER_TERMS
-    ) ||
-    includesAny(
-      text,
-      CURRENT_SPORTS_TERMS
-    ) ||
-    includesAny(
-      text,
-      LIVE_QUESTION_PATTERNS
-    )
-  ) {
-    return Intent.LIVE_SEARCH;
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Generic Planning
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    includesAny(
-      text,
-      PLANNING_TERMS
-    ) ||
-    includesAny(
-      text,
-      PLANNING_GOAL_PATTERNS
+    isExplicitPlanningRequest(
+      text
     )
   ) {
     return Intent.PLANNING;
@@ -339,17 +419,61 @@ export function detectIntent(
 
   /*
   |--------------------------------------------------------------------------
-  | Task Management
+  | Actionable task requests
   |--------------------------------------------------------------------------
+  |
+  | This is deliberately before broad live-information context.
+  |
+  | Therefore:
+  |
+  | "Review my finances today"
+  |
+  | becomes TASK_MANAGEMENT rather than LIVE_SEARCH.
+  |
   */
 
   if (
-    includesAny(
-      text,
-      TASK_TERMS
+    isActionableTaskRequest(
+      text
     )
   ) {
     return Intent.TASK_MANAGEMENT;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Explicit live-information questions
+  |--------------------------------------------------------------------------
+  |
+  | Strong live questions still become LIVE_SEARCH even when
+  | they contain action-like words elsewhere in the sentence.
+  |
+  */
+
+  if (
+    isExplicitLiveQuestion(
+      text
+    )
+  ) {
+    return Intent.LIVE_SEARCH;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Broad live-information context
+  |--------------------------------------------------------------------------
+  |
+  | Only reach this layer when no stronger action/planning intent
+  | has already been detected.
+  |
+  */
+
+  if (
+    containsLiveContext(
+      text
+    )
+  ) {
+    return Intent.LIVE_SEARCH;
   }
 
   /*
@@ -359,14 +483,9 @@ export function detectIntent(
   */
 
   if (
-    text.includes(
-      "pdf"
-    ) ||
-    text.includes(
-      "document"
-    ) ||
-    text.includes(
-      "file"
+    includesAny(
+      text,
+      DOCUMENT_TERMS
     )
   ) {
     return Intent.DOCUMENT;
@@ -379,20 +498,9 @@ export function detectIntent(
   */
 
   if (
-    text.includes(
-      "explain"
-    ) ||
-    text.includes(
-      "teach me"
-    ) ||
-    text.includes(
-      "learn"
-    ) ||
-    text.includes(
-      "how does"
-    ) ||
-    text.includes(
-      "what is"
+    includesAny(
+      text,
+      LEARNING_TERMS
     )
   ) {
     return Intent.LEARNING;
