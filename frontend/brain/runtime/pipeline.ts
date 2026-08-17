@@ -3,12 +3,12 @@ import {
 } from "../brainState";
 
 import {
-  createRuntimeOutcome,
-} from "./outcome";
-
-import {
   RuntimeServices,
 } from "./runtimeServices";
+
+import {
+  createRuntimeOutcome,
+} from "./outcome";
 
 import {
   InputStage,
@@ -98,6 +98,25 @@ import {
   Stage,
 } from "./steps/stage";
 
+/**
+ * CognitiveRuntime
+ *
+ * Owns the canonical Human OS cognitive lifecycle.
+ *
+ * The runtime is responsible for:
+ *
+ * - Stage registration
+ * - Deterministic stage ordering
+ * - Stage execution
+ * - Failure propagation
+ * - Outcome finalization
+ * - Reflection finalization
+ *
+ * BrainState remains the shared cognitive state.
+ *
+ * Domain engines remain responsible for
+ * domain-specific behavior.
+ */
 export class CognitiveRuntime {
   private readonly stages:
     Stage[] = [];
@@ -190,7 +209,7 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Prediction Intelligence
+    | Prediction
     |--------------------------------------------------------------------------
     */
 
@@ -230,7 +249,7 @@ export class CognitiveRuntime {
 
     /*
     |--------------------------------------------------------------------------
-    | Cognitive Inference
+    | Inference
     |--------------------------------------------------------------------------
     */
 
@@ -319,14 +338,50 @@ export class CognitiveRuntime {
     );
   }
 
+  /**
+   * Register a cognitive stage.
+   *
+   * Every stage must have one canonical runtime owner.
+   */
   register(
     stage: Stage
   ): void {
+    const stageName =
+      stage.name.trim();
+
+    if (
+      !stageName
+    ) {
+      throw new Error(
+        "CognitiveRuntime cannot register a stage without a name."
+      );
+    }
+
+    const duplicate =
+      this.stages.some(
+        (
+          registeredStage
+        ) =>
+          registeredStage.name ===
+          stageName
+      );
+
+    if (
+      duplicate
+    ) {
+      throw new Error(
+        `CognitiveRuntime cannot register duplicate stage "${stageName}".`
+      );
+    }
+
     this.stages.push(
       stage
     );
   }
 
+  /**
+   * Execute the canonical cognitive lifecycle.
+   */
   async execute(
     state: BrainState
   ): Promise<BrainState> {
@@ -345,12 +400,22 @@ export class CognitiveRuntime {
       } catch {
         /*
         |--------------------------------------------------------------------------
-        | BaseStage records the error and diagnostic.
-        |
-        | Stop downstream cognitive processing so later stages
-        | cannot operate on invalid or incomplete state.
+        | Stage failure
         |--------------------------------------------------------------------------
+        |
+        | BaseStage already records:
+        |
+        | - executed stage
+        | - error
+        | - diagnostic
+        |
+        | Stop downstream cognitive processing so later
+        | stages cannot operate on invalid state.
+        |
         */
+
+        current.runtimeStatus =
+          "failed";
 
         break;
       }
@@ -364,9 +429,10 @@ export class CognitiveRuntime {
     | Outcome finalization
     |--------------------------------------------------------------------------
     |
-    | Outcome must exist whenever possible because it is the durable
-    | summary of the cognitive cycle.
-    |--------------------------------------------------------------------------
+    | If a stage failed before Outcome, execute the canonical
+    | OutcomeStage once so the cognitive cycle still receives
+    | a durable outcome artifact.
+    |
     */
 
     if (
@@ -374,7 +440,9 @@ export class CognitiveRuntime {
     ) {
       const outcomeStage =
         this.stages.find(
-          (stage) =>
+          (
+            stage
+          ) =>
             stage.name ===
             "Outcome"
         );
@@ -398,6 +466,9 @@ export class CognitiveRuntime {
           current.errors.push(
             `Outcome: ${message}`
           );
+
+          current.runtimeStatus =
+            "failed";
         }
       }
     }
@@ -408,13 +479,16 @@ export class CognitiveRuntime {
     |--------------------------------------------------------------------------
     |
     | Reflection is a post-processing feedback operation.
-    | It must never be forced over a failed cognitive cycle.
-    |--------------------------------------------------------------------------
+    |
+    | It must not run after a failed cognitive cycle.
+    |
     */
 
     const reflectionStage =
       this.stages.find(
-        (stage) =>
+        (
+          stage
+        ) =>
           stage.name ===
           "Reflection"
       );
@@ -452,11 +526,13 @@ export class CognitiveRuntime {
 
         /*
         |--------------------------------------------------------------------------
-        | Outcome was finalized before Reflection.
-        |
-        | Reflection is the final cognitive stage, so if it fails,
-        | synchronize the already-created outcome with the failure.
+        | Outcome synchronization
         |--------------------------------------------------------------------------
+        |
+        | Outcome was finalized before Reflection.
+        | If Reflection fails, synchronize the outcome
+        | with the final runtime failure.
+        |
         */
 
         current.outcome =
@@ -503,6 +579,9 @@ export class CognitiveRuntime {
     return current;
   }
 
+  /**
+   * Return the canonical runtime stage list.
+   */
   getStages():
     readonly Stage[] {
     return this.stages;
