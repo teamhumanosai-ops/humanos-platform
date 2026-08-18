@@ -3,7 +3,7 @@ import {
 } from "../../brainState";
 
 import {
-  GraphEdge,
+  brainStateGraphAdapter,
 } from "../../graph";
 
 import {
@@ -17,13 +17,15 @@ import {
 /**
  * ReasoningGraphStage
  *
- * Integrates the relevant Knowledge Graph relationships
- * into the runtime BrainState.
+ * Keeps Knowledge Graph relationships aligned with the
+ * graph nodes already selected for the current BrainState.
  *
- * BrainStateStage hydrates the graph nodes first.
- * This stage then derives only the relationships connected
- * to those hydrated nodes so downstream reasoning receives
- * graph evidence belonging to the current cognitive state.
+ * BrainStateStage is responsible for selecting the relevant
+ * graph nodes and relationships for the current request.
+ *
+ * This stage preserves that relevance boundary and uses the
+ * BrainStateGraphAdapter as the canonical Graph -> BrainState
+ * translation boundary.
  */
 export class ReasoningGraphStage
   extends BaseStage {
@@ -37,31 +39,32 @@ export class ReasoningGraphStage
     |--------------------------------------------------------------------------
     | No graph context
     |--------------------------------------------------------------------------
-    |
-    | Keep the graph boundary explicit. If BrainState contains
-    | no graph nodes, it should also contain no graph relationships.
-    |
     */
 
     if (
       state.graph.length === 0
     ) {
-      state.graphEdges = [];
+      brainStateGraphAdapter.clear(
+        state
+      );
 
       return state;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Build the current BrainState graph boundary
+    | Preserve relevant graph relationships
     |--------------------------------------------------------------------------
     |
-    | Only relationships whose endpoints are already present in
-    | BrainState.graph are eligible for downstream reasoning.
+    | BrainStateStage already selected the relevant graph
+    | relationships for the current request.
+    |
+    | Do not replace that filtered set with every relationship
+    | stored in the global graph.
     |
     */
 
-    const graphNodeIds =
+    const relevantNodeIds =
       new Set(
         state.graph.map(
           (node) =>
@@ -69,33 +72,66 @@ export class ReasoningGraphStage
         )
       );
 
-    const relevantEdges =
-      graphQuery
-        .getEdges()
-        .filter(
-          (
-            edge: GraphEdge
-          ) =>
-            graphNodeIds.has(
-              edge.from
-            ) &&
-            graphNodeIds.has(
-              edge.to
-            )
-        );
+    const existingRelevantEdges =
+      state.graphEdges.filter(
+        (edge) =>
+          relevantNodeIds.has(
+            edge.from
+          ) &&
+          relevantNodeIds.has(
+            edge.to
+          )
+      );
 
     /*
     |--------------------------------------------------------------------------
-    | Preserve the shared BrainState contract
+    | Fallback
     |--------------------------------------------------------------------------
     |
-    | Do not create another graph context object.
-    | BrainState remains the single cognitive artifact.
+    | If upstream BrainState hydration did not provide
+    | relationships, derive them from the graph query layer
+    | while still enforcing the current BrainState relevance
+    | boundary.
     |
     */
 
-    state.graphEdges =
-      relevantEdges;
+    const graphEdges =
+      existingRelevantEdges.length ===
+      0
+        ? graphQuery
+            .getEdges()
+            .filter(
+              (edge) =>
+                relevantNodeIds.has(
+                  edge.from
+                ) &&
+                relevantNodeIds.has(
+                  edge.to
+                )
+            )
+        : existingRelevantEdges;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Canonical Graph -> BrainState translation
+    |--------------------------------------------------------------------------
+    |
+    | The adapter receives the already-selected graph context.
+    | This prevents the adapter from accidentally replacing
+    | request-aware BrainState data with the global graph.
+    |
+    */
+
+    brainStateGraphAdapter.hydrate(
+      state,
+      {
+        nodes:
+          state.graph,
+
+        edges:
+          graphEdges,
+      }
+    );
 
     return state;
   }
