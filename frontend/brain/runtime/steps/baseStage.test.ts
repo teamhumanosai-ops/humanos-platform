@@ -11,12 +11,12 @@ class SuccessfulStage
   readonly name =
     "DiagnosticSuccess";
 
-  protected async process(
-    state: ReturnType<
-      typeof createBrainState
-    >
-  ) {
-    return state;
+  protected async process() {
+    return createBrainState(
+      "conversation",
+      [],
+      "test diagnostics"
+    );
   }
 }
 
@@ -25,11 +25,7 @@ class FailingStage
   readonly name =
     "DiagnosticFailure";
 
-  protected async process(
-    state: ReturnType<
-      typeof createBrainState
-    >
-  ) {
+  protected async process() {
     throw new Error(
       "expected diagnostic failure"
     );
