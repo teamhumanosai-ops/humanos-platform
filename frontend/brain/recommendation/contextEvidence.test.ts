@@ -82,7 +82,7 @@ function verifyMemoryEvidence(): void {
         new Date().toISOString(),
 
       kind:
-        "fact",
+        "semantic",
 
       importance:
         0.9,
@@ -102,7 +102,7 @@ function verifyMemoryEvidence(): void {
         new Date().toISOString(),
 
       kind:
-        "preference",
+        "semantic",
 
       importance:
         0.8,
@@ -255,7 +255,7 @@ function verifyConfidenceNormalization(): void {
         new Date().toISOString(),
 
       kind:
-        "fact",
+        "semantic",
 
       importance:
         1,
