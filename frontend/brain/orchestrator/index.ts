@@ -8,16 +8,24 @@ import type {
   ConversationMessage,
 } from "../brainState";
 
+import type {
+  Recommendation,
+} from "../recommendation";
+
+export type OrchestratorCitation = {
+  index: number;
+  title: string;
+  url: string;
+  domain: string;
+  publishedDate?: string;
+};
+
 export type OrchestratorResult = {
   message: string;
 
-  citations: {
-    index: number;
-    title: string;
-    url: string;
-    domain: string;
-    publishedDate?: string;
-  }[];
+  citations: OrchestratorCitation[];
+
+  recommendations: Recommendation[];
 };
 
 export async function orchestrate(
@@ -37,5 +45,8 @@ export async function orchestrate(
 
     citations:
       state.citations,
+
+    recommendations:
+      state.recommendations,
   };
 }
