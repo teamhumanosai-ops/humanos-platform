@@ -24,6 +24,9 @@ function createEvidence(
 
     confidence:
       observation.confidence,
+
+    relevance:
+      observation.relevance,
   };
 }
 
@@ -36,19 +39,37 @@ function calculateConfidence(
     return 0;
   }
 
-  const total =
+  const weightedEvidence =
     evidence.reduce(
       (
         sum,
         item
       ) =>
         sum +
-        item.confidence,
+        item.confidence *
+          item.relevance,
       0
     );
 
-  return total /
-    evidence.length;
+  const totalRelevance =
+    evidence.reduce(
+      (
+        sum,
+        item
+      ) =>
+        sum +
+        item.relevance,
+      0
+    );
+
+  if (
+    totalRelevance === 0
+  ) {
+    return 0;
+  }
+
+  return weightedEvidence /
+    totalRelevance;
 }
 
 function classifyInference(
@@ -56,7 +77,9 @@ function classifyInference(
 ): InferenceKind {
   if (
     observation.confidence <
-    0.7
+      0.7 ||
+    observation.relevance <
+      0.12
   ) {
     return "uncertainty";
   }
@@ -119,7 +142,9 @@ function buildObservationInferences(
           ),
 
         confidence:
-          observation.confidence,
+          calculateConfidence(
+            evidence
+          ),
 
         evidence,
 
@@ -194,7 +219,12 @@ export function infer(
   state: BrainState
 ): CognitiveInference[] {
   const observations =
-    state.reasoningObservations;
+    state.reasoningObservations
+      .filter(
+        (observation) =>
+          observation.relevance >=
+          0.12
+      );
 
   if (
     observations.length === 0
