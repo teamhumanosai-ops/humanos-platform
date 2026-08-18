@@ -7,6 +7,10 @@ import {
 } from "../../context";
 
 import {
+  analyzeContentSources,
+} from "../../contentIntelligence";
+
+import {
   Intent,
 } from "../../intent";
 
@@ -24,6 +28,10 @@ import {
  *
  * Live web evidence is explicitly included
  * when LiveKnowledgeStage has executed.
+ *
+ * Content Intelligence analyzes the retrieved
+ * source structure without treating metadata
+ * as proof of factual correctness.
  *
  * Conversation continuity is included when older
  * messages fall outside the short-term window.
@@ -50,6 +58,11 @@ export class ContextStage
         state
       );
 
+    state.contentIntelligence =
+      analyzeContentSources(
+        state.citations
+      );
+
     let prompt =
       structuredContext.prompt;
 
@@ -67,6 +80,27 @@ export class ContextStage
     ) {
       prompt +=
         `\n\nCONVERSATION CONTINUITY:\n\n${state.conversationContinuity}\n\nThe continuity above represents older conversation turns that are outside the active short-term message window. Use it only as historical conversational context and do not treat clipped content as a complete transcript.`;
+    }
+
+    if (
+      state.contentIntelligence
+        .sourceCount >
+      0
+    ) {
+      const content =
+        state.contentIntelligence;
+
+      prompt +=
+        [
+          "",
+          "CONTENT INTELLIGENCE:",
+          `Sources: ${content.sourceCount}`,
+          `Unique domains: ${content.uniqueDomainCount}`,
+          `Average freshness: ${content.averageFreshness.toFixed(2)}`,
+          `Average completeness: ${content.averageCompleteness.toFixed(2)}`,
+          "",
+          "Source metadata describes retrieval structure and completeness; it does not establish factual truth.",
+        ].join("\n");
     }
 
     switch (
