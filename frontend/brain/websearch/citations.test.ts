@@ -8,7 +8,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `UCI-002 citation verification failed: ${message}`
+      `PROV-003 citation verification failed: ${message}`
     );
   }
 }
@@ -23,6 +23,7 @@ const citations =
       providers: [
         "tavily",
         "firecrawl",
+        "tavily",
       ],
     },
     {
@@ -32,38 +33,50 @@ const citations =
         "tavily",
       ],
     },
+    {
+      title: "Unattributed source",
+      url: "https://example.net/source",
+    },
   ]);
 
 assert(
-  citations.length ===
-    2,
+  citations.length === 3,
   "citation count must match search results"
 );
 
 assert(
-  citations[0].providers?.length ===
-    2,
-  "citation must preserve independent provider provenance"
+  citations[0].providers?.length === 2,
+  "citation providers must be deduplicated"
 );
 
 assert(
-  citations[0].providers?.includes(
-    "tavily"
-  ) === true,
-  "citation must preserve Tavily provenance"
+  citations[0].providerCount === 2,
+  "provider count must reflect independent providers"
 );
 
 assert(
-  citations[0].providers?.includes(
-    "firecrawl"
-  ) === true,
-  "citation must preserve Firecrawl provenance"
+  citations[0].dualSourced === true,
+  "two-provider citation must be marked dual-sourced"
 );
 
 assert(
-  citations[1].providers?.length ===
-    1,
-  "single-provider citation must preserve one provider"
+  citations[1].providerCount === 1,
+  "single-provider citation must report one provider"
+);
+
+assert(
+  citations[1].dualSourced === false,
+  "single-provider citation must not be marked dual-sourced"
+);
+
+assert(
+  citations[2].providerCount === 0,
+  "missing provider metadata must be represented as zero"
+);
+
+assert(
+  citations[2].dualSourced === false,
+  "unattributed citation must not be marked dual-sourced"
 );
 
 assert(
@@ -73,5 +86,5 @@ assert(
 );
 
 console.log(
-  "UCI-002 citation provenance verification passed."
+  "PROV-003 citation evidence verification passed."
 );
