@@ -2,6 +2,10 @@ import type {
   SearchResponse,
 } from "./search";
 
+import type {
+  WebSearchProvider,
+} from "./providers";
+
 type FirecrawlWebResult = {
   title?: string;
 
@@ -229,6 +233,10 @@ export async function searchFirecrawl(
     );
   }
 
+  const provider:
+    WebSearchProvider =
+    "firecrawl";
+
   const webResults =
     (data.data?.web ?? [])
       .map(
@@ -247,6 +255,10 @@ export async function searchFirecrawl(
             getWebSnippet(
               result
             ),
+
+          providers: [
+            provider,
+          ],
         })
       );
 
@@ -271,6 +283,10 @@ export async function searchFirecrawl(
 
           publishedDate:
             result.date?.trim(),
+
+          providers: [
+            provider,
+          ],
         })
       );
 
