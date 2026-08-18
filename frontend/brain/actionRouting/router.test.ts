@@ -40,6 +40,12 @@ assert(
 );
 
 assert(
+  providerRoute.target ===
+    "web-search",
+  "search actions must resolve to the web-search target"
+);
+
+assert(
   providerRoute.executable ===
     true,
   "recognized routes must be executable candidates"
@@ -49,6 +55,66 @@ assert(
   providerRoute.confidence ===
     1,
   "route confidence must be normalized to one"
+);
+
+const contentRoute =
+  routeDecisionAction({
+    ...baseDecision,
+    id: "decision-content",
+    selectedAction:
+      "Fetch the source page for verification",
+  });
+
+assert(
+  contentRoute.kind ===
+    "provider",
+  "fetch actions must route to a provider"
+);
+
+assert(
+  contentRoute.target ===
+    "web-content",
+  "fetch actions must resolve to the web-content target"
+);
+
+const toolRoute =
+  routeDecisionAction({
+    ...baseDecision,
+    id: "decision-tool",
+    selectedAction:
+      "Create the requested project task",
+  });
+
+assert(
+  toolRoute.kind ===
+    "tool",
+  "tool actions must route to the tool boundary"
+);
+
+assert(
+  toolRoute.target ===
+    "tool",
+  "tool actions must resolve to the tool target"
+);
+
+const internalRoute =
+  routeDecisionAction({
+    ...baseDecision,
+    id: "decision-internal",
+    selectedAction:
+      "Review the next project milestone",
+  });
+
+assert(
+  internalRoute.kind ===
+    "internal",
+  "internal cognitive actions must remain internal"
+);
+
+assert(
+  internalRoute.target ===
+    "cognitive",
+  "internal actions must resolve to the cognitive target"
 );
 
 const unknownRoute =
@@ -63,6 +129,12 @@ assert(
   unknownRoute.kind ===
     "unknown",
   "unrecognized actions must remain unresolved"
+);
+
+assert(
+  unknownRoute.target ===
+    "unresolved",
+  "unrecognized actions must remain unresolved targets"
 );
 
 assert(
