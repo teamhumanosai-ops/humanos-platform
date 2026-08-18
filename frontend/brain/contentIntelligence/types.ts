@@ -1,3 +1,7 @@
+import type {
+  WebSearchProvider,
+} from "../websearch/providers";
+
 export type ContentSourceType =
   | "web"
   | "news";
@@ -13,6 +17,10 @@ export type ContentSourceProfile = {
 
   sourceType: ContentSourceType;
 
+  providers: WebSearchProvider[];
+
+  providerAgreement: boolean;
+
   freshness: number;
 
   completeness: number;
@@ -24,6 +32,10 @@ export type ContentIntelligence = {
   sourceCount: number;
 
   uniqueDomainCount: number;
+
+  providerCount: number;
+
+  crossProviderAgreementCount: number;
 
   averageFreshness: number;
 
