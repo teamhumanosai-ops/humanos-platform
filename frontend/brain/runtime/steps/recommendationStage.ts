@@ -41,14 +41,9 @@ export class RecommendationStage
       );
 
     state.recommendations =
-      recommendations.map(
-        (recommendation) =>
-          recommendation.evidence.length >= 3
-            ? recommendation
-            : enrichRecommendationsWithContext(
-                state,
-                [recommendation]
-              )[0] ?? recommendation
+      enrichRecommendationsWithContext(
+        state,
+        recommendations
       );
 
     if (
