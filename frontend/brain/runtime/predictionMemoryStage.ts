@@ -3,6 +3,7 @@ import {
 } from "../../brainState";
 
 import {
+  Prediction,
   PredictionEvidence,
 } from "../../prediction/types";
 
@@ -41,7 +42,7 @@ function createPredictionId(
 }
 
 function addPrediction(
-  predictions: import("../../prediction/types").Prediction[],
+  predictions: Prediction[],
   statement: string,
   evidence: PredictionEvidence[]
 ): void {
