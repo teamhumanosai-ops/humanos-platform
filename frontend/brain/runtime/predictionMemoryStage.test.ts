@@ -36,30 +36,21 @@ function createMemory(
   value: string,
   confidence = 0.9
 ): Memory {
-  const now =
-    new Date();
-
   return {
-    id:
-      `memory-${key}`,
-
     key,
 
     value,
 
-    type:
-      "fact",
-
     confidence,
 
-    source:
-      "conversation",
-
-    createdAt:
-      now,
-
     updatedAt:
-      now,
+      new Date().toISOString(),
+
+    kind:
+      "short_term",
+
+    importance:
+      0.5,
   };
 }
 
@@ -207,16 +198,11 @@ async function verifyDuplicatePredictionIsSuppressed(): Promise<void> {
       0.9
     ),
 
-    {
-      ...createMemory(
-        "task_copy",
-        "finish the runtime integration",
-        0.9
-      ),
-
-      value:
-        "finish the runtime integration",
-    },
+    createMemory(
+      "task_copy",
+      "finish the runtime integration",
+      0.9
+    ),
   ];
 
   await new PredictionMemoryStage().execute(
