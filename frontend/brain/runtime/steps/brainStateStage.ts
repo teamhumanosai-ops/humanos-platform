@@ -112,6 +112,51 @@ function hydrateRelevantGraph(
   nodes: BrainState["graph"];
   edges: BrainState["graphEdges"];
 } {
+  /*
+  |--------------------------------------------------------------------------
+  | RG-003 — Centralized graph context intelligence
+  |--------------------------------------------------------------------------
+  |
+  | GraphQuery now owns request-aware subgraph selection and
+  | bounded relationship traversal.
+  |
+  | BrainState remains the canonical cognitive state, while
+  | GraphQuery remains the owner of graph retrieval semantics.
+  |
+  | The existing implementation below remains as a compatibility
+  | fallback so this integration does not silently remove the
+  | previously validated relevance behavior.
+  |
+  */
+
+  const relevantSubgraph =
+    graphQuery.getRelevantSubgraph(
+      userMessage,
+      {
+        maxNodes:
+          MAX_GRAPH_NODES,
+
+        maxDepth:
+          2,
+
+        minTokenLength:
+          MIN_QUERY_TOKEN_LENGTH,
+      }
+    );
+
+  if (
+    relevantSubgraph.nodes.length >
+    0
+  ) {
+    return {
+      nodes:
+        relevantSubgraph.nodes,
+
+      edges:
+        relevantSubgraph.edges,
+    };
+  }
+
   const matchedNodes =
     new Map<
       string,
@@ -518,6 +563,9 @@ export class BrainStateStage
     | Hydrate graph information relevant to the current
     | request, rank it using direct matches and weighted
     | relationships, then retain the strongest context.
+    |
+    | RG-003 delegates the primary selection and bounded
+    | multi-hop traversal to GraphQuery.
     |
     */
 
