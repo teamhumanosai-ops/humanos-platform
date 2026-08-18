@@ -26,6 +26,8 @@ export type ContentSourceProfile = {
   completeness: number;
 
   evidenceReady: boolean;
+
+  evidenceQuality: number;
 };
 
 export type ContentIntelligence = {
@@ -37,9 +39,19 @@ export type ContentIntelligence = {
 
   crossProviderAgreementCount: number;
 
+  evidenceReadyCount: number;
+
+  evidenceReadyRatio: number;
+
+  agreementCoverage: number;
+
   averageFreshness: number;
 
   averageCompleteness: number;
+
+  averageEvidenceQuality: number;
+
+  bestEvidenceIndex?: number;
 
   sourceProfiles: ContentSourceProfile[];
 };
