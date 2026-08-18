@@ -2,6 +2,14 @@ import {
   searchFirecrawl,
 } from "./firecrawl";
 
+import {
+  buildSearchProvenance,
+} from "./provenance";
+
+import type {
+  SearchProvenance,
+} from "./provenance";
+
 import type {
   WebSearchProvider,
   WebSearchProviderClient,
@@ -29,6 +37,8 @@ export type SearchResponse = {
     SearchResult[];
 
   searchedAt: string;
+
+  provenance?: SearchProvenance;
 };
 
 type TavilySearchResponse = {
@@ -436,5 +446,10 @@ export async function searchWeb(
     results,
 
     searchedAt,
+
+    provenance:
+      buildSearchProvenance(
+        results
+      ),
   };
 }
