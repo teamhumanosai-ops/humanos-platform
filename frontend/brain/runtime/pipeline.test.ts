@@ -44,8 +44,10 @@ function runPipelineRegistrationVerification(): void {
     "PredictionHistory",
     "PredictionMemory",
     "PredictionConsolidation",
+    "PredictionConfidence",
     "Skill",
     "Context",
+    "Recommendation",
     "Reasoning",
     "Inference",
     "Planning",
@@ -94,6 +96,24 @@ function runPipelineRegistrationVerification(): void {
     names.indexOf("PredictionMemory") <
       names.indexOf("PredictionConsolidation"),
     "prediction consolidation must run after prediction enrichment"
+  );
+
+  assert(
+    names.indexOf("PredictionConfidence") <
+      names.indexOf("Recommendation"),
+    "recommendations must consume normalized prediction confidence"
+  );
+
+  assert(
+    names.indexOf("Context") <
+      names.indexOf("Recommendation"),
+    "recommendations must be added after canonical context assembly"
+  );
+
+  assert(
+    names.indexOf("Recommendation") <
+      names.indexOf("Reasoning"),
+    "reasoning must consume recommendation intelligence"
   );
 
   console.log(
