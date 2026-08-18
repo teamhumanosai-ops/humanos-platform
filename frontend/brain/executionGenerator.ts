@@ -1,9 +1,11 @@
 import { Decision } from "./decision";
 import { Execution } from "./execution";
+import type { ActionRoute } from "./actionRouting";
 
 export function generateExecution(
   decision: Decision,
-  planId: string
+  planId: string,
+  route: ActionRoute | null = null
 ): Execution {
   return {
     id: crypto.randomUUID(),
@@ -13,6 +15,8 @@ export function generateExecution(
     title: decision.title,
 
     action: decision.selectedAction,
+
+    route,
 
     status: "pending",
 
