@@ -10,6 +10,9 @@ import type {
 const MAX_CONTEXT_EVIDENCE =
   3;
 
+const MAX_TOTAL_EVIDENCE =
+  6;
+
 const MIN_TOKEN_LENGTH =
   3;
 
@@ -72,11 +75,12 @@ function hasRelevantOverlap(
 
 function addEvidence(
   evidence: RecommendationEvidence[],
-  item: RecommendationEvidence
+  item: RecommendationEvidence,
+  limit: number
 ): void {
   if (
     evidence.length >=
-    MAX_CONTEXT_EVIDENCE
+    limit
   ) {
     return;
   }
@@ -160,7 +164,8 @@ function buildMemoryEvidence(
 
         confidence:
           memory.confidence,
-      }
+      },
+      MAX_CONTEXT_EVIDENCE
     );
 
     if (
@@ -206,7 +211,8 @@ function buildReflectionEvidence(
 
         confidence:
           0.75,
-      }
+      },
+      MAX_CONTEXT_EVIDENCE
     );
 
     if (
@@ -295,12 +301,13 @@ function normalizeEvidence(
   ) {
     addEvidence(
       normalized,
-      item
+      item,
+      MAX_TOTAL_EVIDENCE
     );
 
     if (
       normalized.length >=
-      MAX_CONTEXT_EVIDENCE
+      MAX_TOTAL_EVIDENCE
     ) {
       break;
     }
