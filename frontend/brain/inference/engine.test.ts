@@ -12,7 +12,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `CI-002 inference verification failed: ${message}`
+      `CI-003 inference verification failed: ${message}`
     );
   }
 }
@@ -153,6 +153,12 @@ assert(
   "inference confidence must remain bounded"
 );
 
+assert(
+  duplicateInferences[0].confidence >=
+    duplicateInferences[1].confidence,
+  "higher-confidence inferences must be ranked first"
+);
+
 const crossSource =
   createBrainState(
     "conversation",
@@ -190,12 +196,26 @@ assert(
   "independent sources must produce a bounded cross-source inference"
 );
 
+const convergingInference =
+  crossSourceInferences.find(
+    (inference) =>
+      inference.evidence.length ===
+      2
+  );
+
 assert(
-  crossSourceInferences[2].evidence.length ===
-    2,
+  Boolean(
+    convergingInference
+  ),
   "cross-source inference must preserve independent evidence"
 );
 
+assert(
+  crossSourceInferences[0].confidence >=
+    crossSourceInferences[1].confidence,
+  "inference results must be ordered by confidence"
+);
+
 console.log(
-  "CI-002 inference normalization verification passed."
+  "CI-003 inference prioritization verification passed."
 );
