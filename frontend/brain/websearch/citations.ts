@@ -14,6 +14,10 @@ export type CitationSource = {
   publishedDate?: string;
 
   providers?: WebSearchProvider[];
+
+  providerCount: number;
+
+  dualSourced: boolean;
 };
 
 function extractDomain(
@@ -28,6 +32,16 @@ function extractDomain(
   }
 }
 
+function normalizeProviders(
+  providers?: WebSearchProvider[]
+): WebSearchProvider[] {
+  return [
+    ...new Set(
+      providers ?? []
+    ),
+  ];
+}
+
 export function buildCitationSources(
   results: Array<{
     title: string;
@@ -37,27 +51,41 @@ export function buildCitationSources(
   }>
 ): CitationSource[] {
   return results.map(
-    (result, index) => ({
-      index: index + 1,
+    (result, index) => {
+      const providers =
+        normalizeProviders(
+          result.providers
+        );
 
-      title: result.title,
+      return {
+        index:
+          index + 1,
 
-      url: result.url,
+        title:
+          result.title,
 
-      domain:
-        extractDomain(result.url),
+        url:
+          result.url,
 
-      publishedDate:
-        result.publishedDate,
+        domain:
+          extractDomain(
+            result.url
+          ),
 
-      providers:
-        result.providers?.length
-          ? [
-              ...new Set(
-                result.providers
-              ),
-            ]
-          : undefined,
-    })
+        publishedDate:
+          result.publishedDate,
+
+        providers:
+          providers.length > 0
+            ? providers
+            : undefined,
+
+        providerCount:
+          providers.length,
+
+        dualSourced:
+          providers.length >= 2,
+      };
+    }
   );
 }
