@@ -107,9 +107,10 @@ export class ExecutionStage
     |
     */
 
-    if (
-      !state.actionRoute
-    ) {
+    const actionRoute =
+      state.actionRoute;
+
+    if (!actionRoute) {
       state.errors.push(
         "Execution: action route is missing."
       );
@@ -118,10 +119,10 @@ export class ExecutionStage
     }
 
     if (!isExecutableActionRoute(
-      state.actionRoute
+      actionRoute
     )) {
       state.errors.push(
-        `Execution: action route "${state.actionRoute.id}" failed safety validation.`
+        `Execution: action route "${actionRoute.id}" failed safety validation.`
       );
 
       return state;
@@ -179,7 +180,7 @@ export class ExecutionStage
       createExecutionFromDecision(
         decision,
         plan.id,
-        state.actionRoute
+        actionRoute
       );
 
     /*
@@ -203,7 +204,7 @@ export class ExecutionStage
 
         `Action: ${execution.action}`,
 
-        `Route: ${state.actionRoute.target}`,
+        `Route: ${actionRoute.target}`,
 
         `Status: ${execution.status}`,
 
