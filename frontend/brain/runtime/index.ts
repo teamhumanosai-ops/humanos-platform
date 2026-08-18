@@ -5,3 +5,5 @@ export { CognitiveRuntime } from "./pipeline";
 export { createRuntimeBrainState } from "./createBrainState";
 
 export * from "./steps/reasoningGraphStage";
+
+export * from "./steps/autonomyStage";
