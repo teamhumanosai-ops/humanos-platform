@@ -87,14 +87,16 @@ function verifyGoalRecommendation(): void {
 
   state.goal = {
     id: "goal-1",
-    title: "Finish project",
     statement: "Finish the project",
     status: "active",
     progress: 40,
-    nextAction: "Review the remaining work",
-    dependencies: [],
-    obstacles: [],
+    priority: 0.8,
     confidence: 0.85,
+    nextAction: "Review the remaining work",
+    obstacles: [],
+    dependencies: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const recommendations =
