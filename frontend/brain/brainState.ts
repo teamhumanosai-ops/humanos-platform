@@ -43,6 +43,10 @@ import type {
   ActionRoute,
 } from "./actionRouting";
 
+import type {
+  ContentIntelligence,
+} from "./contentIntelligence";
+
 export type ConversationMessage = {
   role:
     | "user"
@@ -181,6 +185,16 @@ export type BrainState = {
 
   citations:
     CitationSource[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Content Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  contentIntelligence:
+    ContentIntelligence
+    | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -378,6 +392,15 @@ export function createBrainState(
 
     citations:
       [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Content Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    contentIntelligence:
+      null,
 
     /*
     |--------------------------------------------------------------------------
