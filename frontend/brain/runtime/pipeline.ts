@@ -39,6 +39,10 @@ import {
 } from "./steps/brainStateStage";
 
 import {
+  ProfileStage,
+} from "./steps/profileStage";
+
+import {
   ReasoningGraphStage,
 } from "./steps/reasoningGraphStage";
 
@@ -195,6 +199,16 @@ export class CognitiveRuntime {
 
     this.register(
       new BrainStateStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Human Profile
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new ProfileStage()
     );
 
     /*
