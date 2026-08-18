@@ -8,6 +8,7 @@ export type AutonomousLoopStatus =
 
 export type AutonomousLoopOptions = {
   maxIterations?: number;
+  iteration?: number;
 };
 
 export type AutonomousLoopDecision = {
