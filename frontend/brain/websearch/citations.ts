@@ -1,9 +1,19 @@
+import type {
+  WebSearchProvider,
+} from "./providers";
+
 export type CitationSource = {
   index: number;
+
   title: string;
+
   url: string;
+
   domain: string;
+
   publishedDate?: string;
+
+  providers?: WebSearchProvider[];
 };
 
 function extractDomain(
@@ -23,17 +33,31 @@ export function buildCitationSources(
     title: string;
     url: string;
     publishedDate?: string;
+    providers?: WebSearchProvider[];
   }>
 ): CitationSource[] {
   return results.map(
     (result, index) => ({
       index: index + 1,
+
       title: result.title,
+
       url: result.url,
+
       domain:
         extractDomain(result.url),
+
       publishedDate:
         result.publishedDate,
+
+      providers:
+        result.providers?.length
+          ? [
+              ...new Set(
+                result.providers
+              ),
+            ]
+          : undefined,
     })
   );
 }
