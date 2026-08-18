@@ -99,6 +99,10 @@ import {
 } from "./steps/validationStage";
 
 import {
+  ActionRoutingStage,
+} from "./steps/actionRoutingStage";
+
+import {
   ExecutionStage,
 } from "./steps/executionStage";
 
@@ -373,6 +377,20 @@ export class CognitiveRuntime {
 
     this.register(
       new ValidationStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Action Routing
+    |--------------------------------------------------------------------------
+    |
+    | This stage converts the validated decision into a
+    | bounded route descriptor. It does not execute anything.
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new ActionRoutingStage()
     );
 
     /*
