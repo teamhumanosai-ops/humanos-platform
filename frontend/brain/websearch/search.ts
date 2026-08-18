@@ -3,6 +3,7 @@ import {
 } from "./firecrawl";
 
 import type {
+  WebSearchProvider,
   WebSearchProviderClient,
 } from "./providers";
 
@@ -14,6 +15,8 @@ export type SearchResult = {
   snippet: string;
 
   publishedDate?: string;
+
+  providers?: WebSearchProvider[];
 };
 
 export type SearchResponse = {
@@ -205,6 +208,10 @@ async function searchTavily(
 
           publishedDate:
             result.published_date?.trim(),
+
+          providers: [
+            "tavily",
+          ] as WebSearchProvider[],
         })
       )
       .filter(
@@ -263,34 +270,72 @@ function getRequiredProviders():
   ];
 }
 
-function deduplicateResults(
-  results:
-    SearchResult[]
+function mergeSearchResults(
+  results: SearchResult[]
 ): SearchResult[] {
-  const seen =
-    new Set<string>();
+  const merged =
+    new Map<
+      string,
+      SearchResult
+    >();
 
-  return results.filter(
-    (result) => {
-      const key =
-        result.url
-          .trim()
-          .toLowerCase();
+  for (
+    const result of results
+  ) {
+    const key =
+      result.url
+        .trim()
+        .toLowerCase();
 
-      if (
-        !key ||
-        seen.has(key)
-      ) {
-        return false;
-      }
-
-      seen.add(
-        key
-      );
-
-      return true;
+    if (!key) {
+      continue;
     }
-  );
+
+    const existing =
+      merged.get(key);
+
+    if (!existing) {
+      merged.set(
+        key,
+        {
+          ...result,
+          providers: [
+            ...(result.providers ?? []),
+          ],
+        }
+      );
+      continue;
+    }
+
+    const providers = [
+      ...(existing.providers ?? []),
+      ...(result.providers ?? []),
+    ];
+
+    existing.providers = [
+      ...new Set(providers),
+    ];
+
+    if (
+      !existing.publishedDate &&
+      result.publishedDate
+    ) {
+      existing.publishedDate =
+        result.publishedDate;
+    }
+
+    if (
+      existing.snippet.length === 0 &&
+      result.snippet.length > 0
+    ) {
+      existing.snippet =
+        result.snippet;
+    }
+  }
+
+  return [
+    ...merged.values(),
+  ];
 }
 
 export async function searchWeb(
@@ -329,16 +374,6 @@ export async function searchWeb(
     );
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Both providers are intentionally executed.
-  |--------------------------------------------------------------------------
-  |
-  | They provide independent web evidence. Neither provider
-  | is a fallback for the other.
-  |
-  */
-
   const providerResults =
     await Promise.all(
       providers.map(
@@ -364,7 +399,7 @@ export async function searchWeb(
     );
 
   const results =
-    deduplicateResults(
+    mergeSearchResults(
       providerResults.flatMap(
         (response) =>
           response.results
