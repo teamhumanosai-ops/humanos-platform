@@ -8,6 +8,21 @@ import type {
   PredictionKind,
 } from "./types";
 
+const MAX_EVIDENCE =
+  12;
+
+const MAX_PREDICTIONS =
+  8;
+
+const MAX_TIMELINE_PREDICTIONS =
+  3;
+
+const MAX_REFLECTION_PREDICTIONS =
+  2;
+
+const MAX_GRAPH_PREDICTIONS =
+  3;
+
 function normalize(
   value: string
 ): string {
@@ -28,8 +43,69 @@ function createPredictionId(
     )
     .replace(
       /^-|-$/g,
-      ""
-    )}`;
+      "")}`;
+}
+
+function clampConfidence(
+  confidence: number
+): number {
+  return Math.max(
+    0,
+    Math.min(
+      1,
+      confidence
+    )
+  );
+}
+
+function addEvidence(
+  evidence: PredictionEvidence[],
+  item: PredictionEvidence
+): void {
+  if (
+    !item.statement.trim()
+  ) {
+    return;
+  }
+
+  const duplicate =
+    evidence.some(
+      (existing) =>
+        existing.source ===
+          item.source &&
+        normalize(
+          existing.statement
+        ) ===
+          normalize(
+            item.statement
+          )
+    );
+
+  if (
+    duplicate
+  ) {
+    return;
+  }
+
+  if (
+    evidence.length >=
+    MAX_EVIDENCE
+  ) {
+    return;
+  }
+
+  evidence.push({
+    source:
+      item.source,
+
+    statement:
+      item.statement.trim(),
+
+    confidence:
+      clampConfidence(
+        item.confidence
+      ),
+  });
 }
 
 function buildEvidence(
@@ -43,10 +119,9 @@ function buildEvidence(
     const event of
     state.timeline
   ) {
-    if (
-      event.trim()
-    ) {
-      evidence.push({
+    addEvidence(
+      evidence,
+      {
         source:
           "timeline",
 
@@ -55,18 +130,17 @@ function buildEvidence(
 
         confidence:
           0.8,
-      });
-    }
+      }
+    );
   }
 
   for (
     const memory of
     state.memories
   ) {
-    if (
-      memory.value.trim()
-    ) {
-      evidence.push({
+    addEvidence(
+      evidence,
+      {
         source:
           "memory",
 
@@ -74,35 +148,66 @@ function buildEvidence(
           memory.value,
 
         confidence:
-          0.75,
-      });
-    }
+          memory.confidence,
+      }
+    );
   }
 
+  const nodesById =
+    new Map(
+      state.graph.map(
+        (node) => [
+          node.id,
+          node,
+        ]
+      )
+    );
+
   for (
-    const node of
-    state.graph
+    const edge of
+    state.graphEdges
   ) {
-    evidence.push({
-      source:
-        "graph",
+    const from =
+      nodesById.get(
+        edge.from
+      );
 
-      statement:
-        `Graph entity: ${node.label}.`,
+    const to =
+      nodesById.get(
+        edge.to
+      );
 
-      confidence:
-        0.7,
-    });
+    if (
+      !from ||
+      !to
+    ) {
+      continue;
+    }
+
+    addEvidence(
+      evidence,
+      {
+        source:
+          "graph",
+
+        statement:
+          `${from.label} ${edge.type} ${to.label}.`,
+
+        confidence:
+          clampConfidence(
+            edge.weight
+          ),
+      }
+    );
   }
 
   for (
     const reflection of
     state.reflections
   ) {
-    if (
-      reflection.trim()
-    ) {
-      evidence.push({
+    addEvidence(
+      evidence,
+      {
         source:
           "reflection",
 
@@ -111,8 +216,8 @@ function buildEvidence(
 
         confidence:
           0.8,
-      });
-    }
+      }
+    );
   }
 
   return evidence;
@@ -152,6 +257,12 @@ function classifyPrediction(
     ) ||
     text.includes(
       "recurring"
+    ) ||
+    text.includes(
+      "repeated"
+    ) ||
+    text.includes(
+      "again"
     )
   ) {
     return "recurring_behavior";
@@ -166,12 +277,63 @@ function classifyPrediction(
     ) ||
     text.includes(
       "missing"
+    ) ||
+    text.includes(
+      "depends"
+    ) ||
+    text.includes(
+      "blocked"
     )
   ) {
     return "likely_need";
   }
 
   return "upcoming_task";
+}
+
+function createPrediction(
+  statement: string,
+  evidence: PredictionEvidence[],
+  kind?: PredictionKind
+): Prediction {
+  const confidence =
+    clampConfidence(
+      evidence.reduce(
+        (
+          total,
+          item
+        ) =>
+          total +
+          item.confidence,
+        0
+      ) /
+        Math.max(
+          1,
+          evidence.length
+        )
+    );
+
+  return {
+    id:
+      createPredictionId(
+        statement
+      ),
+
+    kind:
+      kind ??
+      classifyPrediction(
+        statement
+      ),
+
+    statement,
+
+    confidence,
+
+    evidence,
+
+    createdAt:
+      new Date(),
+  };
 }
 
 function createCandidatePredictions(
@@ -205,35 +367,18 @@ function createCandidatePredictions(
     const item of
     timelineEvidence.slice(
       0,
-      3
+      MAX_TIMELINE_PREDICTIONS
     )
   ) {
     const statement =
       `A future action or event may be associated with: ${item.statement}`;
 
-    predictions.push({
-      id:
-        createPredictionId(
-          statement
-        ),
-
-      kind:
-        classifyPrediction(
-          statement
-        ),
-
-      statement,
-
-      confidence:
-        item.confidence,
-
-      evidence: [
-        item,
-      ],
-
-      createdAt:
-        new Date(),
-    });
+    predictions.push(
+      createPrediction(
+        statement,
+        [item]
+      )
+    );
   }
 
   const reflectionEvidence =
@@ -249,36 +394,79 @@ function createCandidatePredictions(
     const item of
     reflectionEvidence.slice(
       0,
-      2
+      MAX_REFLECTION_PREDICTIONS
     )
   ) {
     const statement =
       `A previously observed pattern may continue: ${item.statement}`;
 
-    predictions.push({
-      id:
-        createPredictionId(
-          statement
-        ),
-
-      kind:
-        "recurring_behavior",
-
-      statement,
-
-      confidence:
-        item.confidence,
-
-      evidence: [
-        item,
-      ],
-
-      createdAt:
-        new Date(),
-    });
+    predictions.push(
+      createPrediction(
+        statement,
+        [item],
+        "recurring_behavior"
+      )
+    );
   }
 
-  return predictions;
+  const graphEvidence =
+    evidence.filter(
+      (
+        item
+      ) =>
+        item.source ===
+        "graph" &&
+        /(depends|requires|blocks|blocked|deadline|due|renew|recurring)/i.test(
+          item.statement
+        )
+    );
+
+  for (
+    const item of
+    graphEvidence.slice(
+      0,
+      MAX_GRAPH_PREDICTIONS
+    )
+  ) {
+    const statement =
+      `A graph relationship may create a future action or dependency: ${item.statement}`;
+
+    predictions.push(
+      createPrediction(
+        statement,
+        [item]
+      )
+    );
+  }
+
+  const unique =
+    new Map<
+      string,
+      Prediction
+    >();
+
+  for (
+    const prediction of
+    predictions
+  ) {
+    if (
+      !unique.has(
+        prediction.id
+      )
+    ) {
+      unique.set(
+        prediction.id,
+        prediction
+      );
+    }
+  }
+
+  return [
+    ...unique.values(),
+  ].slice(
+    0,
+    MAX_PREDICTIONS
+  );
 }
 
 export function predict(
