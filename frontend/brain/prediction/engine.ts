@@ -9,7 +9,7 @@ import type {
 } from "./types";
 
 const MAX_EVIDENCE =
-  12;
+  16;
 
 const MAX_PREDICTIONS =
   8;
@@ -22,6 +22,9 @@ const MAX_REFLECTION_PREDICTIONS =
 
 const MAX_GRAPH_PREDICTIONS =
   3;
+
+const MAX_GOAL_PREDICTIONS =
+  2;
 
 function normalize(
   value: string
@@ -220,6 +223,67 @@ function buildEvidence(
     );
   }
 
+  if (
+    state.goal
+  ) {
+    const goal =
+      state.goal;
+
+    addEvidence(
+      evidence,
+      {
+        source:
+          "timeline",
+
+        statement:
+          `Active goal: ${goal.statement}. Status: ${goal.status}. Progress: ${goal.progress}%. Next action: ${goal.nextAction}.`,
+
+        confidence:
+          clampConfidence(
+            goal.confidence
+          ),
+      }
+    );
+
+    for (
+      const dependency of
+      goal.dependencies
+    ) {
+      addEvidence(
+        evidence,
+        {
+          source:
+            "graph",
+
+          statement:
+            `Goal dependency: ${dependency}.`,
+
+          confidence:
+            0.78,
+        }
+      );
+    }
+
+    for (
+      const obstacle of
+      goal.obstacles
+    ) {
+      addEvidence(
+        evidence,
+        {
+          source:
+            "reflection",
+
+          statement:
+            `Goal obstacle: ${obstacle}.`,
+
+          confidence:
+            0.72,
+        }
+      );
+    }
+  }
+
   return evidence;
 }
 
@@ -283,6 +347,12 @@ function classifyPrediction(
     ) ||
     text.includes(
       "blocked"
+    ) ||
+    text.includes(
+      "obstacle"
+    ) ||
+    text.includes(
+      "dependency"
     )
   ) {
     return "likely_need";
@@ -437,6 +507,96 @@ function createCandidatePredictions(
         [item]
       )
     );
+  }
+
+  if (
+    state.goal
+  ) {
+    const goal =
+      state.goal;
+
+    if (
+      goal.nextAction.trim()
+    ) {
+      const goalEvidence =
+        evidence.filter(
+          (
+            item
+          ) =>
+            item.statement.includes(
+              "Active goal:"
+            ) ||
+            item.statement.includes(
+              "Goal dependency:"
+            )
+        );
+
+      const statement =
+        `The next likely action is related to the active goal: ${goal.nextAction}.`;
+
+      predictions.push(
+        createPrediction(
+          statement,
+          goalEvidence.length > 0
+            ? goalEvidence
+            : [
+                {
+                  source:
+                    "timeline",
+
+                  statement:
+                    `Active goal: ${goal.statement}.`,
+
+                  confidence:
+                    clampConfidence(
+                      goal.confidence
+                    ),
+                },
+              ]
+        )
+      );
+    }
+
+    if (
+      goal.obstacles.length > 0
+    ) {
+      const obstacle =
+        goal.obstacles[0];
+
+      const obstacleEvidence =
+        evidence.filter(
+          (
+            item
+          ) =>
+            item.statement.includes(
+              "Goal obstacle:"
+            )
+        );
+
+      const statement =
+        `The active goal may require resolving an identified obstacle before the next step: ${obstacle}.`;
+
+      predictions.push(
+        createPrediction(
+          statement,
+          obstacleEvidence.length > 0
+            ? obstacleEvidence
+            : [
+                {
+                  source:
+                    "reflection",
+
+                  statement:
+                    `Goal obstacle: ${obstacle}.`,
+
+                  confidence:
+                    0.72,
+                },
+              ],
+          "likely_need"
+        )
+      );
+    }
   }
 
   const unique =
