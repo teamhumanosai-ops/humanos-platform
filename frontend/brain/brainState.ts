@@ -32,6 +32,10 @@ import type {
 } from "./prediction";
 
 import type {
+  Recommendation,
+} from "./recommendation";
+
+import type {
   CognitiveInference,
 } from "./inference";
 
@@ -192,6 +196,15 @@ export type BrainState = {
 
   predictions:
     Prediction[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Recommendation Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  recommendations:
+    Recommendation[];
 
   /*
   |--------------------------------------------------------------------------
@@ -368,6 +381,15 @@ export function createBrainState(
     */
 
     predictions:
+      [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recommendation Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    recommendations:
       [],
 
     /*
