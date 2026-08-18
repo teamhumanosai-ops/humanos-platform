@@ -1,3 +1,9 @@
+import type {
+  Recommendation,
+} from "@/brain/recommendation";
+
+import RecommendationList from "./RecommendationList";
+
 type Citation = {
   index: number;
   title: string;
@@ -12,6 +18,8 @@ type ChatMessageProps = {
   message: string;
 
   citations?: Citation[];
+
+  recommendations?: Recommendation[];
 };
 
 function parseCitationMarkers(
@@ -123,6 +131,7 @@ export default function ChatMessage({
   role,
   message,
   citations = [],
+  recommendations = [],
 }: ChatMessageProps) {
   const isUser =
     role === "user";
@@ -156,6 +165,14 @@ export default function ChatMessage({
         {renderMessage(
           message,
           citations
+        )}
+
+        {!isUser && (
+          <RecommendationList
+            recommendations={
+              recommendations
+            }
+          />
         )}
 
         {!isUser &&
