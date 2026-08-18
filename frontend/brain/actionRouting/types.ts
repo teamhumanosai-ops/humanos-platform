@@ -4,6 +4,13 @@ export type ActionRouteKind =
   | "tool"
   | "unknown";
 
+export type ActionRouteTarget =
+  | "web-search"
+  | "web-content"
+  | "tool"
+  | "cognitive"
+  | "unresolved";
+
 export type ActionRoute = {
   id: string;
 
@@ -11,7 +18,7 @@ export type ActionRoute = {
 
   action: string;
 
-  target: string;
+  target: ActionRouteTarget;
 
   confidence: number;
 
