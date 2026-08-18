@@ -3,6 +3,10 @@ import {
 } from "../../brainState";
 
 import {
+  isExecutableActionRoute,
+} from "../../actionRouting";
+
+import {
   getDecision,
 } from "../../decision";
 
@@ -98,8 +102,8 @@ export class ExecutionStage
     |--------------------------------------------------------------------------
     |
     | ActionRoutingStage owns route resolution.
-    | Unknown routes must never silently enter the
-    | Execution Engine.
+    | Unknown or malformed routes must never silently
+    | enter the Execution Engine.
     |
     */
 
@@ -113,11 +117,11 @@ export class ExecutionStage
       return state;
     }
 
-    if (
-      !state.actionRoute.executable
-    ) {
+    if (!isExecutableActionRoute(
+      state.actionRoute
+    )) {
       state.errors.push(
-        `Execution: action route "${state.actionRoute.id}" is not executable.`
+        `Execution: action route "${state.actionRoute.id}" failed safety validation.`
       );
 
       return state;
