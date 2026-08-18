@@ -162,6 +162,10 @@ export class ExecutionStage
     | Create pending execution
     |--------------------------------------------------------------------------
     |
+    | The resolved action route is persisted with the
+    | execution record so downstream execution and
+    | observability layers retain the routing decision.
+    |
     | Execution lifecycle remains owned by the
     | Execution Engine.
     |
@@ -170,7 +174,8 @@ export class ExecutionStage
     const execution =
       createExecutionFromDecision(
         decision,
-        plan.id
+        plan.id,
+        state.actionRoute
       );
 
     /*
