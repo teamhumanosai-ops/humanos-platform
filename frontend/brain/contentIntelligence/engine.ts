@@ -92,6 +92,18 @@ function completenessScore(
   return score;
 }
 
+function providersFor(
+  citation: CitationSource
+): NonNullable<
+  CitationSource["providers"]
+> {
+  return [
+    ...new Set(
+      citation.providers ?? []
+    ),
+  ];
+}
+
 function buildProfile(
   citation: CitationSource
 ): ContentSourceProfile {
@@ -105,15 +117,33 @@ function buildProfile(
       citation
     );
 
+  const providers =
+    providersFor(
+      citation
+    );
+
   return {
     index: citation.index,
+
     title: citation.title,
+
     url: citation.url,
+
     domain: citation.domain,
+
     sourceType:
       sourceType(citation),
+
+    providers,
+
+    providerAgreement:
+      providers.length >
+      1,
+
     freshness,
+
     completeness,
+
     evidenceReady:
       Boolean(
         citation.title.trim() &&
@@ -136,9 +166,19 @@ export function analyzeContentSources(
       sourceProfiles
         .map(
           (profile) =>
-            profile.domain.trim().toLowerCase()
+            profile.domain
+              .trim()
+              .toLowerCase()
         )
         .filter(Boolean)
+    );
+
+  const providers =
+    new Set(
+      sourceProfiles.flatMap(
+        (profile) =>
+          profile.providers
+      )
     );
 
   const sourceCount =
@@ -149,6 +189,15 @@ export function analyzeContentSources(
 
     uniqueDomainCount:
       domains.size,
+
+    providerCount:
+      providers.size,
+
+    crossProviderAgreementCount:
+      sourceProfiles.filter(
+        (profile) =>
+          profile.providerAgreement
+      ).length,
 
     averageFreshness:
       sourceCount === 0
