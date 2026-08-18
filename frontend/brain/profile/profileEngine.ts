@@ -5,44 +5,120 @@ import {
   clearProfile,
 } from "./store";
 
+function mergeProfile(
+  profile: HumanProfile,
+  data: Partial<HumanProfile>
+): HumanProfile {
+  return {
+    ...profile,
+
+    identity: {
+      ...profile.identity,
+      ...data.identity,
+    },
+
+    mission: {
+      ...profile.mission,
+      ...data.mission,
+    },
+
+    personality: {
+      ...profile.personality,
+      ...data.personality,
+    },
+
+    productivity: {
+      ...profile.productivity,
+      ...data.productivity,
+    },
+
+    interests: {
+      ...profile.interests,
+      ...data.interests,
+    },
+
+    metadata: {
+      ...profile.metadata,
+      ...data.metadata,
+      updatedAt:
+        new Date().toISOString(),
+    },
+  };
+}
+
 export class ProfileEngine {
-  create(data: Partial<HumanProfile>): HumanProfile {
-    const now = new Date().toISOString();
+  create(
+    data: Partial<HumanProfile>
+  ): HumanProfile {
+    const now =
+      new Date().toISOString();
 
     const profile: HumanProfile = {
-      id: crypto.randomUUID(),
+      id:
+        crypto.randomUUID(),
 
       identity: {
-        fullName: data.identity?.fullName ?? "",
-        preferredName: data.identity?.preferredName,
-        age: data.identity?.age,
-        country: data.identity?.country,
-        timezone: data.identity?.timezone,
+        fullName:
+          data.identity?.fullName ??
+          "",
+        preferredName:
+          data.identity?.preferredName,
+        age:
+          data.identity?.age,
+        country:
+          data.identity?.country,
+        timezone:
+          data.identity?.timezone,
       },
 
       mission: {
-        lifeMission: data.mission?.lifeMission,
-        currentMission: data.mission?.currentMission,
-        biggestGoal: data.mission?.biggestGoal,
-        currentProject: data.mission?.currentProject,
+        lifeMission:
+          data.mission?.lifeMission,
+        currentMission:
+          data.mission?.currentMission,
+        biggestGoal:
+          data.mission?.biggestGoal,
+        currentProject:
+          data.mission?.currentProject,
       },
 
       personality: {
-        communicationStyle: data.personality?.communicationStyle,
-        learningStyle: data.personality?.learningStyle,
-        decisionStyle: data.personality?.decisionStyle,
+        communicationStyle:
+          data.personality
+            ?.communicationStyle,
+        learningStyle:
+          data.personality
+            ?.learningStyle,
+        decisionStyle:
+          data.personality
+            ?.decisionStyle,
       },
 
       productivity: {
-        bestWorkingHours: data.productivity?.bestWorkingHours,
-        biggestDistraction: data.productivity?.biggestDistraction,
-        planningStyle: data.productivity?.planningStyle,
+        bestWorkingHours:
+          data.productivity
+            ?.bestWorkingHours,
+        biggestDistraction:
+          data.productivity
+            ?.biggestDistraction,
+        planningStyle:
+          data.productivity
+            ?.planningStyle,
       },
 
       interests: {
-        favoriteTopics: data.interests?.favoriteTopics ?? [],
-        favoriteBooks: data.interests?.favoriteBooks ?? [],
-        favoriteCreators: data.interests?.favoriteCreators ?? [],
+        favoriteTopics:
+          data.interests
+            ?.favoriteTopics ??
+          [],
+        favoriteBooks:
+          data.interests
+            ?.favoriteBooks ??
+          [],
+        favoriteCreators:
+          data.interests
+            ?.favoriteCreators ??
+          [],
       },
 
       metadata: {
@@ -51,30 +127,34 @@ export class ProfileEngine {
       },
     };
 
-    saveProfile(profile);
+    saveProfile(
+      profile
+    );
 
     return profile;
   }
 
-  get(): HumanProfile | null {
+  get():
+    HumanProfile | null {
     return getProfile();
   }
 
-  update(data: Partial<HumanProfile>): void {
-    const profile = getProfile();
+  update(
+    data: Partial<HumanProfile>
+  ): void {
+    const profile =
+      getProfile();
 
     if (!profile) {
       return;
     }
 
-    saveProfile({
-      ...profile,
-      ...data,
-      metadata: {
-        ...profile.metadata,
-        updatedAt: new Date().toISOString(),
-      },
-    });
+    saveProfile(
+      mergeProfile(
+        profile,
+        data
+      )
+    );
   }
 
   clear(): void {
@@ -82,4 +162,5 @@ export class ProfileEngine {
   }
 }
 
-export const profileEngine = new ProfileEngine();
+export const profileEngine =
+  new ProfileEngine();
