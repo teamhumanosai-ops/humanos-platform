@@ -27,6 +27,9 @@ import {
  *
  * Conversation continuity is included when older
  * messages fall outside the short-term window.
+ *
+ * The persisted Human Profile is included when
+ * ProfileStage has hydrated it into BrainState.
  */
 export class ContextStage
   extends BaseStage {
@@ -49,6 +52,15 @@ export class ContextStage
 
     let prompt =
       structuredContext.prompt;
+
+    if (
+      state.profile
+    ) {
+      prompt +=
+        `\n\nHUMAN PROFILE:\n\n${JSON.stringify(
+          state.profile
+        )}\n\nUse the profile as persistent user context. Do not treat missing fields as known facts.`;
+    }
 
     if (
       state.conversationContinuity
