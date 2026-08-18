@@ -33,7 +33,7 @@ function targetMatchesKind(
 
 export function isExecutableActionRoute(
   route: ActionRoute | null
-): route is ActionRoute {
+): boolean {
   if (!route) {
     return false;
   }
