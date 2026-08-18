@@ -1,6 +1,7 @@
 import * as Planning from "./planning";
 import * as Decision from "./decision";
 import * as Execution from "./execution";
+import * as Autonomy from "./autonomy";
 
 /**
  * Human OS Brain
@@ -40,6 +41,11 @@ export const Brain = {
     complete: Execution.completeExecution,
     block: Execution.blockExecution,
   },
+
+  autonomy: {
+    evaluate: Autonomy.evaluateAutonomousLoop,
+    Controller: Autonomy.AutonomousLoopController,
+  },
 };
 
 export default Brain;
@@ -47,3 +53,8 @@ export default Brain;
 export type { Plan } from "./planning";
 export type { Decision } from "./decision";
 export type { Execution } from "./execution";
+export type {
+  AutonomousLoopDecision,
+  AutonomousLoopOptions,
+  AutonomousLoopStatus,
+} from "./autonomy";
