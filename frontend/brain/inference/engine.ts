@@ -12,6 +12,28 @@ import type {
   InferenceKind,
 } from "./types";
 
+const MAX_INFERENCE_EVIDENCE = 5;
+
+const MAX_INFERENCES = 12;
+
+function normalizeStatement(
+  value: string
+): string {
+  return value
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function clamp(
+  value: number
+): number {
+  return Math.max(
+    0,
+    Math.min(1, value)
+  );
+}
+
 function createEvidence(
   observation: ReasoningObservation
 ): InferenceEvidence {
@@ -23,10 +45,14 @@ function createEvidence(
       observation.statement,
 
     confidence:
-      observation.confidence,
+      clamp(
+        observation.confidence
+      ),
 
     relevance:
-      observation.relevance,
+      clamp(
+        observation.relevance
+      ),
   };
 }
 
@@ -68,8 +94,10 @@ function calculateConfidence(
     return 0;
   }
 
-  return weightedEvidence /
-    totalRelevance;
+  return clamp(
+    weightedEvidence /
+      totalRelevance
+  );
 }
 
 function classifyInference(
@@ -118,41 +146,46 @@ function classifyInference(
 function buildObservationInferences(
   observations: ReasoningObservation[]
 ): CognitiveInference[] {
-  return observations.map(
-    (
-      observation
-    ) => {
-      const evidence =
-        [
-          createEvidence(
-            observation
-          ),
-        ];
+  return observations
+    .slice(
+      0,
+      MAX_INFERENCES
+    )
+    .map(
+      (
+        observation
+      ) => {
+        const evidence =
+          [
+            createEvidence(
+              observation
+            ),
+          ];
 
-      return {
-        id:
-          crypto.randomUUID(),
+        return {
+          id:
+            crypto.randomUUID(),
 
-        statement:
-          observation.statement,
+          statement:
+            observation.statement,
 
-        kind:
-          classifyInference(
-            observation
-          ),
+          kind:
+            classifyInference(
+              observation
+            ),
 
-        confidence:
-          calculateConfidence(
-            evidence
-          ),
+          confidence:
+            calculateConfidence(
+              evidence
+            ),
 
-        evidence,
+          evidence,
 
-        createdAt:
-          new Date(),
-      };
-    }
-  );
+          createdAt:
+            new Date(),
+        };
+      }
+    );
 }
 
 function buildCrossSourceInference(
@@ -179,19 +212,21 @@ function buildCrossSourceInference(
     observations
       .slice(
         0,
-        5
+        MAX_INFERENCE_EVIDENCE
       )
       .map(
         createEvidence
       );
 
   const confidence =
-    Math.min(
-      0.9,
-      calculateConfidence(
-        evidence
-      ) +
-        0.05
+    clamp(
+      Math.min(
+        0.9,
+        calculateConfidence(
+          evidence
+        ) +
+          0.05
+      )
     );
 
   return {
@@ -215,16 +250,43 @@ function buildCrossSourceInference(
   };
 }
 
+function deduplicateObservations(
+  observations: ReasoningObservation[]
+): ReasoningObservation[] {
+  const seen =
+    new Set<string>();
+
+  return observations.filter(
+    (
+      observation
+    ) => {
+      const key =
+        `${observation.source}:${normalizeStatement(observation.statement)}`;
+
+      if (
+        seen.has(key)
+      ) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    }
+  );
+}
+
 export function infer(
   state: BrainState
 ): CognitiveInference[] {
   const observations =
-    state.reasoningObservations
-      .filter(
-        (observation) =>
-          observation.relevance >=
-          0.12
-      );
+    deduplicateObservations(
+      state.reasoningObservations
+        .filter(
+          (observation) =>
+            observation.relevance >=
+            0.12
+        )
+    );
 
   if (
     observations.length === 0
@@ -250,5 +312,8 @@ export function infer(
     );
   }
 
-  return inferences;
+  return inferences.slice(
+    0,
+    MAX_INFERENCES
+  );
 }
