@@ -28,7 +28,7 @@ import {
  * - executes its responsibility
  * - validates the returned BrainState
  * - updates timestamps
- * - captures diagnostics and failures
+ * - captures failures
  *
  * BrainState remains the single shared cognitive artifact.
  *
@@ -45,19 +45,49 @@ export abstract class BaseStage
       Date.now();
 
     try {
+      /*
+      |--------------------------------------------------------------------------
+      | Pre-stage BrainState invariant
+      |--------------------------------------------------------------------------
+      |
+      | Every stage must receive a coherent BrainState.
+      |
+      */
+
       validateBrainState(
         state,
         this.name
       );
 
+      /*
+      |--------------------------------------------------------------------------
+      | Record stage execution
+      |--------------------------------------------------------------------------
+      */
+
       state.executedStages.push(
         this.name
       );
+
+      /*
+      |--------------------------------------------------------------------------
+      | Execute stage responsibility
+      |--------------------------------------------------------------------------
+      */
 
       const result =
         await this.process(
           state
         );
+
+      /*
+      |--------------------------------------------------------------------------
+      | State continuity invariant
+      |--------------------------------------------------------------------------
+      |
+      | A stage must return the same cognitive artifact contract.
+      |
+      */
 
       if (
         !result
@@ -67,13 +97,34 @@ export abstract class BaseStage
         );
       }
 
+      /*
+      |--------------------------------------------------------------------------
+      | Post-stage BrainState invariant
+      |--------------------------------------------------------------------------
+      */
+
       validateBrainState(
         result,
         this.name
       );
 
+      /*
+      |--------------------------------------------------------------------------
+      | Timestamp
+      |--------------------------------------------------------------------------
+      */
+
       result.updatedAt =
         new Date();
+
+      /*
+      |--------------------------------------------------------------------------
+      | Diagnostics
+      |--------------------------------------------------------------------------
+      |
+      | Every stage persists a durable diagnostic artifact in BrainState.
+      |
+      */
 
       const completedAt =
         new Date();
@@ -111,12 +162,18 @@ export abstract class BaseStage
           ? error.message
           : String(error);
 
-      const completedAt =
-        new Date();
+      /*
+      |--------------------------------------------------------------------------
+      | Preserve diagnostic context
+      |--------------------------------------------------------------------------
+      */
 
       state.errors.push(
         `${this.name}: ${message}`
       );
+
+      const completedAt =
+        new Date();
 
       state.diagnostics.push({
         stage:
@@ -166,6 +223,12 @@ function validateBrainState(
   state: BrainState,
   stageName: string
 ): void {
+  /*
+  |--------------------------------------------------------------------------
+  | Basic state invariant
+  |--------------------------------------------------------------------------
+  */
+
   if (
     !state
   ) {
@@ -173,6 +236,12 @@ function validateBrainState(
       `Stage "${stageName}" received an invalid BrainState.`
     );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Input invariant
+  |--------------------------------------------------------------------------
+  */
 
   if (
     typeof state.userMessage !==
@@ -182,6 +251,12 @@ function validateBrainState(
       `Stage "${stageName}" received BrainState with an invalid userMessage.`
     );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Collection invariants
+  |--------------------------------------------------------------------------
+  */
 
   if (
     !Array.isArray(
@@ -223,6 +298,16 @@ function validateBrainState(
     );
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Plan invariant
+  |--------------------------------------------------------------------------
+  |
+  | If the runtime says a plan is active, that plan must
+  | exist in the Planning Engine.
+  |
+  */
+
   if (
     state.currentPlanId
   ) {
@@ -240,6 +325,16 @@ function validateBrainState(
     }
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Decision invariant
+  |--------------------------------------------------------------------------
+  |
+  | If the runtime says a decision is active, that decision
+  | must exist in the Decision Engine.
+  |
+  */
+
   if (
     state.currentDecisionId
   ) {
@@ -256,6 +351,18 @@ function validateBrainState(
       );
     }
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Execution invariant
+  |--------------------------------------------------------------------------
+  |
+  | If an execution is active:
+  |
+  | 1. It must exist.
+  | 2. It must reference the active plan when a plan exists.
+  |
+  */
 
   if (
     state.currentExecutionId
@@ -284,6 +391,15 @@ function validateBrainState(
     }
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Runtime ID relationships
+  |--------------------------------------------------------------------------
+  |
+  | A decision cannot exist in the runtime without a plan.
+  |
+  */
+
   if (
     state.currentDecisionId &&
     !state.currentPlanId
@@ -292,6 +408,16 @@ function validateBrainState(
       "BrainState invariant failed: currentDecisionId exists without currentPlanId."
     );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Execution relationship
+  |--------------------------------------------------------------------------
+  |
+  | An execution cannot exist in the runtime without
+  | an active plan and decision.
+  |
+  */
 
   if (
     state.currentExecutionId &&
@@ -310,6 +436,15 @@ function validateBrainState(
       "BrainState invariant failed: currentExecutionId exists without currentDecisionId."
     );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Current goal invariant
+  |--------------------------------------------------------------------------
+  |
+  | An active plan should provide the current cognitive goal.
+  |
+  */
 
   if (
     state.currentPlanId &&
