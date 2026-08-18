@@ -12,7 +12,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `UCI-002 content intelligence verification failed: ${message}`
+      `UCI-004 content intelligence verification failed: ${message}`
     );
   }
 }
@@ -119,9 +119,47 @@ assert(
 );
 
 assert(
+  intelligence.sourceProfiles[0]
+    .evidenceQuality >
+    intelligence.sourceProfiles[1]
+      .evidenceQuality,
+  "fresh, complete, multi-provider evidence must rank higher"
+);
+
+assert(
+  intelligence.evidenceReadyCount ===
+    2,
+  "evidence-ready count must include complete sources"
+);
+
+assert(
+  intelligence.evidenceReadyRatio ===
+    1,
+  "evidence-ready ratio must be normalized"
+);
+
+assert(
+  intelligence.agreementCoverage ===
+    0.5,
+  "agreement coverage must be normalized by source count"
+);
+
+assert(
   intelligence.averageCompleteness >
     0,
   "completeness must be normalized into a useful range"
+);
+
+assert(
+  intelligence.averageEvidenceQuality >
+    0,
+  "average evidence quality must be normalized"
+);
+
+assert(
+  intelligence.bestEvidenceIndex ===
+    1,
+  "best evidence must point to the highest-quality source"
 );
 
 const empty =
@@ -148,11 +186,41 @@ assert(
 );
 
 assert(
+  empty.evidenceReadyCount ===
+    0,
+  "empty content must have zero evidence-ready sources"
+);
+
+assert(
+  empty.evidenceReadyRatio ===
+    0,
+  "empty content must have zero evidence-ready ratio"
+);
+
+assert(
+  empty.agreementCoverage ===
+    0,
+  "empty content must have zero agreement coverage"
+);
+
+assert(
   empty.averageFreshness ===
     0,
   "empty content must have zero average freshness"
 );
 
+assert(
+  empty.averageEvidenceQuality ===
+    0,
+  "empty content must have zero average evidence quality"
+);
+
+assert(
+  empty.bestEvidenceIndex ===
+    undefined,
+  "empty content must not expose a best evidence index"
+);
+
 console.log(
-  "UCI-002 content intelligence verification passed."
+  "UCI-004 content intelligence verification passed."
 );
