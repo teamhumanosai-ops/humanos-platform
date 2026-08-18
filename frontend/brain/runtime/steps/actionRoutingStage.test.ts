@@ -70,9 +70,21 @@ assert(
 );
 
 assert(
+  state.actionRoute?.target ===
+    "web-search",
+  "stage must preserve the canonical provider target"
+);
+
+assert(
   state.actionRoute?.executable ===
     true,
   "recognized routes must remain executable candidates"
+);
+
+assert(
+  state.errors.length ===
+    0,
+  "safe routes must not create runtime errors"
 );
 
 assert(
@@ -80,4 +92,44 @@ assert(
     "ActionRouting"
   ),
   "stage execution must be recorded"
+);
+
+const blockedState =
+  createBrainState(
+    "conversation",
+    [],
+    "Do something ambiguous"
+  );
+
+const blockedDecision: Decision = {
+  ...decision,
+  id: "decision-atr-unknown",
+  selectedAction: "Do something ambiguous",
+};
+
+saveDecision(
+  blockedDecision
+);
+
+blockedState.currentDecisionId =
+  blockedDecision.id;
+
+await stage.execute(
+  blockedState
+);
+
+assert(
+  blockedState.actionRoute?.target ===
+    "unresolved",
+  "ambiguous actions must remain unresolved"
+);
+
+assert(
+  blockedState.errors.some(
+    (error) =>
+      error.includes(
+        "safe executable route"
+      )
+  ),
+  "unsafe route resolution must produce a runtime safety error"
 );
