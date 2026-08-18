@@ -10,6 +10,10 @@ import {
   completePlanMilestone,
 } from "./planning";
 
+import type {
+  ActionRoute,
+} from "./actionRouting";
+
 export type ExecutionStatus =
   | "pending"
   | "in_progress"
@@ -24,6 +28,10 @@ export type Execution = {
   title: string;
 
   action: string;
+
+  route:
+    ActionRoute
+    | null;
 
   status: ExecutionStatus;
 
@@ -106,12 +114,14 @@ export function clearExecutions():
 
 export function createExecutionFromDecision(
   decision: Decision,
-  planId: string
+  planId: string,
+  route: ActionRoute | null = null
 ): Execution {
   const execution =
     generateExecution(
       decision,
-      planId
+      planId,
+      route
     );
 
   saveExecution(
