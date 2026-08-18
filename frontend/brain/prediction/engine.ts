@@ -515,8 +515,13 @@ function createCandidatePredictions(
     const goal =
       state.goal;
 
+    let goalPredictionCount =
+      0;
+
     if (
-      goal.nextAction.trim()
+      goal.nextAction.trim() &&
+      goalPredictionCount <
+        MAX_GOAL_PREDICTIONS
     ) {
       const goalEvidence =
         evidence.filter(
@@ -555,10 +560,15 @@ function createCandidatePredictions(
               ]
         )
       );
+
+      goalPredictionCount +=
+        1;
     }
 
     if (
-      goal.obstacles.length > 0
+      goal.obstacles.length > 0 &&
+      goalPredictionCount <
+        MAX_GOAL_PREDICTIONS
     ) {
       const obstacle =
         goal.obstacles[0];
@@ -596,6 +606,9 @@ function createCandidatePredictions(
           "likely_need"
         )
       );
+
+      goalPredictionCount +=
+        1;
     }
   }
 
