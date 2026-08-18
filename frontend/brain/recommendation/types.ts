@@ -8,6 +8,7 @@ export type RecommendationEvidenceSource =
   | "prediction"
   | "goal"
   | "memory"
+  | "timeline"
   | "graph"
   | "reflection"
   | "profile";
