@@ -12,7 +12,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `UCI-001 context verification failed: ${message}`
+      `UCI-002 context verification failed: ${message}`
     );
   }
 }
@@ -33,6 +33,19 @@ async function verifyContentIntegration(): Promise<void> {
       domain: "example.com",
       publishedDate:
         new Date().toISOString(),
+      providers: [
+        "tavily",
+        "firecrawl",
+      ],
+    },
+    {
+      index: 2,
+      title: "Independent source",
+      url: "https://another.example/source",
+      domain: "another.example",
+      providers: [
+        "tavily",
+      ],
     },
   ];
 
@@ -51,15 +64,41 @@ async function verifyContentIntegration(): Promise<void> {
 
   assert(
     state.contentIntelligence?.sourceCount ===
-      1,
+      2,
     "content intelligence must count the available sources"
   );
 
   assert(
+    state.contentIntelligence?.providerCount ===
+      2,
+    "content intelligence must expose provider coverage"
+  );
+
+  assert(
+    state.contentIntelligence?.crossProviderAgreementCount ===
+      1,
+    "content intelligence must expose cross-provider agreement"
+  );
+
+  assert(
     state.context?.includes(
-      "CONTENT INTELLIGENCE:"
+      "Providers represented: 2"
     ) === true,
-    "content intelligence metadata must be available to downstream context"
+    "provider coverage must be available to downstream context"
+  );
+
+  assert(
+    state.context?.includes(
+      "Cross-provider agreement: 1"
+    ) === true,
+    "provider agreement must be available to downstream context"
+  );
+
+  assert(
+    state.context?.includes(
+      "Providers: tavily, firecrawl"
+    ) === true,
+    "source-level provider provenance must be available"
   );
 
   assert(
@@ -73,5 +112,5 @@ async function verifyContentIntegration(): Promise<void> {
 await verifyContentIntegration();
 
 console.log(
-  "UCI-001 context integration verification passed."
+  "UCI-002 context integration verification passed."
 );
