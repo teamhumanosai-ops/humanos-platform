@@ -1,4 +1,5 @@
 import {
+  desc,
   eq,
 } from "drizzle-orm";
 
@@ -52,6 +53,9 @@ export function saveProfile(
 
 /**
  * Return the most recently updated HumanProfile.
+ *
+ * Profiles are ordered explicitly by descending update time so the selected
+ * row remains deterministic when more than one historical profile exists.
  */
 export function getProfile():
   HumanProfile | null {
@@ -59,10 +63,12 @@ export function getProfile():
     db.select()
       .from(profiles)
       .orderBy(
-        profiles.updatedAt
+        desc(
+          profiles.updatedAt
+        )
       )
       .all()
-      .at(-1);
+      .at(0);
 
   if (!row) {
     return null;
