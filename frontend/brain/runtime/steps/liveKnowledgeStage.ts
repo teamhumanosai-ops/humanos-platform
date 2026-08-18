@@ -2,6 +2,10 @@ import { BrainState } from "../../brainState";
 import { Intent } from "../../intent";
 
 import {
+  analyzeContentSources,
+} from "../../contentIntelligence";
+
+import {
   buildCitationSources,
 } from "../../websearch/citations";
 
@@ -42,6 +46,11 @@ export class LiveKnowledgeStage
       state.citations =
         buildCitationSources(
           search.results
+        );
+
+      state.contentIntelligence =
+        analyzeContentSources(
+          state.citations
         );
 
       const evidence =
@@ -85,6 +94,9 @@ Evidence: ${result.snippet}`
           : String(error);
 
       state.citations = [];
+
+      state.contentIntelligence =
+        null;
 
       state.liveKnowledge = [];
 
