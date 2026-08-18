@@ -119,6 +119,10 @@ import {
 } from "./steps/reflectionStage";
 
 import {
+  AutonomyStage,
+} from "./steps/autonomyStage";
+
+import {
   Stage,
 } from "./steps/stage";
 
@@ -419,6 +423,21 @@ export class CognitiveRuntime {
 
     this.register(
       new ReflectionStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Autonomous Continuation Evaluation
+    |--------------------------------------------------------------------------
+    |
+    | This stage is advisory only. It evaluates the bounded
+    | continuation policy after the canonical cognitive cycle
+    | and records the candidate without executing it.
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new AutonomyStage()
     );
   }
 
