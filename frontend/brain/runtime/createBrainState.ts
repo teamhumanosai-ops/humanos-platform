@@ -5,6 +5,7 @@ import {
 } from "../brainState";
 
 import {
+  buildConversationContinuitySummary,
   prepareConversation,
 } from "../conversation";
 
@@ -24,6 +25,11 @@ export function createRuntimeBrainState(
       )
       .join("\n");
 
+  const conversationContinuity =
+    buildConversationContinuitySummary(
+      messages
+    );
+
   const lastUserMessage =
     [...preparedMessages]
       .reverse()
@@ -36,6 +42,7 @@ export function createRuntimeBrainState(
   return createBrainState(
     conversation,
     preparedMessages,
-    lastUserMessage
+    lastUserMessage,
+    conversationContinuity
   );
 }
