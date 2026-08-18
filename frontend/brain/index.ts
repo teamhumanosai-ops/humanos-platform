@@ -1,6 +1,7 @@
 import * as Planning from "./planning";
 import * as Decision from "./decision";
 import * as Execution from "./execution";
+import * as ActionRouting from "./actionRouting";
 import * as Autonomy from "./autonomy";
 
 /**
@@ -42,6 +43,10 @@ export const Brain = {
     block: Execution.blockExecution,
   },
 
+  actionRouting: {
+    route: ActionRouting.routeDecisionAction,
+  },
+
   autonomy: {
     evaluate: Autonomy.evaluateAutonomousLoop,
     Controller: Autonomy.AutonomousLoopController,
@@ -53,6 +58,10 @@ export default Brain;
 export type { Plan } from "./planning";
 export type { Decision } from "./decision";
 export type { Execution } from "./execution";
+export type {
+  ActionRoute,
+  ActionRouteKind,
+} from "./actionRouting";
 export type {
   AutonomousLoopDecision,
   AutonomousLoopOptions,
