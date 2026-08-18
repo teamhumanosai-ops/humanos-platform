@@ -34,7 +34,8 @@ import {
  *
  * Safety:
  * Execution creation is blocked when an earlier
- * runtime stage has already recorded an error.
+ * runtime stage has already recorded an error or
+ * when action routing could not resolve a safe route.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -88,6 +89,37 @@ export class ExecutionStage
       !state.currentDecisionId ||
       !state.currentPlanId
     ) {
+      return state;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Action route must be resolved before execution.
+    |--------------------------------------------------------------------------
+    |
+    | ActionRoutingStage owns route resolution.
+    | Unknown routes must never silently enter the
+    | Execution Engine.
+    |
+    */
+
+    if (
+      !state.actionRoute
+    ) {
+      state.errors.push(
+        "Execution: action route is missing."
+      );
+
+      return state;
+    }
+
+    if (
+      !state.actionRoute.executable
+    ) {
+      state.errors.push(
+        `Execution: action route "${state.actionRoute.id}" is not executable.`
+      );
+
       return state;
     }
 
@@ -161,6 +193,8 @@ export class ExecutionStage
         `Execution: ${execution.title}`,
 
         `Action: ${execution.action}`,
+
+        `Route: ${state.actionRoute.target}`,
 
         `Status: ${execution.status}`,
 
