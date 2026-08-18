@@ -7,6 +7,10 @@ import {
 } from "../../recommendation";
 
 import {
+  enrichRecommendationsWithContext,
+} from "../../recommendation/contextEvidence";
+
+import {
   BaseStage,
 } from "./baseStage";
 
@@ -18,6 +22,10 @@ import {
  *
  * Recommendations remain advisory. They do not execute actions
  * and do not replace planning or decision stages.
+ *
+ * Existing BrainState evidence is enriched with relevant
+ * memory, reflection, and profile context without replacing
+ * the recommendation engine's primary evidence.
  */
 export class RecommendationStage
   extends BaseStage {
@@ -27,9 +35,20 @@ export class RecommendationStage
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    state.recommendations =
+    const recommendations =
       recommend(
         state
+      );
+
+    state.recommendations =
+      recommendations.map(
+        (recommendation) =>
+          recommendation.evidence.length >= 3
+            ? recommendation
+            : enrichRecommendationsWithContext(
+                state,
+                [recommendation]
+              )[0] ?? recommendation
       );
 
     if (
