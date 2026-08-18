@@ -61,6 +61,35 @@ function inferRouteKind(
   return "unknown";
 }
 
+function resolveRouteTarget(
+  kind: ActionRoute["kind"],
+  action: string
+): string {
+  const normalized =
+    action.trim().toLowerCase();
+
+  if (kind === "provider") {
+    if (
+      normalized.includes("browse") ||
+      normalized.includes("fetch")
+    ) {
+      return "web-content";
+    }
+
+    return "web-search";
+  }
+
+  if (kind === "tool") {
+    return "tool";
+  }
+
+  if (kind === "internal") {
+    return "cognitive";
+  }
+
+  return "unresolved";
+}
+
 export function routeDecisionAction(
   decision: Decision
 ): ActionRoute {
@@ -78,9 +107,10 @@ export function routeDecisionAction(
     id: `route-${decision.id}`,
     kind,
     action,
-    target: kind === "unknown"
-      ? "unresolved"
-      : kind,
+    target: resolveRouteTarget(
+      kind,
+      action
+    ),
     confidence: normalizeConfidence(
       decision.confidence
     ),
