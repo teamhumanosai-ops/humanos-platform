@@ -4,26 +4,38 @@ import {
   createBrainState,
 } from "../brainState";
 
+import {
+  prepareConversation,
+} from "../conversation";
+
 export function createRuntimeBrainState(
   messages: ConversationMessage[]
 ): BrainState {
-  const conversation = messages
-    .map(
-      (m) =>
-        `${m.role}: ${m.message}`
-    )
-    .join("\n");
+  const preparedMessages =
+    prepareConversation(
+      messages
+    );
+
+  const conversation =
+    preparedMessages
+      .map(
+        (message) =>
+          `${message.role}: ${message.message}`
+      )
+      .join("\n");
 
   const lastUserMessage =
-    [...messages]
+    [...preparedMessages]
       .reverse()
       .find(
-        (m) => m.role === "user"
+        (message) =>
+          message.role ===
+          "user"
       )?.message ?? "";
 
   return createBrainState(
     conversation,
-    messages,
+    preparedMessages,
     lastUserMessage
   );
 }
