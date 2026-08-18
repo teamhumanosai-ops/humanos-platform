@@ -23,6 +23,19 @@ function normalizeMaxIterations(
   );
 }
 
+function normalizeIteration(
+  value: number | undefined
+): number {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.max(
+    1,
+    Math.floor(value as number)
+  );
+}
+
 export function evaluateAutonomousLoop(
   state: BrainState,
   options: AutonomousLoopOptions = {}
@@ -33,11 +46,8 @@ export function evaluateAutonomousLoop(
     );
 
   const iteration =
-    Math.max(
-      1,
-      state.executedStages.length > 0
-        ? 1
-        : 1
+    normalizeIteration(
+      options.iteration
     );
 
   if (state.errors.length > 0) {
@@ -108,7 +118,7 @@ export function evaluateAutonomousLoop(
   return {
     status: "continue",
     reason:
-      "A ranked recommendation provides a candidate next cognitive action. Execution must remain gated by downstream planning, decision, validation, and action-routing controls.",
+      "A ranked recommendation provides a candidate next cognitive action. Execution remains gated by downstream planning, decision, validation, and action-routing controls.",
     nextAction:
       recommendation.statement,
     recommendationId:
