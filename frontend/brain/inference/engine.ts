@@ -275,6 +275,53 @@ function deduplicateObservations(
   );
 }
 
+function rankInferences(
+  inferences: CognitiveInference[]
+): CognitiveInference[] {
+  return [
+    ...inferences,
+  ].sort(
+    (a, b) => {
+      const confidenceDelta =
+        b.confidence -
+        a.confidence;
+
+      if (
+        confidenceDelta !== 0
+      ) {
+        return confidenceDelta;
+      }
+
+      const relevanceA =
+        a.evidence.reduce(
+          (
+            sum,
+            item
+          ) =>
+            sum +
+            item.relevance,
+          0
+        );
+
+      const relevanceB =
+        b.evidence.reduce(
+          (
+            sum,
+            item
+          ) =>
+            sum +
+            item.relevance,
+          0
+        );
+
+      return (
+        relevanceB -
+        relevanceA
+      );
+    }
+  );
+}
+
 export function infer(
   state: BrainState
 ): CognitiveInference[] {
@@ -312,7 +359,9 @@ export function infer(
     );
   }
 
-  return inferences.slice(
+  return rankInferences(
+    inferences
+  ).slice(
     0,
     MAX_INFERENCES
   );
