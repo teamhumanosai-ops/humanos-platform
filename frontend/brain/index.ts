@@ -3,6 +3,7 @@ import * as Decision from "./decision";
 import * as Execution from "./execution";
 import * as ActionRouting from "./actionRouting";
 import * as Autonomy from "./autonomy";
+import * as ContentIntelligence from "./contentIntelligence";
 
 /**
  * Human OS Brain
@@ -47,6 +48,11 @@ export const Brain = {
     route: ActionRouting.routeDecisionAction,
   },
 
+  contentIntelligence: {
+    analyzeSources:
+      ContentIntelligence.analyzeContentSources,
+  },
+
   autonomy: {
     evaluate: Autonomy.evaluateAutonomousLoop,
     Controller: Autonomy.AutonomousLoopController,
@@ -62,6 +68,11 @@ export type {
   ActionRoute,
   ActionRouteKind,
 } from "./actionRouting";
+export type {
+  ContentIntelligence,
+  ContentSourceProfile,
+  ContentSourceType,
+} from "./contentIntelligence";
 export type {
   AutonomousLoopDecision,
   AutonomousLoopOptions,
