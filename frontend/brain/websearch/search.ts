@@ -1,26 +1,46 @@
+import {
+  searchFirecrawl,
+} from "./firecrawl";
+
+import type {
+  WebSearchProviderClient,
+} from "./providers";
+
 export type SearchResult = {
   title: string;
+
   url: string;
+
   snippet: string;
+
   publishedDate?: string;
 };
 
 export type SearchResponse = {
   query: string;
-  answer: string | null;
-  results: SearchResult[];
+
+  answer:
+    string | null;
+
+  results:
+    SearchResult[];
+
   searchedAt: string;
 };
 
 type TavilySearchResponse = {
   query?: string;
 
-  answer?: string | null;
+  answer?:
+    string | null;
 
   results?: Array<{
     title?: string;
+
     url?: string;
+
     content?: string;
+
     published_date?: string;
   }>;
 };
@@ -75,7 +95,9 @@ function buildSearchQuery(
       .toString();
 
   if (
-    /\b20\d{2}\b/.test(query)
+    /\b20\d{2}\b/.test(
+      query
+    )
   ) {
     return query.trim();
   }
@@ -83,7 +105,14 @@ function buildSearchQuery(
   return `${query.trim()} ${year}`;
 }
 
-export async function searchWeb(
+function isTavilyConfigured():
+  boolean {
+  return Boolean(
+    process.env.TAVILY_API_KEY
+  );
+}
+
+async function searchTavily(
   query: string
 ): Promise<SearchResponse> {
   const apiKey =
@@ -91,7 +120,7 @@ export async function searchWeb(
 
   if (!apiKey) {
     throw new Error(
-      "TAVILY_API_KEY is not configured."
+      "TAVILY_API_KEY is not configured. Tavily is required for Human OS multi-provider web intelligence."
     );
   }
 
@@ -99,7 +128,9 @@ export async function searchWeb(
     new Date().toISOString();
 
   const searchQuery =
-    buildSearchQuery(query);
+    buildSearchQuery(
+      query
+    );
 
   const response =
     await fetch(
@@ -116,7 +147,8 @@ export async function searchWeb(
         },
 
         body: JSON.stringify({
-          query: searchQuery,
+          query:
+            searchQuery,
 
           search_depth:
             "advanced",
@@ -128,9 +160,11 @@ export async function searchWeb(
               ? "news"
               : "general",
 
-          max_results: 6,
+          max_results:
+            6,
 
-          chunks_per_source: 2,
+          chunks_per_source:
+            2,
 
           include_answer:
             "advanced",
@@ -146,7 +180,7 @@ export async function searchWeb(
       await response.text();
 
     throw new Error(
-      `Web search failed (${response.status}): ${errorText}`
+      `Tavily web search failed (${response.status}): ${errorText}`
     );
   }
 
@@ -187,6 +221,182 @@ export async function searchWeb(
     answer:
       data.answer?.trim() ??
       null,
+
+    results,
+
+    searchedAt,
+  };
+}
+
+const tavilyProvider:
+  WebSearchProviderClient = {
+    name:
+      "tavily",
+
+    isConfigured:
+      isTavilyConfigured,
+
+    search:
+      searchTavily,
+  };
+
+const firecrawlProvider:
+  WebSearchProviderClient = {
+    name:
+      "firecrawl",
+
+    isConfigured:
+      () =>
+        Boolean(
+          process.env.FIRECRAWL_API_KEY
+        ),
+
+    search:
+      searchFirecrawl,
+  };
+
+function getRequiredProviders():
+  WebSearchProviderClient[] {
+  return [
+    tavilyProvider,
+    firecrawlProvider,
+  ];
+}
+
+function deduplicateResults(
+  results:
+    SearchResult[]
+): SearchResult[] {
+  const seen =
+    new Set<string>();
+
+  return results.filter(
+    (result) => {
+      const key =
+        result.url
+          .trim()
+          .toLowerCase();
+
+      if (
+        !key ||
+        seen.has(key)
+      ) {
+        return false;
+      }
+
+      seen.add(
+        key
+      );
+
+      return true;
+    }
+  );
+}
+
+export async function searchWeb(
+  query: string
+): Promise<SearchResponse> {
+  const normalizedQuery =
+    query.trim();
+
+  if (
+    !normalizedQuery
+  ) {
+    throw new Error(
+      "Web search query cannot be empty."
+    );
+  }
+
+  const providers =
+    getRequiredProviders();
+
+  const unconfigured =
+    providers.filter(
+      (provider) =>
+        !provider.isConfigured()
+    );
+
+  if (
+    unconfigured.length > 0
+  ) {
+    throw new Error(
+      `Required web search providers are not configured: ${unconfigured
+        .map(
+          (provider) =>
+            provider.name
+        )
+        .join(", ")}. Human OS requires both Tavily and Firecrawl.`
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Both providers are intentionally executed.
+  |--------------------------------------------------------------------------
+  |
+  | They provide independent web evidence. Neither provider
+  | is a fallback for the other.
+  |
+  */
+
+  const providerResults =
+    await Promise.all(
+      providers.map(
+        async (
+          provider
+        ) => {
+          try {
+            return await provider.search(
+              normalizedQuery
+            );
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : String(error);
+
+            throw new Error(
+              `${provider.name} web search failed: ${message}`
+            );
+          }
+        }
+      )
+    );
+
+  const results =
+    deduplicateResults(
+      providerResults.flatMap(
+        (response) =>
+          response.results
+      )
+    );
+
+  const answers =
+    providerResults
+      .map(
+        (response) =>
+          response.answer?.trim()
+      )
+      .filter(
+        (
+          answer
+        ): answer is string =>
+          Boolean(answer)
+      );
+
+  const searchedAt =
+    new Date().toISOString();
+
+  return {
+    query:
+      normalizedQuery,
+
+    answer:
+      answers.length > 0
+        ? answers.join(
+            "\n\n"
+          )
+        : null,
 
     results,
 
