@@ -24,6 +24,9 @@ import {
  *
  * Live web evidence is explicitly included
  * when LiveKnowledgeStage has executed.
+ *
+ * Conversation continuity is included when older
+ * messages fall outside the short-term window.
  */
 export class ContextStage
   extends BaseStage {
@@ -46,6 +49,13 @@ export class ContextStage
 
     let prompt =
       structuredContext.prompt;
+
+    if (
+      state.conversationContinuity
+    ) {
+      prompt +=
+        `\n\nCONVERSATION CONTINUITY:\n\n${state.conversationContinuity}\n\nThe continuity above represents older conversation turns that are outside the active short-term message window. Use it only as historical conversational context and do not treat clipped content as a complete transcript.`;
+    }
 
     switch (
       state.intent
