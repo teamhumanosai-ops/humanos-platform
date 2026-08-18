@@ -171,10 +171,25 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
     "execution state must preserve the resolved route target"
   );
 
+  const executions =
+    getAllExecutions();
+
   assert(
-    getAllExecutions().length ===
+    executions.length ===
       1,
     "resolved routes must create exactly one execution record"
+  );
+
+  assert(
+    executions[0]?.route?.id ===
+      state.actionRoute.id,
+    "execution record must preserve the route identity"
+  );
+
+  assert(
+    executions[0]?.route?.target ===
+      "web-search",
+    "execution record must preserve the route target"
   );
 }
 
