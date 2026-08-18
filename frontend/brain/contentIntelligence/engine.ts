@@ -122,6 +122,28 @@ function buildProfile(
       citation
     );
 
+  const providerAgreement =
+    providers.length > 1;
+
+  const evidenceReady =
+    Boolean(
+      citation.title.trim() &&
+      citation.url.trim() &&
+      citation.domain.trim()
+    );
+
+  const evidenceQuality =
+    clamp(
+      freshness * 0.4 +
+      completeness * 0.3 +
+      (providerAgreement
+        ? 0.2
+        : 0) +
+      (evidenceReady
+        ? 0.1
+        : 0)
+    );
+
   return {
     index: citation.index,
 
@@ -136,20 +158,15 @@ function buildProfile(
 
     providers,
 
-    providerAgreement:
-      providers.length >
-      1,
+    providerAgreement,
 
     freshness,
 
     completeness,
 
-    evidenceReady:
-      Boolean(
-        citation.title.trim() &&
-        citation.url.trim() &&
-        citation.domain.trim()
-      ),
+    evidenceReady,
+
+    evidenceQuality,
   };
 }
 
@@ -184,6 +201,64 @@ export function analyzeContentSources(
   const sourceCount =
     sourceProfiles.length;
 
+  const evidenceReadyCount =
+    sourceProfiles.filter(
+      (profile) =>
+        profile.evidenceReady
+    ).length;
+
+  const crossProviderAgreementCount =
+    sourceProfiles.filter(
+      (profile) =>
+        profile.providerAgreement
+    ).length;
+
+  const averageFreshness =
+    sourceCount === 0
+      ? 0
+      : sourceProfiles.reduce(
+          (total, profile) =>
+            total +
+            profile.freshness,
+          0
+        ) /
+        sourceCount;
+
+  const averageCompleteness =
+    sourceCount === 0
+      ? 0
+      : sourceProfiles.reduce(
+          (total, profile) =>
+            total +
+            profile.completeness,
+          0
+        ) /
+        sourceCount;
+
+  const averageEvidenceQuality =
+    sourceCount === 0
+      ? 0
+      : sourceProfiles.reduce(
+          (total, profile) =>
+            total +
+            profile.evidenceQuality,
+          0
+        ) /
+        sourceCount;
+
+  const bestEvidenceProfile =
+    sourceProfiles.reduce<
+      ContentSourceProfile | undefined
+    >(
+      (best, profile) =>
+        !best ||
+        profile.evidenceQuality >
+          best.evidenceQuality
+          ? profile
+          : best,
+      undefined
+    );
+
   return {
     sourceCount,
 
@@ -193,33 +268,30 @@ export function analyzeContentSources(
     providerCount:
       providers.size,
 
-    crossProviderAgreementCount:
-      sourceProfiles.filter(
-        (profile) =>
-          profile.providerAgreement
-      ).length,
+    crossProviderAgreementCount,
 
-    averageFreshness:
+    evidenceReadyCount,
+
+    evidenceReadyRatio:
       sourceCount === 0
         ? 0
-        : sourceProfiles.reduce(
-            (total, profile) =>
-              total +
-              profile.freshness,
-            0
-          ) /
+        : evidenceReadyCount /
           sourceCount,
 
-    averageCompleteness:
+    agreementCoverage:
       sourceCount === 0
         ? 0
-        : sourceProfiles.reduce(
-            (total, profile) =>
-              total +
-              profile.completeness,
-            0
-          ) /
+        : crossProviderAgreementCount /
           sourceCount,
+
+    averageFreshness,
+
+    averageCompleteness,
+
+    averageEvidenceQuality,
+
+    bestEvidenceIndex:
+      bestEvidenceProfile?.index,
 
     sourceProfiles,
   };
