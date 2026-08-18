@@ -29,9 +29,9 @@ import {
  * Live web evidence is explicitly included
  * when LiveKnowledgeStage has executed.
  *
- * Content Intelligence analyzes the retrieved
- * source structure without treating metadata
- * as proof of factual correctness.
+ * Content Intelligence analyzes source structure,
+ * freshness, completeness, and provider agreement
+ * without treating metadata as proof of truth.
  *
  * Conversation continuity is included when older
  * messages fall outside the short-term window.
@@ -96,9 +96,12 @@ export class ContextStage
           "CONTENT INTELLIGENCE:",
           `Sources: ${content.sourceCount}`,
           `Unique domains: ${content.uniqueDomainCount}`,
+          `Providers represented: ${content.providerCount}`,
+          `Cross-provider agreement: ${content.crossProviderAgreementCount}`,
           `Average freshness: ${content.averageFreshness.toFixed(2)}`,
           `Average completeness: ${content.averageCompleteness.toFixed(2)}`,
           "",
+          "Cross-provider agreement is an evidence-strength signal, not proof of factual correctness.",
           "Source metadata describes retrieval structure and completeness; it does not establish factual truth.",
         ].join("\n");
     }
@@ -138,8 +141,15 @@ export class ContextStage
               .map(
                 (
                   citation
-                ) =>
-                  `[${citation.index}] ${citation.title} — ${citation.url}`
+                ) => {
+                  const providers =
+                    citation.providers?.join(
+                      ", "
+                    ) ??
+                    "unknown";
+
+                  return `[${citation.index}] ${citation.title} — ${citation.url} — Providers: ${providers}`;
+                }
               )
               .join(
                 "\n"
