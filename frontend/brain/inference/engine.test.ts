@@ -100,6 +100,102 @@ assert(
   "low-confidence evidence must remain explicitly uncertain"
 );
 
+const duplicateState =
+  createBrainState(
+    "conversation",
+    [],
+    "What is the current project status?"
+  );
+
+duplicateState.reasoningObservations = [
+  {
+    statement:
+      "The project is active.",
+    confidence: 0.9,
+    relevance: 0.8,
+    source: "memory",
+    kind: "known_fact",
+  },
+  {
+    statement:
+      "  The project is active.  ",
+    confidence: 0.7,
+    relevance: 0.7,
+    source: "memory",
+    kind: "known_fact",
+  },
+  {
+    statement:
+      "The project is active.",
+    confidence: 0.85,
+    relevance: 0.9,
+    source: "knowledge",
+    kind: "known_fact",
+  },
+];
+
+const duplicateInferences =
+  infer(
+    duplicateState
+  );
+
+assert(
+  duplicateInferences.length ===
+    2,
+  "duplicate evidence from the same source must be collapsed while independent sources remain"
+);
+
+assert(
+  duplicateInferences[0].confidence <=
+    1 &&
+  duplicateInferences[0].confidence >=
+    0,
+  "inference confidence must remain bounded"
+);
+
+const crossSource =
+  createBrainState(
+    "conversation",
+    [],
+    "What is the project status?"
+  );
+
+crossSource.reasoningObservations = [
+  {
+    statement:
+      "The project is active.",
+    confidence: 0.9,
+    relevance: 0.9,
+    source: "memory",
+    kind: "known_fact",
+  },
+  {
+    statement:
+      "The project is active.",
+    confidence: 0.95,
+    relevance: 0.9,
+    source: "knowledge",
+    kind: "known_fact",
+  },
+];
+
+const crossSourceInferences =
+  infer(
+    crossSource
+  );
+
+assert(
+  crossSourceInferences.length ===
+    3,
+  "independent sources must produce a bounded cross-source inference"
+);
+
+assert(
+  crossSourceInferences[2].evidence.length ===
+    2,
+  "cross-source inference must preserve independent evidence"
+);
+
 console.log(
-  "CI-002 relevance-weighted inference verification passed."
+  "CI-002 inference normalization verification passed."
 );
