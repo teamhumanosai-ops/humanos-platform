@@ -39,6 +39,10 @@ import type {
   CognitiveInference,
 } from "./inference";
 
+import type {
+  ActionRoute,
+} from "./actionRouting";
+
 export type ConversationMessage = {
   role:
     | "user"
@@ -205,6 +209,16 @@ export type BrainState = {
 
   recommendations:
     Recommendation[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Action Routing Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  actionRoute:
+    ActionRoute
+    | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -391,6 +405,15 @@ export function createBrainState(
 
     recommendations:
       [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Action Routing Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    actionRoute:
+      null,
 
     /*
     |--------------------------------------------------------------------------
