@@ -58,6 +58,7 @@ function runPipelineRegistrationVerification(): void {
     "ResponseValidation",
     "Outcome",
     "Reflection",
+    "Autonomy",
   ];
 
   assert(
@@ -114,6 +115,12 @@ function runPipelineRegistrationVerification(): void {
     names.indexOf("Recommendation") <
       names.indexOf("Reasoning"),
     "reasoning must consume recommendation intelligence"
+  );
+
+  assert(
+    names.indexOf("Reflection") <
+      names.indexOf("Autonomy"),
+    "autonomy evaluation must run after reflection"
   );
 
   console.log(
