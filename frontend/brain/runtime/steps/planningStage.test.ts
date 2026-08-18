@@ -28,6 +28,9 @@ function assert(
 async function runVerification(): Promise<void> {
   clearPlans();
 
+  const now =
+    new Date().toISOString();
+
   const state =
     createBrainState(
       "conversation",
@@ -42,21 +45,30 @@ async function runVerification(): Promise<void> {
     {
       id: "runtime",
       label: "Runtime",
-      type: "project",
+      type: "entity",
+      properties: {},
+      createdAt: now,
+      updatedAt: now,
     },
     {
       id: "validation",
       label: "Validation",
-      type: "task",
+      type: "entity",
+      properties: {},
+      createdAt: now,
+      updatedAt: now,
     },
   ];
 
   state.graphEdges = [
     {
+      id: "runtime-validation",
       from: "runtime",
       to: "validation",
       type: "depends_on",
       weight: 0.9,
+      properties: {},
+      createdAt: now,
     },
   ];
 
@@ -85,9 +97,8 @@ async function runVerification(): Promise<void> {
       value: "Validate implementation before release.",
       importance: 0.8,
       confidence: 0.9,
-      source: "conversation",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      updatedAt: now,
+      kind: "long_term",
     },
   ];
 
