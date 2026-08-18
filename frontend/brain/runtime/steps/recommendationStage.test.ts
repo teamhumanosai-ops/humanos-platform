@@ -45,6 +45,28 @@ async function verifyRecommendationIntegration(): Promise<void> {
     },
   ];
 
+  state.memories = [
+    {
+      key:
+        "current review",
+
+      value:
+        "The review follows the current project task.",
+
+      confidence:
+        0.9,
+
+      updatedAt:
+        new Date().toISOString(),
+
+      kind:
+        "fact",
+
+      importance:
+        0.9,
+    },
+  ];
+
   const result =
     await new RecommendationStage().execute(
       state
@@ -53,6 +75,18 @@ async function verifyRecommendationIntegration(): Promise<void> {
   assert(
     result.recommendations.length === 1,
     "recommendation stage must persist generated recommendations"
+  );
+
+  assert(
+    result.recommendations[0]?.evidence.some(
+      (item) =>
+        item.source ===
+          "memory" &&
+        item.statement.includes(
+          "review"
+        )
+    ) === true,
+    "recommendation stage must enrich recommendations with relevant memory evidence"
   );
 
   assert(
