@@ -63,6 +63,10 @@ import {
 } from "./steps/predictionConsolidationStage";
 
 import {
+  PredictionConfidenceStage,
+} from "./steps/predictionConfidenceStage";
+
+import {
   SkillStage,
 } from "./steps/skillStage";
 
@@ -271,6 +275,16 @@ export class CognitiveRuntime {
 
     this.register(
       new PredictionConsolidationStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Prediction Confidence
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new PredictionConfidenceStage()
     );
 
     /*
