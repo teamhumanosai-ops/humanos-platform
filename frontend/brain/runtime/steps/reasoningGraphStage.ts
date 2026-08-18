@@ -3,6 +3,10 @@ import {
 } from "../../brainState";
 
 import {
+  GraphEdge,
+} from "../../graph";
+
+import {
   graphQuery,
 } from "../../graph";
 
@@ -13,15 +17,13 @@ import {
 /**
  * ReasoningGraphStage
  *
- * Keeps Knowledge Graph relationships aligned with the
- * graph nodes already selected for the current BrainState.
+ * Integrates the relevant Knowledge Graph relationships
+ * into the runtime BrainState.
  *
- * BrainStateStage is responsible for selecting the relevant
- * graph nodes and relationships for the current request.
- *
- * This stage therefore preserves that relevance boundary
- * while ensuring the graph relationship data is available
- * to downstream reasoning.
+ * BrainStateStage hydrates the graph nodes first.
+ * This stage then derives only the relationships connected
+ * to those hydrated nodes so downstream reasoning receives
+ * graph evidence belonging to the current cognitive state.
  */
 export class ReasoningGraphStage
   extends BaseStage {
@@ -35,6 +37,10 @@ export class ReasoningGraphStage
     |--------------------------------------------------------------------------
     | No graph context
     |--------------------------------------------------------------------------
+    |
+    | Keep the graph boundary explicit. If BrainState contains
+    | no graph nodes, it should also contain no graph relationships.
+    |
     */
 
     if (
@@ -47,18 +53,15 @@ export class ReasoningGraphStage
 
     /*
     |--------------------------------------------------------------------------
-    | Preserve relevant graph relationships
+    | Build the current BrainState graph boundary
     |--------------------------------------------------------------------------
     |
-    | BrainStateStage already selected the relevant graph
-    | relationships for the current request.
-    |
-    | Do not replace that filtered set with every relationship
-    | stored in the global graph.
+    | Only relationships whose endpoints are already present in
+    | BrainState.graph are eligible for downstream reasoning.
     |
     */
 
-    const relevantNodeIds =
+    const graphNodeIds =
       new Set(
         state.graph.map(
           (node) =>
@@ -66,47 +69,33 @@ export class ReasoningGraphStage
         )
       );
 
-    const existingRelevantEdges =
-      state.graphEdges.filter(
-        (edge) =>
-          relevantNodeIds.has(
-            edge.from
-          ) &&
-          relevantNodeIds.has(
-            edge.to
-          )
-      );
+    const relevantEdges =
+      graphQuery
+        .getEdges()
+        .filter(
+          (
+            edge: GraphEdge
+          ) =>
+            graphNodeIds.has(
+              edge.from
+            ) &&
+            graphNodeIds.has(
+              edge.to
+            )
+        );
 
     /*
     |--------------------------------------------------------------------------
-    | Fallback
+    | Preserve the shared BrainState contract
     |--------------------------------------------------------------------------
     |
-    | If the upstream BrainState hydration did not provide
-    | relationships, derive them from the graph query layer
-    | but still enforce the current BrainState relevance boundary.
+    | Do not create another graph context object.
+    | BrainState remains the single cognitive artifact.
     |
     */
 
-    if (
-      existingRelevantEdges.length === 0
-    ) {
-      state.graphEdges =
-        graphQuery
-          .getEdges()
-          .filter(
-            (edge) =>
-              relevantNodeIds.has(
-                edge.from
-              ) &&
-              relevantNodeIds.has(
-                edge.to
-              )
-          );
-    } else {
-      state.graphEdges =
-        existingRelevantEdges;
-    }
+    state.graphEdges =
+      relevantEdges;
 
     return state;
   }
