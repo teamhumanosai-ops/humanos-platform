@@ -53,6 +53,7 @@ function runPipelineRegistrationVerification(): void {
     "Planning",
     "Decision",
     "Validation",
+    "ActionRouting",
     "Execution",
     "Response",
     "ResponseValidation",
@@ -115,6 +116,18 @@ function runPipelineRegistrationVerification(): void {
     names.indexOf("Recommendation") <
       names.indexOf("Reasoning"),
     "reasoning must consume recommendation intelligence"
+  );
+
+  assert(
+    names.indexOf("Validation") <
+      names.indexOf("ActionRouting"),
+    "action routing must run only after validation"
+  );
+
+  assert(
+    names.indexOf("ActionRouting") <
+      names.indexOf("Execution"),
+    "execution must consume the action route"
   );
 
   assert(
