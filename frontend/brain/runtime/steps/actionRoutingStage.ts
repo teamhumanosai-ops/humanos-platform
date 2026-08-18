@@ -3,6 +3,7 @@ import {
 } from "../../decision";
 
 import {
+  isExecutableActionRoute,
   routeDecisionAction,
 } from "../../actionRouting";
 
@@ -55,10 +56,22 @@ export class ActionRoutingStage
       return state;
     }
 
-    state.actionRoute =
+    const route =
       routeDecisionAction(
         decision
       );
+
+    if (!isExecutableActionRoute(route)) {
+      state.actionRoute = route;
+      state.errors.push(
+        "ActionRouting: decision could not be resolved to a safe executable route."
+      );
+
+      return state;
+    }
+
+    state.actionRoute =
+      route;
 
     return state;
   }
