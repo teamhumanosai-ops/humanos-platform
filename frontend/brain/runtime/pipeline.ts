@@ -75,6 +75,10 @@ import {
 } from "./steps/contextStage";
 
 import {
+  RecommendationStage,
+} from "./steps/recommendationStage";
+
+import {
   ReasoningStage,
 } from "./steps/reasoningStage";
 
@@ -305,6 +309,16 @@ export class CognitiveRuntime {
 
     this.register(
       new ContextStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recommendation
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new RecommendationStage()
     );
 
     /*
