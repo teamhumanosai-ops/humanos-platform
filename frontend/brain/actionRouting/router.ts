@@ -4,6 +4,7 @@ import type {
 
 import type {
   ActionRoute,
+  ActionRouteTarget,
 } from "./types";
 
 function normalizeConfidence(
@@ -64,7 +65,7 @@ function inferRouteKind(
 function resolveRouteTarget(
   kind: ActionRoute["kind"],
   action: string
-): string {
+): ActionRouteTarget {
   const normalized =
     action.trim().toLowerCase();
 
