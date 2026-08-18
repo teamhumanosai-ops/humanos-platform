@@ -21,6 +21,9 @@ const MIN_PREDICTION_CONFIDENCE =
 const MAX_EVIDENCE =
   6;
 
+const MIN_EVIDENCE_FOR_DIVERSITY_BONUS =
+  2;
+
 function normalize(
   value: string
 ): string {
@@ -102,6 +105,104 @@ function addEvidence(
   });
 }
 
+function normalizeEvidence(
+  evidence: RecommendationEvidence[]
+): RecommendationEvidence[] {
+  const normalized:
+    RecommendationEvidence[] =
+    [];
+
+  for (
+    const item of
+    evidence
+  ) {
+    addEvidence(
+      normalized,
+      item
+    );
+  }
+
+  return normalized;
+}
+
+function calculateRecommendationConfidence(
+  recommendation: Recommendation,
+  evidence: RecommendationEvidence[]
+): number {
+  if (
+    evidence.length === 0
+  ) {
+    return 0;
+  }
+
+  const average =
+    evidence.reduce(
+      (
+        total,
+        item
+      ) =>
+        total +
+        clamp(
+          item.confidence
+        ),
+      0
+    ) /
+    evidence.length;
+
+  const sourceCount =
+    new Set(
+      evidence.map(
+        (item) =>
+          item.source
+      )
+    ).size;
+
+  const diversityBonus =
+    sourceCount >=
+    MIN_EVIDENCE_FOR_DIVERSITY_BONUS
+      ? 0.05
+      : 0;
+
+  const existingConfidence =
+    clamp(
+      recommendation.confidence
+    );
+
+  return clamp(
+    existingConfidence *
+      0.2 +
+      average *
+      0.8 +
+      diversityBonus
+  );
+}
+
+function normalizeRecommendation(
+  recommendation: Recommendation
+): Recommendation {
+  const evidence =
+    normalizeEvidence(
+      recommendation.evidence
+    );
+
+  return {
+    ...recommendation,
+
+    confidence:
+      calculateRecommendationConfidence(
+        recommendation,
+        evidence
+      ),
+
+    priority:
+      clamp(
+        recommendation.priority
+      ),
+
+    evidence,
+  };
+}
+
 function createRecommendation(
   statement: string,
   rationale: string,
@@ -109,11 +210,16 @@ function createRecommendation(
   priority: number,
   evidence: RecommendationEvidence[]
 ): Recommendation {
+  const normalizedEvidence =
+    normalizeEvidence(
+      evidence
+    );
+
   const confidence =
-    evidence.length === 0
+    normalizedEvidence.length === 0
       ? 0
       : clamp(
-          evidence.reduce(
+          normalizedEvidence.reduce(
             (
               total,
               item
@@ -124,7 +230,7 @@ function createRecommendation(
               ),
             0
           ) /
-            evidence.length
+            normalizedEvidence.length
         );
 
   return {
@@ -146,7 +252,8 @@ function createRecommendation(
 
     confidence,
 
-    evidence,
+    evidence:
+      normalizedEvidence,
 
     createdAt:
       new Date(),
@@ -495,19 +602,24 @@ function deduplicate(
     const recommendation of
     recommendations
   ) {
+    const normalized =
+      normalizeRecommendation(
+        recommendation
+      );
+
     const existing =
       unique.get(
-        recommendation.id
+        normalized.id
       );
 
     if (
       !existing ||
-      recommendation.confidence >
+      normalized.confidence >
         existing.confidence
     ) {
       unique.set(
-        recommendation.id,
-        recommendation
+        normalized.id,
+        normalized
       );
     }
   }
