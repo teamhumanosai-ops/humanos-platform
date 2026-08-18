@@ -9,10 +9,28 @@ export type ChatMessage = {
 /**
  * Maximum number of recent turns retained in the runtime request.
  *
- * Older turns remain the responsibility of persistent memory,
- * timeline, graph, and future conversation summarization layers.
+ * Older turns remain available to the bounded continuity summary
+ * and persistent cognitive systems such as memory, timeline,
+ * and graph context.
  */
 export const MAX_MESSAGES = 20;
+
+/**
+ * Maximum number of omitted messages represented in the compact
+ * continuity summary.
+ */
+export const MAX_SUMMARY_MESSAGES = 12;
+
+/**
+ * Maximum number of characters retained from an individual
+ * omitted message in the continuity summary.
+ */
+export const MAX_SUMMARY_MESSAGE_LENGTH = 280;
+
+/**
+ * Maximum total size of the compact continuity summary.
+ */
+export const MAX_SUMMARY_LENGTH = 3600;
 
 /**
  * Normalize the incoming conversation without changing message order.
@@ -72,4 +90,90 @@ export function getOmittedMessageCount(
     normalized.length -
       MAX_MESSAGES
   );
+}
+
+/**
+ * Build a deterministic compact continuity representation for messages
+ * that fall outside the short-term runtime window.
+ *
+ * This is intentionally a compression layer, not an invented semantic
+ * summary. It preserves message roles and source wording while bounding
+ * the amount of historical conversation entering the cognitive prompt.
+ */
+export function buildConversationContinuitySummary(
+  messages: ChatMessage[]
+): string {
+  const normalized =
+    normalizeConversation(
+      messages
+    );
+
+  const omitted =
+    normalized.slice(
+      0,
+      Math.max(
+        0,
+        normalized.length -
+          MAX_MESSAGES
+      )
+    );
+
+  if (
+    omitted.length === 0
+  ) {
+    return "";
+  }
+
+  const selected =
+    omitted.slice(
+      -MAX_SUMMARY_MESSAGES
+    );
+
+  const omittedBeforeSelected =
+    omitted.length -
+    selected.length;
+
+  const lines: string[] = [];
+
+  if (
+    omittedBeforeSelected >
+    0
+  ) {
+    lines.push(
+      `Earlier history also contains ${omittedBeforeSelected} omitted message(s) before the continuity window below.`
+    );
+  }
+
+  for (
+    const message of selected
+  ) {
+    const compactMessage =
+      message.message
+        .replace(
+          /\s+/g,
+          " "
+        )
+        .trim();
+
+    const clipped =
+      compactMessage.length >
+      MAX_SUMMARY_MESSAGE_LENGTH
+        ? `${compactMessage.slice(
+            0,
+            MAX_SUMMARY_MESSAGE_LENGTH -
+              1
+          )}…`
+        : compactMessage;
+
+    lines.push(
+      `${message.role}: ${clipped}`
+    );
+  }
+
+  return lines
+    .join("\n")
+    .slice(
+      0,
+      MAX_SUMMARY_LENGTH
+    );
 }
