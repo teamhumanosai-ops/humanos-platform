@@ -87,6 +87,9 @@ export type BrainState = {
 
   userMessage: string;
 
+  conversationContinuity:
+    string;
+
   /*
   |--------------------------------------------------------------------------
   | Cognitive State
@@ -253,7 +256,8 @@ export function createBrainState(
   conversation: string,
   messages:
     ConversationMessage[],
-  userMessage: string
+  userMessage: string,
+  conversationContinuity = ""
 ): BrainState {
   const now =
     new Date();
@@ -270,6 +274,8 @@ export function createBrainState(
     messages,
 
     userMessage,
+
+    conversationContinuity,
 
     /*
     |--------------------------------------------------------------------------
