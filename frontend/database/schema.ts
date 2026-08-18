@@ -138,3 +138,22 @@ export const plans = sqliteTable(
     ).notNull(),
   }
 );
+
+export const profiles = sqliteTable(
+  "profiles",
+  {
+    id: text("id")
+      .primaryKey(),
+
+    data: text("data")
+      .notNull(),
+
+    createdAt: text(
+      "created_at"
+    ).notNull(),
+
+    updatedAt: text(
+      "updated_at"
+    ).notNull(),
+  }
+);
