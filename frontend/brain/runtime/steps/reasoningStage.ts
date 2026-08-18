@@ -3,6 +3,10 @@ import {
 } from "../../brainState";
 
 import {
+  applyContentEvidenceQuality,
+} from "../../contentIntelligence";
+
+import {
   reason,
 } from "../../reasoning";
 
@@ -22,6 +26,10 @@ import {
  *
  * BrainState remains responsible for
  * retaining the structured runtime artifact.
+ *
+ * Live-web reasoning is additionally weighted
+ * by the canonical Content Intelligence evidence
+ * quality signal before it is persisted.
  */
 export class ReasoningStage
   extends BaseStage {
@@ -54,6 +62,35 @@ export class ReasoningStage
     const result =
       reason(state);
 
+    const observations =
+      applyContentEvidenceQuality(
+        result.observations,
+        state.contentIntelligence
+      );
+
+    const confidence =
+      observations.length === 0
+        ? result.confidence
+        : observations.reduce(
+            (
+              total,
+              observation
+            ) =>
+              total +
+              observation.confidence *
+                observation.relevance,
+            0
+          ) /
+          observations.reduce(
+            (
+              total,
+              observation
+            ) =>
+              total +
+              observation.relevance,
+            0
+          );
+
     /*
     |--------------------------------------------------------------------------
     | Preserve the structured reasoning artifact.
@@ -61,10 +98,10 @@ export class ReasoningStage
     */
 
     state.reasoningObservations =
-      result.observations;
+      observations;
 
     state.reasoningConfidence =
-      result.confidence;
+      confidence;
 
     /*
     |--------------------------------------------------------------------------
@@ -77,14 +114,14 @@ export class ReasoningStage
       [
         result.summary,
 
-        ...result.observations.map(
+        ...observations.map(
           (observation) =>
             `- ${observation.statement} [${observation.kind}] Source: ${observation.source} Confidence: ${observation.confidence.toFixed(
               2
             )}`
         ),
 
-        `Overall reasoning confidence: ${result.confidence.toFixed(
+        `Overall reasoning confidence: ${confidence.toFixed(
           2
         )}`,
       ].join("\n");
