@@ -55,6 +55,10 @@ import {
 } from "./steps/predictionHistoryStage";
 
 import {
+  PredictionMemoryStage,
+} from "./steps/predictionMemoryStage";
+
+import {
   SkillStage,
 } from "./steps/skillStage";
 
@@ -243,6 +247,16 @@ export class CognitiveRuntime {
 
     this.register(
       new PredictionHistoryStage()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Prediction Memory
+    |--------------------------------------------------------------------------
+    */
+
+    this.register(
+      new PredictionMemoryStage()
     );
 
     /*
