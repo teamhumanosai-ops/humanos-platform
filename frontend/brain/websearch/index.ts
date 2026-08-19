@@ -7,3 +7,5 @@ export * from "./citations";
 export * from "./provenance";
 
 export * from "./content";
+
+export * from "./firecrawl";
