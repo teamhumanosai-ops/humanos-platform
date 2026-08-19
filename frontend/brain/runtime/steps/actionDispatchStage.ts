@@ -14,9 +14,13 @@ import {
 /**
  * ActionDispatchStage
  *
- * Converts the validated ActionRoute into a bounded
- * dispatch descriptor and verifies that a concrete
- * execution capability exists before downstream execution.
+ * Converts the validated ActionRoute into a bounded dispatch
+ * descriptor and verifies that a concrete execution capability
+ * exists before downstream execution.
+ *
+ * Dispatch is metadata preparation, not external execution.
+ * Re-entering the stage with the same route is therefore a safe
+ * no-op rather than a second mutation of the execution descriptor.
  */
 export class ActionDispatchStage
   extends BaseStage {
@@ -58,13 +62,36 @@ export class ActionDispatchStage
       return state;
     }
 
+    if (
+      capability.target !==
+      dispatch.target
+    ) {
+      state.errors.push(
+        `ActionDispatch: capability binding mismatch for target "${dispatch.target}".`
+      );
+
+      return state;
+    }
+
+    const routeMarker =
+      `Route ID: ${dispatch.routeId}`;
+
+    if (
+      state.execution?.includes(
+        routeMarker
+      )
+    ) {
+      return state;
+    }
+
     state.execution =
       [
         state.execution ??
           `Action: ${dispatch.action}`,
         `Dispatch: ${dispatch.kind}/${dispatch.target}`,
-        `Route ID: ${dispatch.routeId}`,
+        routeMarker,
         `Capability: ${capability.target}`,
+        `Action: ${dispatch.action}`,
       ].join("\n");
 
     return state;
