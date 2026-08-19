@@ -29,6 +29,29 @@ export type ActionCapabilityResult = {
     Record<string, string>;
 };
 
+function normalizeCapabilityResult(
+  target: ActionCapabilityTarget,
+  result: ActionCapabilityResult
+): ActionCapabilityResult {
+  const summary =
+    result.summary.trim();
+
+  if (!summary) {
+    throw new Error(
+      `Action capability "${target}" returned an empty execution result.`
+    );
+  }
+
+  return {
+    summary,
+    metadata: {
+      ...(result.metadata ?? {}),
+      capabilityTarget:
+        target,
+    },
+  };
+}
+
 function extractUrl(
   action: string
 ): string | null {
@@ -61,39 +84,42 @@ const webSearchCapability:
         action
       );
 
-    return {
-      summary:
-        [
-          result.answer,
-          `Evidence count: ${result.results.length}`,
-          `Search time: ${result.searchedAt}`,
-        ]
-          .filter(Boolean)
-          .join("\n"),
+    return normalizeCapabilityResult(
+      "web-search",
+      {
+        summary:
+          [
+            result.answer,
+            `Evidence count: ${result.results.length}`,
+            `Search time: ${result.searchedAt}`,
+          ]
+            .filter(Boolean)
+            .join("\n"),
 
-      metadata: {
-        query:
-          result.query,
-        searchedAt:
-          result.searchedAt,
-        providers:
-          result.provenance?.observedProviders.join(",") ??
-          "",
-        requiredProviders:
-          result.provenance?.requiredProviders.join(",") ??
-          "",
-        dualProviderResultCount:
-          String(
-            result.provenance?.dualProviderResultCount ??
-            0
-          ),
-        dualProviderCoverage:
-          String(
-            result.provenance?.dualProviderCoverage ??
-            0
-          ),
-      },
-    };
+        metadata: {
+          query:
+            result.query,
+          searchedAt:
+            result.searchedAt,
+          providers:
+            result.provenance?.observedProviders.join(",") ??
+            "",
+          requiredProviders:
+            result.provenance?.requiredProviders.join(",") ??
+            "",
+          dualProviderResultCount:
+            String(
+              result.provenance?.dualProviderResultCount ??
+              0
+            ),
+          dualProviderCoverage:
+            String(
+              result.provenance?.dualProviderCoverage ??
+              0
+            ),
+        },
+      }
+    );
   },
 };
 
@@ -131,32 +157,35 @@ const webContentCapability:
       );
     }
 
-    return {
-      summary:
-        [
-          `Title: ${result.title}`,
-          `URL: ${result.url}`,
-          `Status: ${result.status}`,
-          `Content-Type: ${result.contentType || "unknown"}`,
-          "Content:",
-          content,
-        ].join("\n"),
+    return normalizeCapabilityResult(
+      "web-content",
+      {
+        summary:
+          [
+            `Title: ${result.title}`,
+            `URL: ${result.url}`,
+            `Status: ${result.status}`,
+            `Content-Type: ${result.contentType || "unknown"}`,
+            "Content:",
+            content,
+          ].join("\n"),
 
-      metadata: {
-        url:
-          result.url,
-        title:
-          result.title,
-        status:
-          String(result.status),
-        contentType:
-          result.contentType,
-        fetchedAt:
-          result.fetchedAt,
-        provider:
-          "firecrawl",
-      },
-    };
+        metadata: {
+          url:
+            result.url,
+          title:
+            result.title,
+          status:
+            String(result.status),
+          contentType:
+            result.contentType,
+          fetchedAt:
+            result.fetchedAt,
+          provider:
+            "firecrawl",
+        },
+      }
+    );
   },
 };
 
@@ -205,17 +234,20 @@ const cognitiveCapability:
       );
     }
 
-    return {
-      summary,
-      metadata: {
-        executionType:
-          "cognitive-ai",
-        providerBoundary:
-          "aiService",
-        action:
-          normalizedAction,
-      },
-    };
+    return normalizeCapabilityResult(
+      "cognitive",
+      {
+        summary,
+        metadata: {
+          executionType:
+            "cognitive-ai",
+          providerBoundary:
+            "aiService",
+          action:
+            normalizedAction,
+        },
+      }
+    );
   },
 };
 
@@ -283,16 +315,19 @@ const toolCapability:
         services
       );
 
-    return {
-      ...result,
-      metadata: {
-        ...(result.metadata ?? {}),
-        executionType:
-          "registered-tool",
-        toolId,
-        toolAction,
-      },
-    };
+    return normalizeCapabilityResult(
+      "tool",
+      {
+        ...result,
+        metadata: {
+          ...(result.metadata ?? {}),
+          executionType:
+            "registered-tool",
+          toolId,
+          toolAction,
+        },
+      }
+    );
   },
 };
 
