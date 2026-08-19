@@ -13,6 +13,8 @@ import {
 import {
   clearExecutions,
   getAllExecutions,
+  createExecutionFromDecision,
+  startExecution,
 } from "../../execution";
 
 import type {
@@ -50,25 +52,31 @@ function createDecision(
   };
 }
 
-async function verifyMissingRouteBlocksExecution(): Promise<void> {
-  clearExecutions();
-
+function prepareDecisionState(
+  conversation: string,
+  message: string,
+  decisionId: string
+): {
+  state: ReturnType<typeof createBrainState>;
+  plan: ReturnType<typeof createPlanFromMessage>;
+  decision: Decision;
+} {
   const state =
     createBrainState(
-      "conversation",
+      conversation,
       [],
-      "Execute the next action"
+      message
     );
 
   const plan =
     createPlanFromMessage(
-      "Execute the next action"
+      message
     );
 
   const decision =
     createDecision(
-      "decision-missing-route",
-      "Create the requested task"
+      decisionId,
+      message
     );
 
   saveDecision(
@@ -83,6 +91,24 @@ async function verifyMissingRouteBlocksExecution(): Promise<void> {
 
   state.currentDecisionId =
     decision.id;
+
+  return {
+    state,
+    plan,
+    decision,
+  };
+}
+
+async function verifyMissingRouteBlocksExecution(): Promise<void> {
+  clearExecutions();
+
+  const {
+    state,
+  } = prepareDecisionState(
+    "conversation",
+    "Execute the next action",
+    "decision-missing-route"
+  );
 
   await new ExecutionStage().execute(
     state
@@ -114,36 +140,15 @@ async function verifyMissingRouteBlocksExecution(): Promise<void> {
 async function verifyResolvedRouteCreatesExecution(): Promise<void> {
   clearExecutions();
 
-  const state =
-    createBrainState(
-      "conversation",
-      [],
-      "Search for the latest status"
-    );
-
-  const plan =
-    createPlanFromMessage(
-      "Search for the latest status"
-    );
-
-  const decision =
-    createDecision(
-      "decision-resolved-route",
-      "Search for the latest status"
-    );
-
-  saveDecision(
-    decision
+  const {
+    state,
+    plan,
+    decision,
+  } = prepareDecisionState(
+    "conversation",
+    "Search for the latest status",
+    "decision-resolved-route"
   );
-
-  state.currentPlanId =
-    plan.id;
-
-  state.currentGoal =
-    plan.goal;
-
-  state.currentDecisionId =
-    decision.id;
 
   state.actionRoute = {
     id: `route-${decision.id}`,
@@ -191,7 +196,101 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
       "web-search",
     "execution record must preserve the route target"
   );
+
+  assert(
+    executions[0]?.planId ===
+      plan.id,
+    "execution record must preserve the plan identity"
+  );
+}
+
+async function verifyPendingExecutionIsNotReExecuted(): Promise<void> {
+  clearExecutions();
+
+  const {
+    state,
+    plan,
+    decision,
+  } = prepareDecisionState(
+    "conversation-idempotency",
+    "Search for the latest status",
+    "decision-pending-idempotency"
+  );
+
+  const actionRoute = {
+    id: `route-${decision.id}`,
+    kind: "provider" as const,
+    action: decision.selectedAction,
+    target: "web-search",
+    confidence: 0.9,
+    executable: true,
+  };
+
+  state.actionRoute =
+    actionRoute;
+
+  const existingExecution =
+    createExecutionFromDecision(
+      decision,
+      plan.id,
+      actionRoute
+    );
+
+  const started =
+    startExecution(
+      existingExecution.id
+    );
+
+  assert(
+    started !== null,
+    "fixture execution must enter the in-progress state"
+  );
+
+  state.currentExecutionId =
+    existingExecution.id;
+
+  const stage =
+    new ExecutionStage();
+
+  await stage.execute(
+    state
+  );
+
+  assert(
+    getAllExecutions().length ===
+      1,
+    "re-entry must not create a second execution record"
+  );
+
+  assert(
+    getAllExecutions()[0]?.id ===
+      existingExecution.id,
+    "re-entry must preserve the existing execution identity"
+  );
+
+  assert(
+    getAllExecutions()[0]?.status ===
+      "in_progress",
+    "re-entry must preserve the existing in-progress state"
+  );
+
+  await stage.execute(
+    state
+  );
+
+  assert(
+    getAllExecutions().length ===
+      1,
+    "repeated re-entry must remain idempotent"
+  );
+
+  assert(
+    state.runtimeStatus ===
+      "in_progress",
+    "pending execution re-entry must remain observable as in progress"
+  );
 }
 
 await verifyMissingRouteBlocksExecution();
 await verifyResolvedRouteCreatesExecution();
+await verifyPendingExecutionIsNotReExecuted();
