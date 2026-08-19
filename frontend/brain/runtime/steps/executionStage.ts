@@ -17,6 +17,7 @@ import {
   startExecution,
   blockExecution,
   setExecutionResult,
+  getExecution,
 } from "../../execution";
 
 import {
@@ -36,6 +37,9 @@ import {
  *
  * Executes a validated action through an explicitly registered
  * capability. Arbitrary action strings are never evaluated as code.
+ *
+ * An existing execution on the BrainState is treated as authoritative
+ * so re-entering this stage cannot execute the same external action twice.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -59,6 +63,35 @@ export class ExecutionStage
       !state.currentPlanId
     ) {
       return state;
+    }
+
+    if (
+      state.currentExecutionId
+    ) {
+      const existingExecution =
+        getExecution(
+          state.currentExecutionId
+        );
+
+      if (
+        existingExecution &&
+        existingExecution.status !==
+          "pending"
+      ) {
+        state.execution = [
+          `Execution: ${existingExecution.title}`,
+          `Action: ${existingExecution.action}`,
+          `Route: ${existingExecution.route?.target ?? "unknown"}`,
+          `Status: ${existingExecution.status}`,
+          `Plan ID: ${existingExecution.planId}`,
+          `Execution ID: ${existingExecution.id}`,
+          existingExecution.result
+            ? `Result: ${existingExecution.result.summary}`
+            : "Result: not yet recorded",
+        ].join("\n");
+
+        return state;
+      }
     }
 
     const actionRoute =
@@ -132,11 +165,25 @@ export class ExecutionStage
       return state;
     }
 
+    const startedAt =
+      started.startedAt?.getTime() ??
+      Date.now();
+
     try {
       const result =
         await capability.execute(
           decision.selectedAction,
           this.services
+        );
+
+      const completedAt =
+        new Date();
+
+      const durationMs =
+        Math.max(
+          0,
+          completedAt.getTime() -
+            startedAt
         );
 
       const recorded =
@@ -147,8 +194,19 @@ export class ExecutionStage
               "completed",
             summary:
               result.summary,
-            metadata:
-              result.metadata ?? {},
+            metadata: {
+              ...(result.metadata ?? {}),
+              route:
+                actionRoute.target,
+              durationMs:
+                String(durationMs),
+              startedAt:
+                new Date(
+                  startedAt
+                ).toISOString(),
+              completedAt:
+                completedAt.toISOString(),
+            },
             error:
               null,
           }
@@ -178,6 +236,7 @@ export class ExecutionStage
         `Status: ${completed.status}`,
         `Plan ID: ${completed.planId}`,
         `Execution ID: ${completed.id}`,
+        `Duration: ${durationMs} ms`,
         `Result: ${result.summary}`,
       ].join("\n");
 
@@ -188,6 +247,8 @@ export class ExecutionStage
           "ACTION EXECUTION COMPLETED.",
           `Route: ${actionRoute.target}`,
           `Search query: ${result.metadata.query}`,
+          `Providers: ${result.metadata.providers ?? "unknown"}`,
+          `Dual-provider coverage: ${result.metadata.dualProviderCoverage ?? "0"}`,
           `Search time: ${result.metadata.searchedAt ?? "unknown"}`,
           result.summary,
         ];
@@ -200,6 +261,16 @@ export class ExecutionStage
           ? error.message
           : String(error);
 
+      const failedAt =
+        new Date();
+
+      const durationMs =
+        Math.max(
+          0,
+          failedAt.getTime() -
+            startedAt
+        );
+
       setExecutionResult(
         execution.id,
         {
@@ -210,6 +281,14 @@ export class ExecutionStage
           metadata: {
             route:
               actionRoute.target,
+            durationMs:
+              String(durationMs),
+            startedAt:
+              new Date(
+                startedAt
+              ).toISOString(),
+            failedAt:
+              failedAt.toISOString(),
           },
           error:
             message,
@@ -231,6 +310,7 @@ export class ExecutionStage
         "Status: blocked",
         `Plan ID: ${execution.planId}`,
         `Execution ID: ${execution.id}`,
+        `Duration: ${durationMs} ms`,
         `Error: ${message}`,
       ].join("\n");
 
