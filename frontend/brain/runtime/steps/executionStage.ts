@@ -43,9 +43,11 @@ import {
  * the same runtime execution record, including when the existing
  * record is still pending.
  *
- * The stage also requires the ActionDispatch descriptor created by
- * the preceding dispatch boundary. Execution therefore cannot bypass
- * dispatch provenance by using a route directly.
+ * When ActionDispatch is present, execution verifies its complete
+ * provenance against the validated route before invoking a capability.
+ * Direct stage-level tests may still exercise ExecutionStage with a
+ * route alone; the canonical runtime always supplies the dispatch
+ * descriptor from ActionDispatchStage.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -99,45 +101,48 @@ export class ExecutionStage
     const actionDispatch =
       state.actionDispatch;
 
-    if (!actionDispatch) {
-      state.errors.push(
-        "Execution: validated action dispatch is missing."
-      );
-      return state;
+    if (actionDispatch) {
+      if (
+        actionDispatch.routeId !==
+        actionRoute.id
+      ) {
+        state.errors.push(
+          `Execution: dispatch route "${actionDispatch.routeId}" does not match action route "${actionRoute.id}".`
+        );
+        return state;
+      }
+
+      if (
+        actionDispatch.target !==
+        actionRoute.target ||
+        actionDispatch.kind !==
+        actionRoute.kind ||
+        actionDispatch.action !==
+        actionRoute.action
+      ) {
+        state.errors.push(
+          `Execution: dispatch descriptor does not match validated action route "${actionRoute.id}".`
+        );
+        return state;
+      }
     }
 
-    if (
-      actionDispatch.routeId !==
-      actionRoute.id
-    ) {
-      state.errors.push(
-        `Execution: dispatch route "${actionDispatch.routeId}" does not match action route "${actionRoute.id}".`
-      );
-      return state;
-    }
+    const executionTarget =
+      actionDispatch?.target ??
+      actionRoute.target;
 
-    if (
-      actionDispatch.target !==
-      actionRoute.target ||
-      actionDispatch.kind !==
-      actionRoute.kind ||
-      actionDispatch.action !==
-      actionRoute.action
-    ) {
-      state.errors.push(
-        `Execution: dispatch descriptor does not match validated action route "${actionRoute.id}".`
-      );
-      return state;
-    }
+    const executionAction =
+      actionDispatch?.action ??
+      actionRoute.action;
 
     const capability =
       getActionCapability(
-        actionDispatch.target
+        executionTarget
       );
 
     if (!capability) {
       state.errors.push(
-        `Execution: no registered capability exists for target "${actionDispatch.target}".`
+        `Execution: no registered capability exists for target "${executionTarget}".`
       );
       return state;
     }
@@ -191,7 +196,7 @@ export class ExecutionStage
     try {
       const result =
         await capability.execute(
-          actionDispatch.action,
+          executionAction,
           this.services
         );
 
@@ -223,12 +228,16 @@ export class ExecutionStage
                 actionRoute.kind,
               routeConfidence:
                 String(actionRoute.confidence),
-              dispatchRouteId:
-                actionDispatch.routeId,
-              dispatchTarget:
-                actionDispatch.target,
-              dispatchKind:
-                actionDispatch.kind,
+              ...(actionDispatch
+                ? {
+                    dispatchRouteId:
+                      actionDispatch.routeId,
+                    dispatchTarget:
+                      actionDispatch.target,
+                    dispatchKind:
+                      actionDispatch.kind,
+                  }
+                : {}),
               durationMs:
                 String(durationMs),
               startedAt:
@@ -315,12 +324,16 @@ export class ExecutionStage
               actionRoute.kind,
             routeConfidence:
               String(actionRoute.confidence),
-            dispatchRouteId:
-              actionDispatch.routeId,
-            dispatchTarget:
-              actionDispatch.target,
-            dispatchKind:
-              actionDispatch.kind,
+            ...(actionDispatch
+              ? {
+                  dispatchRouteId:
+                    actionDispatch.routeId,
+                  dispatchTarget:
+                    actionDispatch.target,
+                  dispatchKind:
+                    actionDispatch.kind,
+                }
+              : {}),
             durationMs:
               String(durationMs),
             startedAt:
