@@ -3,6 +3,10 @@ import {
 } from "./authorizedDispatch";
 
 import {
+  ACTION_AUTHORIZATION_POLICY_VERSION,
+} from "./authorization";
+
+import {
   createBrainState,
 } from "../brainState";
 
@@ -51,6 +55,12 @@ assert(
 );
 
 assert(
+  result.authorization.policyVersion ===
+    ACTION_AUTHORIZATION_POLICY_VERSION,
+  "authorization must use the canonical policy version"
+);
+
+assert(
   result.dispatch !== null,
   "authorized web-content must produce a dispatch"
 );
@@ -68,7 +78,19 @@ assert(
 );
 
 assert(
+  result.dispatch?.authorizationPolicyVersion ===
+    result.authorization.policyVersion,
+  "dispatch policy provenance must match the evaluated authorization"
+);
+
+assert(
   result.dispatch?.target ===
     result.authorization.target,
   "dispatch target must match the evaluated authorization target"
+);
+
+assert(
+  result.dispatch?.routeId ===
+    state.actionRoute.id,
+  "dispatch route identity must remain bound to the current route"
 );
