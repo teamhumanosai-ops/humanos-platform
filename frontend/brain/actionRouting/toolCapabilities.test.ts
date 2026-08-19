@@ -4,6 +4,7 @@ import {
   getActionTools,
   hasActionTool,
   registerActionTool,
+  unregisterActionTool,
 } from "./toolCapabilities";
 
 function assert(
@@ -96,6 +97,27 @@ try {
 assert(
   invalidExecutorRejected,
   "tools without an executable function must be rejected"
+);
+
+assert(
+  unregisterActionTool("  test-tool  "),
+  "registered tools must support explicit removal"
+);
+
+assert(
+  !hasActionTool("test-tool"),
+  "removed tools must no longer resolve"
+);
+
+assert(
+  getActionTools().length ===
+    0,
+  "tool listing must remove unregistered tools"
+);
+
+assert(
+  !unregisterActionTool("missing-tool"),
+  "removing an unknown tool must be a safe no-op"
 );
 
 clearActionTools();
