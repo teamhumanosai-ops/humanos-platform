@@ -5,12 +5,11 @@ import {
 import {
   loadReflections,
   runReflectionEngine,
-  buildRuntimeReflectionMemory,
 } from "../../reflection";
 
 import {
-  saveMemory,
-} from "../../memory/store";
+  persistRuntimeOutcomeMemory,
+} from "../persistOutcomeMemory";
 
 import {
   BaseStage,
@@ -28,8 +27,8 @@ import {
  *
  * This stage integrates the persisted reflection
  * knowledge into BrainState and promotes the
- * latest reflection evidence into the existing
- * durable memory owner.
+ * current terminal execution reflection into the
+ * existing durable memory owner.
  */
 export class ReflectionStage
   extends BaseStage {
@@ -66,38 +65,32 @@ export class ReflectionStage
 
     /*
     |--------------------------------------------------------------------------
-    | Promote reflection knowledge into the
-    | existing durable memory owner.
+    | Persist the reflection for the current terminal outcome.
     |
-    | Reflection remains responsible for inference.
-    | Memory remains responsible for persistence.
-    | This stage only bridges the two existing owners.
+    | Reflection remains responsible for learning evidence.
+    | Memory remains responsible for durable persistence.
+    | The outcome-memory key is execution-scoped so one execution
+    | cannot overwrite another execution's learning evidence.
     |--------------------------------------------------------------------------
     */
 
-    const latestReflection =
-      reflections[
-        reflections.length - 1
-      ];
-
-    if (latestReflection) {
-      const memoryKey =
-        state.currentExecutionId
-          ? `runtime-reflection:${state.currentExecutionId}`
-          : "runtime-reflection:latest";
-
-      const memoryValue =
-        buildRuntimeReflectionMemory(
-          latestReflection
+    if (state.outcome) {
+      const runtimeReflection =
+        await import(
+          "../../reflection/runtime"
+        ).then(
+          ({
+            createRuntimeReflection,
+          }) =>
+            createRuntimeReflection(
+              state
+            )
         );
 
-      if (memoryValue) {
-        await saveMemory(
-          memoryKey,
-          memoryValue,
-          0.85
-        );
-      }
+      await persistRuntimeOutcomeMemory(
+        state.outcome,
+        runtimeReflection
+      );
     }
 
     return state;
