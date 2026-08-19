@@ -39,6 +39,12 @@ assert(
 );
 
 assert(
+  dispatch?.kind ===
+    "provider",
+  "dispatch must preserve route kind"
+);
+
+assert(
   dispatch?.target ===
     "web-search",
   "dispatch must preserve the resolved target"
@@ -48,6 +54,31 @@ assert(
   dispatch?.action ===
     validRoute.action,
   "dispatch must preserve the selected action"
+);
+
+const contentRoute = {
+  ...validRoute,
+  id: "route-content",
+  action:
+    "Open https://example.com/source",
+  target: "web-content" as const,
+};
+
+const contentDispatch =
+  createActionDispatch(
+    contentRoute
+  );
+
+assert(
+  contentDispatch?.target ===
+    "web-content",
+  "web-content routes must preserve their concrete execution target"
+);
+
+assert(
+  contentDispatch?.routeId ===
+    "route-content",
+  "web-content dispatch must preserve route identity"
 );
 
 assert(
