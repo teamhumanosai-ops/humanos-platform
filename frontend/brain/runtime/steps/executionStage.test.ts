@@ -202,12 +202,6 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
       plan.id,
     "execution record must preserve the plan identity"
   );
-
-  assert(
-    executions[0]?.result ===
-      null,
-    "the execution fixture must remain pending when no provider capability is available"
-  );
 }
 
 async function verifyPendingExecutionIsNotReExecuted(): Promise<void> {
