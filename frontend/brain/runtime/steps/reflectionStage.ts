@@ -5,12 +5,12 @@ import {
 import {
   loadReflections,
   runReflectionEngine,
-  createRuntimeReflection,
+  buildRuntimeReflectionMemory,
 } from "../../reflection";
 
 import {
-  persistRuntimeOutcomeMemory,
-} from "../persistOutcomeMemory";
+  saveMemory,
+} from "../../memory/store";
 
 import {
   BaseStage,
@@ -28,8 +28,8 @@ import {
  *
  * This stage integrates the persisted reflection
  * knowledge into BrainState and promotes the
- * current terminal execution reflection into the
- * existing durable memory owner.
+ * latest reflection evidence into the existing
+ * durable memory owner.
  */
 export class ReflectionStage
   extends BaseStage {
@@ -66,25 +66,43 @@ export class ReflectionStage
 
     /*
     |--------------------------------------------------------------------------
-    | Persist the reflection for the current terminal outcome.
+    | Promote reflection knowledge into the
+    | existing durable memory owner.
     |
-    | Reflection remains responsible for learning evidence.
-    | Memory remains responsible for durable persistence.
-    | The outcome-memory key is execution-scoped so one execution
-    | cannot overwrite another execution's learning evidence.
+    | Reflection remains responsible for inference.
+    | Memory remains responsible for persistence.
+    | This stage only bridges the two existing owners.
+    |
+    | Terminal execution outcome memory is intentionally handled by
+    | OutcomeStage because the canonical runtime keeps Outcome after
+    | Reflection. That preserves the existing stage ordering while
+    | allowing terminal outcome evidence to be persisted after it exists.
     |--------------------------------------------------------------------------
     */
 
-    if (state.outcome) {
-      const runtimeReflection =
-        createRuntimeReflection(
-          state
+    const latestReflection =
+      reflections[
+        reflections.length - 1
+      ];
+
+    if (latestReflection) {
+      const memoryKey =
+        state.currentExecutionId
+          ? `runtime-reflection:${state.currentExecutionId}`
+          : "runtime-reflection:latest";
+
+      const memoryValue =
+        buildRuntimeReflectionMemory(
+          latestReflection
         );
 
-      await persistRuntimeOutcomeMemory(
-        state.outcome,
-        runtimeReflection
-      );
+      if (memoryValue) {
+        await saveMemory(
+          memoryKey,
+          memoryValue,
+          0.85
+        );
+      }
     }
 
     return state;
