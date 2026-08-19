@@ -17,6 +17,10 @@ import {
   startExecution,
 } from "../../execution";
 
+import {
+  createActionDispatch,
+} from "../../actionRouting";
+
 import type {
   Decision,
 } from "../../decision";
@@ -183,6 +187,15 @@ function prepareDecisionState(
   };
 }
 
+function attachDispatch(
+  state: ReturnType<typeof createBrainState>
+): void {
+  state.actionDispatch =
+    createActionDispatch(
+      state.actionRoute
+    );
+}
+
 async function verifyMissingRouteBlocksExecution(): Promise<void> {
   clearExecutions();
 
@@ -223,6 +236,56 @@ async function verifyMissingRouteBlocksExecution(): Promise<void> {
   );
 }
 
+async function verifyMissingDispatchBlocksExecution(): Promise<void> {
+  clearExecutions();
+
+  const {
+    state,
+    decision,
+  } = prepareDecisionState(
+    "conversation-dispatch-boundary",
+    "Search for the latest status",
+    "decision-missing-dispatch"
+  );
+
+  state.actionRoute = {
+    id: `route-${decision.id}`,
+    kind: "provider",
+    action: decision.selectedAction,
+    target: "web-search",
+    confidence: 0.9,
+    executable: true,
+  };
+
+  await new ExecutionStage(
+    services
+  ).execute(
+    state
+  );
+
+  assert(
+    state.currentExecutionId ===
+      null,
+    "execution must not start without dispatch provenance"
+  );
+
+  assert(
+    state.errors.some(
+      (error) =>
+        error.includes(
+          "has no dispatch descriptor"
+        )
+    ),
+    "missing dispatch provenance must produce an execution safety error"
+  );
+
+  assert(
+    getAllExecutions().length ===
+      0,
+    "missing dispatch provenance must not create execution records"
+  );
+}
+
 async function verifyResolvedRouteCreatesExecution(): Promise<void> {
   clearExecutions();
 
@@ -244,6 +307,16 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
     confidence: 0.9,
     executable: true,
   };
+
+  attachDispatch(
+    state
+  );
+
+  assert(
+    state.actionDispatch !==
+      null,
+    "resolved routes must produce dispatch provenance before execution"
+  );
 
   await new ExecutionStage(
     services
@@ -298,6 +371,18 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
   );
 
   assert(
+    executions[0]?.result?.metadata.dispatchRouteId ===
+      state.actionDispatch?.routeId,
+    "execution result must preserve dispatch provenance"
+  );
+
+  assert(
+    executions[0]?.result?.metadata.dispatchTarget ===
+      state.actionDispatch?.target,
+    "execution result must preserve dispatch target"
+  );
+
+  assert(
     executions[0]?.result?.metadata.routeKind ===
       "provider",
     "execution result must preserve route kind"
@@ -313,6 +398,63 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
     executions[0]?.planId ===
       plan.id,
     "execution record must preserve the plan identity"
+  );
+}
+
+async function verifyMismatchedDispatchBlocksExecution(): Promise<void> {
+  clearExecutions();
+
+  const {
+    state,
+    decision,
+  } = prepareDecisionState(
+    "conversation-dispatch-mismatch",
+    "Search for the latest status",
+    "decision-dispatch-mismatch"
+  );
+
+  state.actionRoute = {
+    id: `route-${decision.id}`,
+    kind: "provider",
+    action: decision.selectedAction,
+    target: "web-search",
+    confidence: 0.9,
+    executable: true,
+  };
+
+  state.actionDispatch = {
+    routeId: "route-stale",
+    kind: "provider",
+    action: decision.selectedAction,
+    target: "web-search",
+  };
+
+  await new ExecutionStage(
+    services
+  ).execute(
+    state
+  );
+
+  assert(
+    state.currentExecutionId ===
+      null,
+    "mismatched dispatch provenance must block execution"
+  );
+
+  assert(
+    state.errors.some(
+      (error) =>
+        error.includes(
+          "does not match action route"
+        )
+    ),
+    "mismatched dispatch provenance must produce a safety error"
+  );
+
+  assert(
+    getAllExecutions().length ===
+      0,
+    "mismatched dispatch provenance must not create execution records"
   );
 }
 
@@ -340,6 +482,11 @@ async function verifyPendingExecutionIsNotReExecuted(): Promise<void> {
 
   state.actionRoute =
     actionRoute;
+
+  state.actionDispatch =
+    createActionDispatch(
+      actionRoute
+    );
 
   const existingExecution =
     createExecutionFromDecision(
@@ -406,5 +553,7 @@ async function verifyPendingExecutionIsNotReExecuted(): Promise<void> {
 }
 
 await verifyMissingRouteBlocksExecution();
+await verifyMissingDispatchBlocksExecution();
 await verifyResolvedRouteCreatesExecution();
+await verifyMismatchedDispatchBlocksExecution();
 await verifyPendingExecutionIsNotReExecuted();
