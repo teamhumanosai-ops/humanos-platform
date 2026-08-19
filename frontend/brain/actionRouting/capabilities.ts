@@ -6,6 +6,10 @@ import {
   getActionTool,
 } from "./toolCapabilities";
 
+import {
+  fetchWebContentViaFirecrawl,
+} from "../websearch/content";
+
 export type ActionCapabilityTarget =
   | "web-search"
   | "web-content"
@@ -87,8 +91,7 @@ const webContentCapability:
     "web-content",
 
   async execute(
-    action,
-    services
+    action
   ) {
     const url =
       extractUrl(
@@ -102,7 +105,7 @@ const webContentCapability:
     }
 
     const result =
-      await services.fetchWebContent(
+      await fetchWebContentViaFirecrawl(
         url
       );
 
