@@ -61,10 +61,11 @@ function assertSafeUrl(
     hostname.endsWith(".local") ||
     hostname === "0.0.0.0" ||
     hostname === "127.0.0.1" ||
-    hostname === "::1"
+    hostname === "::1" ||
+    hostname.includes(":")
   ) {
     throw new Error(
-      "Web content requests cannot target local hosts."
+      "Web content requests cannot target local or IPv6 hosts."
     );
   }
 
