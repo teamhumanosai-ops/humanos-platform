@@ -24,7 +24,8 @@ const validRoute = {
 
 const dispatch =
   createActionDispatch(
-    validRoute
+    validRoute,
+    "atr-authorization-v1"
   );
 
 assert(
@@ -56,6 +57,18 @@ assert(
   "dispatch must preserve the selected action"
 );
 
+assert(
+  dispatch?.authorizationStatus ===
+    "allowed",
+  "dispatch must persist an allowed authorization decision"
+);
+
+assert(
+  dispatch?.authorizationPolicyVersion ===
+    "atr-authorization-v1",
+  "dispatch must persist the authorization policy version"
+);
+
 const contentRoute = {
   ...validRoute,
   id: "route-content",
@@ -79,6 +92,12 @@ assert(
   contentDispatch?.routeId ===
     "route-content",
   "web-content dispatch must preserve route identity"
+);
+
+assert(
+  contentDispatch?.authorizationStatus ===
+    "allowed",
+  "web-content dispatch must preserve authorization provenance"
 );
 
 assert(
