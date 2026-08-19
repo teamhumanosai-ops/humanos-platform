@@ -139,19 +139,26 @@ export class ExecutionStage
           this.services
         );
 
-      setExecutionResult(
-        execution.id,
-        {
-          status:
-            "completed",
-          summary:
-            result.summary,
-          metadata:
-            result.metadata ?? {},
-          error:
-            null,
-        }
-      );
+      const recorded =
+        setExecutionResult(
+          execution.id,
+          {
+            status:
+              "completed",
+            summary:
+              result.summary,
+            metadata:
+              result.metadata ?? {},
+            error:
+              null,
+          }
+        );
+
+      if (!recorded) {
+        throw new Error(
+          "execution result could not be persisted"
+        );
+      }
 
       const completed =
         completeExecution(
@@ -199,9 +206,11 @@ export class ExecutionStage
           status:
             "blocked",
           summary:
-            "Execution was blocked.",
-          metadata:
-            {},
+            "Action execution failed.",
+          metadata: {
+            route:
+              actionRoute.target,
+          },
           error:
             message,
         }
