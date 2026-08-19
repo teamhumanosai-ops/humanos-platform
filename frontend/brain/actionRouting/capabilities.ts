@@ -8,6 +8,7 @@ import {
 
 export type ActionCapabilityTarget =
   | "web-search"
+  | "web-content"
   | "cognitive"
   | "tool";
 
@@ -27,6 +28,24 @@ export type ActionCapabilityResult = {
   metadata?:
     Record<string, string>;
 };
+
+function extractUrl(
+  action: string
+): string | null {
+  const match =
+    action.match(
+      /https?:\\/\\/[^\\s<>"]+/i
+    );
+
+  if (!match?.[0]) {
+    return null;
+  }
+
+  return match[0].replace(
+    /[),.;!?]+$/,
+    ""
+  );
+}
 
 const webSearchCapability:
   ActionCapability = {
@@ -57,6 +76,58 @@ const webSearchCapability:
           result.query,
         searchedAt:
           result.searchedAt,
+      },
+    };
+  },
+};
+
+const webContentCapability:
+  ActionCapability = {
+  target:
+    "web-content",
+
+  async execute(
+    action,
+    services
+  ) {
+    const url =
+      extractUrl(
+        action
+      );
+
+    if (!url) {
+      throw new Error(
+        "Web content execution requires an explicit HTTP or HTTPS URL in the action."
+      );
+    }
+
+    const result =
+      await services.fetchWebContent(
+        url
+      );
+
+    return {
+      summary:
+        [
+          `Title: ${result.title}`,
+          `URL: ${result.url}`,
+          `Status: ${result.status}`,
+          `Content-Type: ${result.contentType || "unknown"}`,
+          "Content:",
+          result.text,
+        ].join("\n"),
+
+      metadata: {
+        url:
+          result.url,
+        title:
+          result.title,
+        status:
+          String(result.status),
+        contentType:
+          result.contentType,
+        fetchedAt:
+          result.fetchedAt,
       },
     };
   },
@@ -136,6 +207,10 @@ const capabilities: ReadonlyMap<
   [
     "web-search",
     webSearchCapability,
+  ],
+  [
+    "web-content",
+    webContentCapability,
   ],
   [
     "cognitive",
