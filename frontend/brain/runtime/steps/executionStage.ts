@@ -38,8 +38,10 @@ import {
  * Executes a validated action through an explicitly registered
  * capability. Arbitrary action strings are never evaluated as code.
  *
- * An existing execution on the BrainState is treated as authoritative
- * so re-entering this stage cannot execute the same external action twice.
+ * An existing execution on BrainState is authoritative. Re-entering
+ * this stage therefore never starts a second external execution for
+ * the same runtime execution record, including when the existing
+ * record is still pending.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -68,30 +70,9 @@ export class ExecutionStage
     if (
       state.currentExecutionId
     ) {
-      const existingExecution =
-        getExecution(
-          state.currentExecutionId
-        );
-
-      if (
-        existingExecution &&
-        existingExecution.status !==
-          "pending"
-      ) {
-        state.execution = [
-          `Execution: ${existingExecution.title}`,
-          `Action: ${existingExecution.action}`,
-          `Route: ${existingExecution.route?.target ?? "unknown"}`,
-          `Status: ${existingExecution.status}`,
-          `Plan ID: ${existingExecution.planId}`,
-          `Execution ID: ${existingExecution.id}`,
-          existingExecution.result
-            ? `Result: ${existingExecution.result.summary}`
-            : "Result: not yet recorded",
-        ].join("\n");
-
-        return state;
-      }
+      return this.resumeExistingExecution(
+        state
+      );
     }
 
     const actionRoute =
@@ -229,16 +210,13 @@ export class ExecutionStage
         );
       }
 
-      state.execution = [
-        `Execution: ${completed.title}`,
-        `Action: ${completed.action}`,
-        `Route: ${actionRoute.target}`,
-        `Status: ${completed.status}`,
-        `Plan ID: ${completed.planId}`,
-        `Execution ID: ${completed.id}`,
-        `Duration: ${durationMs} ms`,
-        `Result: ${result.summary}`,
-      ].join("\n");
+      state.execution =
+        this.formatExecution(
+          completed,
+          actionRoute.target,
+          `Duration: ${durationMs} ms`,
+          `Result: ${result.summary}`
+        );
 
       if (
         result.metadata?.query
@@ -303,18 +281,99 @@ export class ExecutionStage
         `Execution: ${message}`
       );
 
-      state.execution = [
-        `Execution: ${execution.title}`,
-        `Action: ${execution.action}`,
-        `Route: ${actionRoute.target}`,
-        "Status: blocked",
-        `Plan ID: ${execution.planId}`,
-        `Execution ID: ${execution.id}`,
-        `Duration: ${durationMs} ms`,
-        `Error: ${message}`,
-      ].join("\n");
+      state.execution =
+        this.formatExecution(
+          execution,
+          actionRoute.target,
+          "Status: blocked",
+          `Duration: ${durationMs} ms`,
+          `Error: ${message}`
+        );
 
       return state;
     }
+  }
+
+  /**
+   * Resume state from an already-created execution record.
+   *
+   * Pending executions are deliberately not executed again. The
+   * runtime exposes the pending state to Outcome so the cycle can
+   * remain observable without risking duplicate external work.
+   */
+  private resumeExistingExecution(
+    state: BrainState
+  ): Promise<BrainState> {
+    const execution =
+      getExecution(
+        state.currentExecutionId as string
+      );
+
+    if (!execution) {
+      state.errors.push(
+        `Execution: existing execution ${state.currentExecutionId} could not be resolved.`
+      );
+
+      return Promise.resolve(
+        state
+      );
+    }
+
+    const target =
+      execution.route?.target ??
+      state.actionRoute?.target ??
+      "unknown";
+
+    state.execution =
+      this.formatExecution(
+        execution,
+        target,
+        execution.result
+          ? `Result: ${execution.result.summary}`
+          : "Result: not yet recorded"
+      );
+
+    if (
+      execution.status ===
+      "pending" ||
+      execution.status ===
+      "in_progress"
+    ) {
+      state.runtimeStatus =
+        "in_progress";
+    }
+
+    return Promise.resolve(
+      state
+    );
+  }
+
+  /**
+   * Keep execution presentation consistent across first execution,
+   * successful re-entry, and terminal re-entry paths.
+   */
+  private formatExecution(
+    execution: {
+      title: string;
+      action: string;
+      status: string;
+      planId: string;
+      id: string;
+      result?: {
+        summary: string;
+      } | null;
+    },
+    target: string,
+    ...details: string[]
+  ): string {
+    return [
+      `Execution: ${execution.title}`,
+      `Action: ${execution.action}`,
+      `Route: ${target}`,
+      `Status: ${execution.status}`,
+      `Plan ID: ${execution.planId}`,
+      `Execution ID: ${execution.id}`,
+      ...details,
+    ].join("\n");
   }
 }
