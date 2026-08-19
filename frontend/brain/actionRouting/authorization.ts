@@ -1,6 +1,10 @@
 import type { BrainState } from "../brainState";
 import type { ActionRouteTarget } from "./types";
 
+import {
+  isExecutableActionRoute,
+} from "./guards";
+
 export type ActionAuthorizationStatus =
   | "allowed"
   | "requires_confirmation"
@@ -43,13 +47,13 @@ export function evaluateActionAuthorization(
     };
   }
 
-  if (!route.executable) {
+  if (!isExecutableActionRoute(route)) {
     return {
       status: "blocked",
       target: route.target,
       routeId: route.id,
       reason:
-        "The resolved action is not executable.",
+        "The resolved action route failed executable-route safety validation.",
       policyVersion:
         ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
