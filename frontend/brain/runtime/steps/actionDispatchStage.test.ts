@@ -46,6 +46,24 @@ assert(
 );
 
 assert(
+  state.actionAuthorization?.status ===
+    "allowed",
+  "valid search dispatch must persist an allowed authorization decision"
+);
+
+assert(
+  state.actionDispatch?.authorizationStatus ===
+    "allowed",
+  "dispatch must preserve the allowed authorization status"
+);
+
+assert(
+  state.actionDispatch?.authorizationPolicyVersion ===
+    "atr-authorization-v1",
+  "dispatch must preserve the authorization policy version"
+);
+
+assert(
   state.actionDispatch?.routeId ===
     "route-dispatch",
   "BrainState must preserve the dispatch route identity"
@@ -142,6 +160,12 @@ assert(
 );
 
 assert(
+  contentState.actionDispatch?.authorizationStatus ===
+    "allowed",
+  "web-content dispatch must preserve authorization provenance"
+);
+
+assert(
   contentState.execution?.includes(
     "Dispatch: provider/web-content"
   ) === true,
@@ -185,8 +209,11 @@ assert(
   invalidState.errors.some(
     (error) =>
       error.includes(
-        "safe dispatch descriptor"
+        "not executable"
+      ) ||
+      error.includes(
+        "not executable"
       )
   ),
-  "invalid routes must be rejected by the dispatch stage"
+  "invalid routes must be rejected by authorization before dispatch"
 );
