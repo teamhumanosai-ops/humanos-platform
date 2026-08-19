@@ -89,6 +89,20 @@ export function hasActionTool(
   );
 }
 
+/**
+ * Remove one explicitly registered tool.
+ *
+ * Removal only affects future capability resolution. Existing execution
+ * artifacts retain their recorded tool provenance and results.
+ */
+export function unregisterActionTool(
+  id: string
+): boolean {
+  return registeredTools.delete(
+    normalizeToolId(id)
+  );
+}
+
 export function clearActionTools(): void {
   registeredTools.clear();
 }
