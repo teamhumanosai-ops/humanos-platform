@@ -23,6 +23,10 @@ import {
 } from "../outcome";
 
 import {
+  createRuntimeReflection,
+} from "../../reflection";
+
+import {
   BaseStage,
 } from "./baseStage";
 
@@ -37,6 +41,7 @@ import {
  * - Execution state
  * - Execution result
  * - Runtime outcome
+ * - Runtime reflection
  * - Overall runtime status
  *
  * The stage also validates that the runtime identifiers
@@ -72,12 +77,6 @@ export class OutcomeStage
           )
         : undefined;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validate cognitive artifact chain
-    |--------------------------------------------------------------------------
-    */
-
     const chainErrors =
       validateArtifactChain(
         state,
@@ -94,12 +93,6 @@ export class OutcomeStage
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Synchronize plan and goal information
-    |--------------------------------------------------------------------------
-    */
-
     if (plan) {
       const initialGoal =
         createGoalFromPlan(
@@ -112,19 +105,14 @@ export class OutcomeStage
           {
             graphNodes:
               state.graph,
-
             graphEdges:
               state.graphEdges,
-
             reasoningObservations:
               state.reasoningObservations,
-
             timeline:
               state.timeline,
-
             reflections:
               state.reflections,
-
             memories:
               state.memory,
           }
@@ -157,16 +145,12 @@ export class OutcomeStage
           `Confidence: ${goal.confidence}`,
           `Obstacles: ${
             goal.obstacles.length > 0
-              ? goal.obstacles.join(
-                  "; "
-                )
+              ? goal.obstacles.join("; ")
               : "None identified"
           }`,
           `Dependencies: ${
             goal.dependencies.length > 0
-              ? goal.dependencies.join(
-                  "; "
-                )
+              ? goal.dependencies.join("; ")
               : "None identified"
           }`,
           `Completed Milestones: ${
@@ -174,10 +158,7 @@ export class OutcomeStage
           }/${plan.milestones.length}`,
           "Milestones:",
           ...plan.milestones.map(
-            (
-              milestone,
-              index
-            ) => {
+            (milestone, index) => {
               const completed =
                 plan.completedMilestones.includes(
                   milestone
@@ -190,16 +171,8 @@ export class OutcomeStage
               } ${milestone}`;
             }
           ),
-        ].join(
-          "\n"
-        );
+        ].join("\n");
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Synchronize decision information
-    |--------------------------------------------------------------------------
-    */
 
     if (decision) {
       state.decision =
@@ -209,24 +182,13 @@ export class OutcomeStage
           `Selected Action: ${decision.selectedAction}`,
           "Alternatives:",
           ...decision.alternatives.map(
-            (
-              alternative,
-              index
-            ) =>
+            (alternative, index) =>
               `${index + 1}. ${alternative}`
           ),
           `Reason: ${decision.reason}`,
           `Confidence: ${decision.confidence}`,
-        ].join(
-          "\n"
-        );
+        ].join("\n");
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Synchronize execution information
-    |--------------------------------------------------------------------------
-    */
 
     if (execution) {
       const executionResult =
@@ -240,13 +202,11 @@ export class OutcomeStage
           `Plan ID: ${execution.planId}`,
           `Execution ID: ${execution.id}`,
           `Started At: ${
-            execution.startedAt
-              ?.toISOString() ??
+            execution.startedAt?.toISOString() ??
             "Not started"
           }`,
           `Completed At: ${
-            execution.completedAt
-              ?.toISOString() ??
+            execution.completedAt?.toISOString() ??
             "Not completed"
           }`,
           ...(executionResult
@@ -254,256 +214,133 @@ export class OutcomeStage
                 `Result Status: ${executionResult.status}`,
                 `Result: ${executionResult.summary}`,
                 ...(executionResult.error
-                  ? [
-                      `Result Error: ${executionResult.error}`,
-                    ]
+                  ? [`Result Error: ${executionResult.error}`]
                   : []),
               ]
             : []),
-        ].join(
-          "\n"
-        );
+        ].join("\n");
     }
 
     const executionResult =
-      execution?.result ??
-      null;
+      execution?.result ?? null;
 
     const outcomeResult =
       state.response?.trim() ||
       executionResult?.summary?.trim() ||
       null;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Create runtime outcome
-    |--------------------------------------------------------------------------
-    */
-
     state.outcome =
       createRuntimeOutcome({
-        result:
-          outcomeResult,
-
-        errors:
-          state.errors,
-
+        result: outcomeResult,
+        errors: state.errors,
         executionId:
-          execution?.id ??
-          state.currentExecutionId,
-
+          execution?.id ?? state.currentExecutionId,
         executionStatus:
-          execution?.status ??
-          null,
-
+          execution?.status ?? null,
         executionResult,
-
         planId:
-          execution?.planId ??
-          state.currentPlanId,
-
+          execution?.planId ?? state.currentPlanId,
         decisionId:
           state.currentDecisionId,
-
         stagesExecuted:
           state.executedStages,
       });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Determine overall runtime status
-    |--------------------------------------------------------------------------
-    */
-
     state.runtimeStatus =
       determineRuntimeStatus(
         state,
-        execution?.status ??
-          null
+        execution?.status ?? null
       );
+
+    const reflection =
+      createRuntimeReflection(state);
+
+    const reflectionEvidence =
+      [
+        reflection.summary,
+        reflection.evidence,
+        `Confidence: ${reflection.confidence}`,
+      ].join("\n");
+
+    if (
+      !state.reflections.includes(
+        reflectionEvidence
+      )
+    ) {
+      state.reflections.push(
+        reflectionEvidence
+      );
+    }
 
     return state;
   }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Cognitive artifact chain validation
-|--------------------------------------------------------------------------
-*/
-
 function validateArtifactChain(
   state: BrainState,
-  plan:
-    ReturnType<
-      typeof getPlan
-    >,
-  decision:
-    ReturnType<
-      typeof getDecision
-    >,
-  execution:
-    ReturnType<
-      typeof getExecution
-    >
+  plan: ReturnType<typeof getPlan>,
+  decision: ReturnType<typeof getDecision>,
+  execution: ReturnType<typeof getExecution>
 ): string[] {
-  const errors:
-    string[] = [];
+  const errors: string[] = [];
 
-  /*
-  |--------------------------------------------------------------------------
-  | Plan resolution
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    state.currentPlanId &&
-    !plan
-  ) {
+  if (state.currentPlanId && !plan) {
     errors.push(
       `Outcome: plan ${state.currentPlanId} could not be resolved.`
     );
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Decision resolution
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    state.currentDecisionId &&
-    !decision
-  ) {
+  if (state.currentDecisionId && !decision) {
     errors.push(
       `Outcome: decision ${state.currentDecisionId} could not be resolved.`
     );
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Execution resolution
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    state.currentExecutionId &&
-    !execution
-  ) {
+  if (state.currentExecutionId && !execution) {
     errors.push(
       `Outcome: execution ${state.currentExecutionId} could not be resolved.`
     );
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Execution → Plan relationship
-  |--------------------------------------------------------------------------
-  |
-  | Execution is the existing artifact that explicitly owns planId.
-  |
-  */
-
   if (
     execution &&
     state.currentPlanId &&
-    execution.planId !==
-      state.currentPlanId
+    execution.planId !== state.currentPlanId
   ) {
     errors.push(
       `Outcome: execution ${execution.id} does not belong to plan ${state.currentPlanId}.`
     );
   }
 
-  return [
-    ...new Set(
-      errors
-    ),
-  ];
+  return [...new Set(errors)];
 }
-
-/*
-|--------------------------------------------------------------------------
-| Runtime status
-|--------------------------------------------------------------------------
-*/
 
 function determineRuntimeStatus(
   state: BrainState,
-  executionStatus:
-    | ExecutionStatus
-    | null
+  executionStatus: ExecutionStatus | null
 ): BrainRuntimeStatus {
-  /*
-  |--------------------------------------------------------------------------
-  | Runtime errors take precedence.
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    state.errors.length > 0
-  ) {
+  if (state.errors.length > 0) {
     return "failed";
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Blocked execution.
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    executionStatus ===
-    "blocked"
-  ) {
+  if (executionStatus === "blocked") {
     return "blocked";
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Active execution.
-  |--------------------------------------------------------------------------
-  */
-
   if (
-    executionStatus ===
-      "pending" ||
-    executionStatus ===
-      "in_progress"
+    executionStatus === "pending" ||
+    executionStatus === "in_progress"
   ) {
     return "in_progress";
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Completed execution.
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    executionStatus ===
-    "completed"
-  ) {
+  if (executionStatus === "completed") {
     return "completed";
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Successful cognitive response.
-  |--------------------------------------------------------------------------
-  */
-
-  if (
-    state.response?.trim()
-  ) {
+  if (state.response?.trim()) {
     return "completed";
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Conservative fallback.
-  |--------------------------------------------------------------------------
-  */
 
   return "in_progress";
 }
