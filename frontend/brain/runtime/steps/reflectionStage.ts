@@ -5,6 +5,7 @@ import {
 import {
   loadReflections,
   runReflectionEngine,
+  buildRuntimeReflectionMemory,
 } from "../../reflection";
 
 import {
@@ -86,14 +87,11 @@ export class ReflectionStage
           : "runtime-reflection:latest";
 
       const memoryValue =
-        [
-          latestReflection.summary,
-          latestReflection.evidence,
-        ]
-          .filter(Boolean)
-          .join("\n");
+        buildRuntimeReflectionMemory(
+          latestReflection
+        );
 
-      if (memoryValue.trim()) {
+      if (memoryValue) {
         await saveMemory(
           memoryKey,
           memoryValue,
