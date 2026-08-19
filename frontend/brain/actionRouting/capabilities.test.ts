@@ -45,6 +45,21 @@ const services = {
     fetchedAt:
       new Date().toISOString(),
   }),
+  scrapeFirecrawl: async (
+    url: string
+  ) => ({
+    url,
+    title:
+      "Firecrawl test source",
+    markdown:
+      "Firecrawl test source content",
+    status:
+      200,
+    contentType:
+      "text/markdown",
+    fetchedAt:
+      new Date().toISOString(),
+  }),
   aiService:
     {} as never,
 };
@@ -98,15 +113,21 @@ if (webContentCapability) {
 
   assert(
     result.summary.includes(
-      "Test source content"
+      "Firecrawl test source content"
     ),
-    "web-content capability must propagate fetched content"
+    "web-content capability must propagate Firecrawl content"
   );
 
   assert(
     result.metadata?.url ===
       "https://example.com/source",
     "web-content capability must preserve the fetched URL"
+  );
+
+  assert(
+    result.metadata?.provider ===
+      "firecrawl",
+    "web-content capability must record the provider that executed the fetch"
   );
 }
 
@@ -131,6 +152,48 @@ if (webContentCapability) {
 assert(
   missingContentUrlRejected,
   "web-content execution must reject actions without an explicit URL"
+);
+
+let emptyFirecrawlContentRejected =
+  false;
+
+const emptyContentServices = {
+  ...services,
+  scrapeFirecrawl: async (
+    url: string
+  ) => ({
+    url,
+    title:
+      "Empty source",
+    markdown:
+      "   ",
+    status:
+      200,
+    contentType:
+      "text/markdown",
+    fetchedAt:
+      new Date().toISOString(),
+  }),
+};
+
+if (webContentCapability) {
+  try {
+    await webContentCapability.execute(
+      "Fetch https://example.com/empty",
+      emptyContentServices
+    );
+  } catch (error) {
+    emptyFirecrawlContentRejected =
+      error instanceof Error &&
+      error.message.includes(
+        "no readable content"
+      );
+  }
+}
+
+assert(
+  emptyFirecrawlContentRejected,
+  "empty Firecrawl content must not be accepted as execution evidence"
 );
 
 clearActionTools();
