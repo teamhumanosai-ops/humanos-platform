@@ -41,6 +41,13 @@ export function createActionDispatch(
     return null;
   }
 
+  if (
+    route.kind === "unknown" ||
+    route.target === "unresolved"
+  ) {
+    return null;
+  }
+
   return {
     routeId:
       route.id,
