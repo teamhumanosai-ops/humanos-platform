@@ -1,3 +1,7 @@
+import {
+  scrapeFirecrawl,
+} from "./firecrawl";
+
 export type WebContentResponse = {
   url: string;
 
@@ -324,5 +328,59 @@ export async function fetchWebContent(
     contentType,
 
     fetchedAt,
+  };
+}
+
+/**
+ * Production web-content execution path.
+ *
+ * URL validation remains local and deterministic, while the actual
+ * remote content retrieval is delegated to the required Firecrawl
+ * provider boundary.
+ */
+export async function fetchWebContentViaFirecrawl(
+  value: string
+): Promise<WebContentResponse> {
+  const url =
+    assertSafeUrl(
+      value
+    );
+
+  const result =
+    await scrapeFirecrawl(
+      url.toString()
+    );
+
+  const text =
+    result.markdown
+      .trim()
+      .slice(
+        0,
+        MAX_CONTENT_LENGTH
+      );
+
+  if (!text) {
+    throw new Error(
+      "Firecrawl web content execution returned no readable content."
+    );
+  }
+
+  return {
+    url:
+      result.url,
+
+    title:
+      result.title,
+
+    text,
+
+    status:
+      result.status,
+
+    contentType:
+      result.contentType,
+
+    fetchedAt:
+      result.fetchedAt,
   };
 }
