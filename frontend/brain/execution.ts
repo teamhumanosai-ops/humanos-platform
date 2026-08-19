@@ -172,6 +172,44 @@ export function setExecutionResult(
     return null;
   }
 
+  const summary =
+    result.summary.trim();
+
+  if (!summary) {
+    throw new Error(
+      "Execution result summary cannot be empty."
+    );
+  }
+
+  if (
+    result.status ===
+      "completed" &&
+    result.error !== null
+  ) {
+    throw new Error(
+      "Completed execution results cannot contain an error."
+    );
+  }
+
+  if (
+    result.status ===
+      "blocked" &&
+    !result.error?.trim()
+  ) {
+    throw new Error(
+      "Blocked execution results must contain an error."
+    );
+  }
+
+  if (
+    execution.status !==
+      "in_progress"
+  ) {
+    throw new Error(
+      `Execution ${id} cannot accept a result while in ${execution.status} state.`
+    );
+  }
+
   const updated:
     Execution = {
     ...execution,
@@ -180,8 +218,7 @@ export function setExecutionResult(
       status:
         result.status,
 
-      summary:
-        result.summary.trim(),
+      summary,
 
       metadata: {
         ...result.metadata,
@@ -255,6 +292,13 @@ export function completeExecution(
   if (
     execution.status !==
     "in_progress"
+  ) {
+    return null;
+  }
+
+  if (
+    execution.result?.status !==
+    "completed"
   ) {
     return null;
   }
