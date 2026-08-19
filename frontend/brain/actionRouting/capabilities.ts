@@ -6,10 +6,6 @@ import {
   getActionTool,
 } from "./toolCapabilities";
 
-import {
-  fetchWebContentViaFirecrawl,
-} from "../websearch/content";
-
 export type ActionCapabilityTarget =
   | "web-search"
   | "web-content"
@@ -91,7 +87,8 @@ const webContentCapability:
     "web-content",
 
   async execute(
-    action
+    action,
+    services
   ) {
     const url =
       extractUrl(
@@ -105,9 +102,18 @@ const webContentCapability:
     }
 
     const result =
-      await fetchWebContentViaFirecrawl(
+      await services.scrapeFirecrawl(
         url
       );
+
+    const markdown =
+      result.markdown.trim();
+
+    if (!markdown) {
+      throw new Error(
+        "Firecrawl web content execution returned no readable content."
+      );
+    }
 
     return {
       summary:
@@ -116,8 +122,8 @@ const webContentCapability:
           `URL: ${result.url}`,
           `Status: ${result.status}`,
           `Content-Type: ${result.contentType || "unknown"}`,
-          "Content:",
-          result.text,
+          "Markdown Content:",
+          markdown,
         ].join("\n"),
 
       metadata: {
@@ -131,6 +137,8 @@ const webContentCapability:
           result.contentType,
         fetchedAt:
           result.fetchedAt,
+        provider:
+          "firecrawl",
       },
     };
   },
