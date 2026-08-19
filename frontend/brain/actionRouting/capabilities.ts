@@ -122,6 +122,15 @@ const webContentCapability:
         url
       );
 
+    const content =
+      result.text.trim();
+
+    if (!content) {
+      throw new Error(
+        "Web content execution returned no readable content."
+      );
+    }
+
     return {
       summary:
         [
@@ -130,7 +139,7 @@ const webContentCapability:
           `Status: ${result.status}`,
           `Content-Type: ${result.contentType || "unknown"}`,
           "Content:",
-          result.text,
+          content,
         ].join("\n"),
 
       metadata: {
