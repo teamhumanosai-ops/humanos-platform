@@ -58,9 +58,9 @@ function runPipelineRegistrationVerification(): void {
     "Execution",
     "Response",
     "ResponseValidation",
-    "Outcome",
     "Reflection",
     "Autonomy",
+    "Outcome",
   ];
 
   assert(
@@ -138,9 +138,27 @@ function runPipelineRegistrationVerification(): void {
   );
 
   assert(
+    names.indexOf("ResponseValidation") <
+      names.indexOf("Reflection"),
+    "reflection must run after response validation"
+  );
+
+  assert(
     names.indexOf("Reflection") <
       names.indexOf("Autonomy"),
     "autonomy evaluation must run after reflection"
+  );
+
+  assert(
+    names.indexOf("Autonomy") <
+      names.indexOf("Outcome"),
+    "outcome must be materialized after autonomy evaluation"
+  );
+
+  assert(
+    names.indexOf("Outcome") ===
+      names.length - 1,
+    "Outcome must remain the terminal canonical runtime stage"
   );
 
   console.log(
