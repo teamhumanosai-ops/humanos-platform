@@ -95,3 +95,33 @@ assert(
     "web-search",
   "routing must normalize surrounding whitespace and case"
 );
+
+assert(
+  findActionRouteRule(
+    "Please recreate the task"
+  ) === null,
+  "routing keywords must not match inside larger words"
+);
+
+assert(
+  findActionRouteRule(
+    "Please resend the message"
+  ) === null,
+  "send must not match inside resend"
+);
+
+assert(
+  findActionRouteRule(
+    "Please update the project"
+  )?.target ===
+    "tool",
+  "standalone tool keywords must remain executable candidates"
+);
+
+assert(
+  findActionRouteRule(
+    "Open the source page for verification"
+  )?.target ===
+    "web-content",
+  "multi-word provider phrases must remain supported"
+);
