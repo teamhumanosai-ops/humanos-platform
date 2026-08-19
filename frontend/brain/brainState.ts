@@ -40,6 +40,7 @@ import type {
 } from "./inference";
 
 import type {
+  ActionDispatch,
   ActionRoute,
 } from "./actionRouting";
 
@@ -232,6 +233,10 @@ export type BrainState = {
 
   actionRoute:
     ActionRoute
+    | null;
+
+  actionDispatch:
+    ActionDispatch
     | null;
 
   /*
@@ -436,6 +441,9 @@ export function createBrainState(
     */
 
     actionRoute:
+      null,
+
+    actionDispatch:
       null,
 
     /*
