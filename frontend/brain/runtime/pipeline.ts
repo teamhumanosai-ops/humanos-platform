@@ -92,14 +92,14 @@ import {
   ResponseValidationStage,
 } from "./steps/responseValidationStage";
 import {
-  OutcomeStage,
-} from "./steps/outcomeStage";
-import {
   ReflectionStage,
 } from "./steps/reflectionStage";
 import {
   AutonomyStage,
 } from "./steps/autonomyStage";
+import {
+  OutcomeStage,
+} from "./steps/outcomeStage";
 import {
   Stage,
 } from "./steps/stage";
@@ -110,6 +110,10 @@ import {
  * Owns the canonical Human OS cognitive lifecycle.
  * BrainState remains the shared cognitive state while
  * domain services own actual provider/tool operations.
+ *
+ * Outcome is deliberately terminal: reflection and autonomy
+ * enrich the completed cognitive cycle before the final runtime
+ * artifact is materialized.
  */
 export class CognitiveRuntime {
   private readonly stages:
@@ -146,9 +150,9 @@ export class CognitiveRuntime {
     this.register(new ExecutionStage(this.services));
     this.register(new ResponseStage());
     this.register(new ResponseValidationStage());
-    this.register(new OutcomeStage());
     this.register(new ReflectionStage());
     this.register(new AutonomyStage());
+    this.register(new OutcomeStage());
   }
 
   register(
