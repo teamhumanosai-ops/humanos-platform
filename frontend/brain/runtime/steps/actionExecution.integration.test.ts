@@ -16,6 +16,7 @@ import {
 } from "../../execution";
 
 import {
+  createActionDispatch,
   registerActionTool,
   clearActionTools,
 } from "../../actionRouting";
@@ -81,6 +82,15 @@ const services = {
   aiService: {} as RuntimeServices["aiService"],
 } as RuntimeServices;
 
+function attachDispatch(
+  state: ReturnType<typeof createBrainState>
+): void {
+  state.actionDispatch =
+    createActionDispatch(
+      state.actionRoute
+    );
+}
+
 clearExecutions();
 clearActionTools();
 
@@ -137,6 +147,15 @@ state.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
+attachDispatch(
+  state
+);
+
+assert(
+  state.actionDispatch?.routeId ===
+    state.actionRoute.id,
+  "tool execution must carry route provenance into dispatch"
+);
 
 await new ExecutionStage(
   services
@@ -161,7 +180,7 @@ assert(
   "tool result must propagate into execution state"
 );
 
-const executions =
+let executions =
   getAllExecutions();
 
 assert(
@@ -174,6 +193,12 @@ assert(
   executions[0]?.result?.metadata.toolId ===
     "task-create",
   "normalized execution metadata must persist tool identity"
+);
+
+assert(
+  executions[0]?.result?.metadata.dispatchRouteId ===
+    state.actionDispatch?.routeId,
+  "tool execution must persist dispatch route provenance"
 );
 
 const contentState =
@@ -218,6 +243,9 @@ contentState.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
+attachDispatch(
+  contentState
+);
 
 await new ExecutionStage(
   services
@@ -252,6 +280,12 @@ assert(
   contentExecution?.result?.metadata.provider ===
     "firecrawl",
   "web-content execution must persist its provider identity"
+);
+
+assert(
+  contentExecution?.result?.metadata.dispatchTarget ===
+    "web-content",
+  "web-content execution must persist its dispatch target"
 );
 
 registerActionTool({
@@ -300,6 +334,9 @@ failedState.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
+attachDispatch(
+  failedState
+);
 
 await new ExecutionStage(
   services
@@ -338,6 +375,21 @@ assert(
   failedExecution?.result?.error ===
     "intentional tool failure",
   "execution result must preserve the failure reason"
+);
+
+assert(
+  failedExecution?.result?.metadata.dispatchRouteId ===
+    failedState.actionDispatch?.routeId,
+  "blocked execution must preserve dispatch provenance"
+);
+
+executions =
+  getAllExecutions();
+
+assert(
+  executions.length ===
+    3,
+  "integration coverage must retain one execution artifact per scenario"
 );
 
 clearActionTools();
