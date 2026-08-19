@@ -50,6 +50,15 @@ saveDecision(
 state.currentDecisionId =
   decision.id;
 
+state.actionAuthorization = {
+  status: "allowed",
+  target: "web-search",
+  routeId: "stale-route",
+  reason: "Stale authorization fixture",
+  policyVersion: "atr-authorization-v1",
+  evaluatedAt: new Date(),
+};
+
 state.actionDispatch = {
   routeId: "stale-route",
   kind: "provider",
@@ -95,6 +104,12 @@ assert(
 );
 
 assert(
+  state.actionAuthorization ===
+    null,
+  "rerouting must invalidate any stale authorization decision"
+);
+
+assert(
   state.actionDispatch ===
     null,
   "rerouting must invalidate any stale dispatch descriptor"
@@ -127,6 +142,15 @@ saveDecision(
 blockedState.currentDecisionId =
   blockedDecision.id;
 
+blockedState.actionAuthorization = {
+  status: "allowed",
+  target: "web-search",
+  routeId: "stale-blocked-route",
+  reason: "Stale authorization fixture",
+  policyVersion: "atr-authorization-v1",
+  evaluatedAt: new Date(),
+};
+
 blockedState.actionDispatch = {
   routeId: "stale-blocked-route",
   kind: "provider",
@@ -142,6 +166,12 @@ assert(
   blockedState.actionRoute?.target ===
     "unresolved",
   "ambiguous actions must remain unresolved"
+);
+
+assert(
+  blockedState.actionAuthorization ===
+    null,
+  "unsafe rerouting must clear stale authorization decisions"
 );
 
 assert(
