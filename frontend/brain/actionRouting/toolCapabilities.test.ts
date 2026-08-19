@@ -1,6 +1,7 @@
 import {
   clearActionTools,
   getActionTool,
+  getActionTools,
   hasActionTool,
   registerActionTool,
 } from "./toolCapabilities";
@@ -19,7 +20,7 @@ function assert(
 clearActionTools();
 
 registerActionTool({
-  id: "test-tool",
+  id: "  test-tool  ",
   async execute(action) {
     return {
       summary:
@@ -34,8 +35,25 @@ assert(
 );
 
 assert(
+  hasActionTool("  test-tool  "),
+  "tool lookup must normalize ids"
+);
+
+assert(
   getActionTool("test-tool") !== null,
   "registered tools must resolve"
+);
+
+assert(
+  getActionTool("test-tool")?.id ===
+    "test-tool",
+  "registered tools must retain normalized ids"
+);
+
+assert(
+  getActionTools().length ===
+    1,
+  "tool listing must expose the registered tool"
 );
 
 assert(
@@ -61,6 +79,23 @@ try {
 assert(
   duplicateRejected,
   "duplicate tool registration must be rejected"
+);
+
+let invalidExecutorRejected = false;
+
+try {
+  registerActionTool({
+    id: "invalid-tool",
+    execute:
+      null as never,
+  });
+} catch {
+  invalidExecutorRejected = true;
+}
+
+assert(
+  invalidExecutorRejected,
+  "tools without an executable function must be rejected"
 );
 
 clearActionTools();
