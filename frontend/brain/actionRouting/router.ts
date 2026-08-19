@@ -2,6 +2,10 @@ import type {
   Decision,
 } from "../decision";
 
+import {
+  findActionRouteRule,
+} from "./registry";
+
 import type {
   ActionRoute,
   ActionRouteTarget,
@@ -26,69 +30,30 @@ function normalizeConfidence(
 function inferRouteKind(
   action: string
 ): ActionRoute["kind"] {
-  const normalized =
-    action.trim().toLowerCase();
-
-  if (!normalized) {
-    return "unknown";
-  }
-
-  if (
-    normalized.includes("search") ||
-    normalized.includes("browse") ||
-    normalized.includes("fetch")
-  ) {
-    return "provider";
-  }
-
-  if (
-    normalized.includes("send") ||
-    normalized.includes("create") ||
-    normalized.includes("update") ||
-    normalized.includes("delete")
-  ) {
-    return "tool";
-  }
-
-  if (
-    normalized.includes("review") ||
-    normalized.includes("prepare") ||
-    normalized.includes("analyze") ||
-    normalized.includes("plan")
-  ) {
-    return "internal";
-  }
-
-  return "unknown";
+  return (
+    findActionRouteRule(
+      action
+    )?.kind ??
+    "unknown"
+  );
 }
 
 function resolveRouteTarget(
   kind: ActionRoute["kind"],
   action: string
 ): ActionRouteTarget {
-  const normalized =
-    action.trim().toLowerCase();
-
-  if (kind === "provider") {
-    if (
-      normalized.includes("browse") ||
-      normalized.includes("fetch")
-    ) {
-      return "web-content";
-    }
-
-    return "web-search";
-  }
-
-  if (kind === "tool") {
-    return "tool";
-  }
-
-  if (kind === "internal") {
-    return "cognitive";
-  }
-
-  return "unresolved";
+  return (
+    findActionRouteRule(
+      action
+    )?.target ??
+    (kind === "unknown"
+      ? "unresolved"
+      : kind === "provider"
+        ? "web-search"
+        : kind === "tool"
+          ? "tool"
+          : "cognitive")
+  );
 }
 
 export function routeDecisionAction(
