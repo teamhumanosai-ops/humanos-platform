@@ -50,6 +50,13 @@ saveDecision(
 state.currentDecisionId =
   decision.id;
 
+state.actionDispatch = {
+  routeId: "stale-route",
+  kind: "provider",
+  action: "Search stale evidence",
+  target: "web-search",
+};
+
 const stage =
   new ActionRoutingStage();
 
@@ -88,6 +95,12 @@ assert(
 );
 
 assert(
+  state.actionDispatch ===
+    null,
+  "rerouting must invalidate any stale dispatch descriptor"
+);
+
+assert(
   state.executedStages.includes(
     "ActionRouting"
   ),
@@ -114,6 +127,13 @@ saveDecision(
 blockedState.currentDecisionId =
   blockedDecision.id;
 
+blockedState.actionDispatch = {
+  routeId: "stale-blocked-route",
+  kind: "provider",
+  action: "Search stale evidence",
+  target: "web-search",
+};
+
 await stage.execute(
   blockedState
 );
@@ -122,6 +142,12 @@ assert(
   blockedState.actionRoute?.target ===
     "unresolved",
   "ambiguous actions must remain unresolved"
+);
+
+assert(
+  blockedState.actionDispatch ===
+    null,
+  "unsafe rerouting must clear stale dispatch descriptors"
 );
 
 assert(
