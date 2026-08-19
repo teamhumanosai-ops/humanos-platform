@@ -76,6 +76,22 @@ const webSearchCapability:
           result.query,
         searchedAt:
           result.searchedAt,
+        providers:
+          result.provenance?.observedProviders.join(",") ??
+          "",
+        requiredProviders:
+          result.provenance?.requiredProviders.join(",") ??
+          "",
+        dualProviderResultCount:
+          String(
+            result.provenance?.dualProviderResultCount ??
+            0
+          ),
+        dualProviderCoverage:
+          String(
+            result.provenance?.dualProviderCoverage ??
+            0
+          ),
       },
     };
   },
@@ -195,10 +211,20 @@ const toolCapability:
       );
     }
 
-    return tool.execute(
-      toolAction,
-      services
-    );
+    const result =
+      await tool.execute(
+        toolAction,
+        services
+      );
+
+    return {
+      ...result,
+      metadata: {
+        ...(result.metadata ?? {}),
+        toolId,
+        toolAction,
+      },
+    };
   },
 };
 
