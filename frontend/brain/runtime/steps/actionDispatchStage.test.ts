@@ -33,7 +33,10 @@ state.actionRoute = {
   executable: true,
 };
 
-await new ActionDispatchStage().execute(
+const dispatchStage =
+  new ActionDispatchStage();
+
+await dispatchStage.execute(
   state
 );
 
@@ -61,6 +64,19 @@ assert(
     "Capability: web-search"
   ) === true,
   "search dispatch must identify the concrete execution capability"
+);
+
+const firstExecution =
+  state.execution;
+
+await dispatchStage.execute(
+  state
+);
+
+assert(
+  state.execution ===
+    firstExecution,
+  "re-entering dispatch with the same route must be idempotent"
 );
 
 const contentState =
