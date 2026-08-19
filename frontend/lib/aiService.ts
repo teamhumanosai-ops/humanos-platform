@@ -1,6 +1,7 @@
 import {
   AI_CONFIG,
   AIProvider,
+  assertDualAIProviderConfiguration,
 } from "./ai";
 
 type ChatMessage = {
@@ -339,20 +340,16 @@ async function callProvider(
 /**
  * Human OS multi-provider AI service.
  *
- * Gemini and OpenRouter are both configured.
- *
- * The caller never selects a provider manually.
- *
- * Human OS automatically:
- *
- * 1. Tries the preferred available provider.
- * 2. Marks failed providers temporarily unavailable.
- * 3. Falls back to another configured provider.
- * 4. Returns the successful provider response.
+ * Gemini and OpenRouter are both required configuration dependencies.
+ * Runtime generation uses the configured preference order with automatic
+ * failover so a transient provider failure does not make Human OS depend
+ * permanently on a single API.
  */
 export async function generateAIResponse(
   messages: ChatMessage[]
 ): Promise<string> {
+  assertDualAIProviderConfiguration();
+
   const providers =
     getProviderOrder();
 
