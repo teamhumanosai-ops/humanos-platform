@@ -12,11 +12,18 @@ import {
 
 import {
   createExecutionFromDecision,
+  completeExecution,
+  startExecution,
+  blockExecution,
 } from "../../execution";
 
 import {
   getPlan,
 } from "../../planning";
+
+import type {
+  RuntimeServices,
+} from "../runtimeServices";
 
 import {
   BaseStage,
@@ -25,87 +32,34 @@ import {
 /**
  * ExecutionStage
  *
- * Integrates the existing Execution Engine
- * into the Cognitive Runtime.
- *
- * The stage creates a pending execution from
- * the active decision and stores the execution
- * information in BrainState.
- *
- * It does not start or complete the execution.
- * Actual execution lifecycle operations remain
- * owned by the Execution Engine.
- *
- * Safety:
- * Execution creation is blocked when an earlier
- * runtime stage has already recorded an error or
- * when action routing could not resolve a safe route.
+ * Creates and executes the resolved action through the existing
+ * provider/tool service boundary. The stage never evaluates an
+ * arbitrary action string as code; every executable capability is
+ * explicitly mapped to a supported route target.
  */
 export class ExecutionStage
   extends BaseStage {
   readonly name =
     "Execution";
 
+  constructor(
+    private readonly services:
+      RuntimeServices
+  ) {
+    super();
+  }
+
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    /*
-    |--------------------------------------------------------------------------
-    | Existing response
-    |--------------------------------------------------------------------------
-    |
-    | A local skill or earlier stage has already
-    | produced the final response. There is no
-    | additional execution work to create.
-    |
-    */
-
     if (
-      state.response
-    ) {
-      return state;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Runtime safety gate
-    |--------------------------------------------------------------------------
-    |
-    | ValidationStage and other upstream stages may
-    | have recorded errors. Never create an execution
-    | from an invalid cognitive state.
-    |
-    */
-
-    if (
-      state.errors.length > 0
-    ) {
-      return state;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Required runtime identifiers
-    |--------------------------------------------------------------------------
-    */
-
-    if (
+      state.response ||
+      state.errors.length > 0 ||
       !state.currentDecisionId ||
       !state.currentPlanId
     ) {
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Action route must be resolved before execution.
-    |--------------------------------------------------------------------------
-    |
-    | ActionRoutingStage owns route resolution.
-    | Unknown or malformed routes must never silently
-    | enter the Execution Engine.
-    |
-    */
 
     const actionRoute =
       state.actionRoute;
@@ -114,67 +68,29 @@ export class ExecutionStage
       state.errors.push(
         "Execution: action route is missing."
       );
-
       return state;
     }
 
-    if (!isExecutableActionRoute(
-      actionRoute
-    )) {
+    if (!isExecutableActionRoute(actionRoute)) {
       state.errors.push(
         `Execution: action route "${actionRoute.id}" failed safety validation.`
       );
-
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Resolve active decision
-    |--------------------------------------------------------------------------
-    */
 
     const decision =
       getDecision(
         state.currentDecisionId
       );
 
-    if (
-      !decision
-    ) {
-      return state;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Resolve active plan
-    |--------------------------------------------------------------------------
-    */
-
     const plan =
       getPlan(
         state.currentPlanId
       );
 
-    if (
-      !plan
-    ) {
+    if (!decision || !plan) {
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create pending execution
-    |--------------------------------------------------------------------------
-    |
-    | The resolved action route is persisted with the
-    | execution record so downstream execution and
-    | observability layers retain the routing decision.
-    |
-    | Execution lifecycle remains owned by the
-    | Execution Engine.
-    |
-    */
 
     const execution =
       createExecutionFromDecision(
@@ -183,36 +99,142 @@ export class ExecutionStage
         actionRoute
       );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Store execution identity
-    |--------------------------------------------------------------------------
-    */
-
     state.currentExecutionId =
       execution.id;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Store human-readable execution state
-    |--------------------------------------------------------------------------
-    */
+    const started =
+      startExecution(
+        execution.id
+      );
 
-    state.execution =
-      [
+    if (!started) {
+      blockExecution(
+        execution.id
+      );
+      state.errors.push(
+        "Execution: execution could not enter the in-progress state."
+      );
+      return state;
+    }
+
+    try {
+      if (
+        actionRoute.target ===
+        "web-search"
+      ) {
+        const result =
+          await this.services.searchWeb(
+            decision.selectedAction
+          );
+
+        state.liveKnowledge = [
+          "ACTION EXECUTION COMPLETED.",
+          `Route: ${actionRoute.target}`,
+          `Search time: ${result.searchedAt}`,
+          `Search query: ${result.query}`,
+          result.answer
+            ? `Execution result:\n${result.answer}`
+            : "Execution returned no synthesis.",
+          result.results.length > 0
+            ? `Evidence count: ${result.results.length}`
+            : "Evidence count: 0",
+        ];
+
+        const completed =
+          completeExecution(
+            execution.id
+          );
+
+        if (!completed) {
+          throw new Error(
+            "execution could not enter the completed state"
+          );
+        }
+
+        state.execution = [
+          `Execution: ${completed.title}`,
+          `Action: ${completed.action}`,
+          `Route: ${actionRoute.target}`,
+          `Status: ${completed.status}`,
+          `Plan ID: ${completed.planId}`,
+          `Execution ID: ${completed.id}`,
+        ].join("\n");
+
+        return state;
+      }
+
+      if (
+        actionRoute.target ===
+        "web-content"
+      ) {
+        throw new Error(
+          "web-content execution is not yet registered as a safe runtime capability."
+        );
+      }
+
+      if (
+        actionRoute.target ===
+        "tool"
+      ) {
+        throw new Error(
+          "tool execution requires an explicitly registered tool capability."
+        );
+      }
+
+      if (
+        actionRoute.target ===
+        "cognitive"
+      ) {
+        const completed =
+          completeExecution(
+            execution.id
+          );
+
+        if (!completed) {
+          throw new Error(
+            "internal cognitive execution could not complete"
+          );
+        }
+
+        state.execution = [
+          `Execution: ${completed.title}`,
+          `Action: ${completed.action}`,
+          `Route: ${actionRoute.target}`,
+          `Status: ${completed.status}`,
+          `Plan ID: ${completed.planId}`,
+          `Execution ID: ${completed.id}`,
+        ].join("\n");
+
+        return state;
+      }
+
+      throw new Error(
+        `unsupported execution target: ${actionRoute.target}`
+      );
+    } catch (error) {
+      blockExecution(
+        execution.id
+      );
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      state.errors.push(
+        `Execution: ${message}`
+      );
+
+      state.execution = [
         `Execution: ${execution.title}`,
-
         `Action: ${execution.action}`,
-
         `Route: ${actionRoute.target}`,
-
-        `Status: ${execution.status}`,
-
+        "Status: blocked",
         `Plan ID: ${execution.planId}`,
-
         `Execution ID: ${execution.id}`,
       ].join("\n");
 
-    return state;
+      return state;
+    }
   }
 }
