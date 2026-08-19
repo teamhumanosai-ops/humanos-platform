@@ -4,6 +4,10 @@ import {
 } from "../../actionRouting";
 
 import {
+  evaluateActionAuthorization,
+} from "../../actionRouting/authorization";
+
+import {
   BrainState,
 } from "../../brainState";
 
@@ -25,6 +29,9 @@ import {
  * The resolved dispatch descriptor is also preserved on BrainState
  * so Execution can verify that the capability binding it executes
  * is exactly the one produced by the dispatch boundary.
+ *
+ * Authorization is evaluated at this boundary so no capability can
+ * be dispatched unless the centralized action policy permits it.
  */
 export class ActionDispatchStage
   extends BaseStage {
@@ -52,6 +59,36 @@ export class ActionDispatchStage
 
       state.actionDispatch =
         null;
+
+      return state;
+    }
+
+    const authorization =
+      evaluateActionAuthorization(
+        state
+      );
+
+    state.actionAuthorization =
+      authorization;
+
+    if (
+      authorization.status !==
+      "allowed"
+    ) {
+      state.errors.push(
+        `ActionDispatch: ${authorization.reason}`
+      );
+
+      state.actionDispatch =
+        null;
+
+      if (
+        authorization.status ===
+        "requires_confirmation"
+      ) {
+        state.runtimeStatus =
+          "blocked";
+      }
 
       return state;
     }
@@ -107,6 +144,7 @@ export class ActionDispatchStage
         `Dispatch: ${dispatch.kind}/${dispatch.target}`,
         routeMarker,
         `Capability: ${capability.target}`,
+        `Authorization: ${authorization.status}/${authorization.policyVersion}`,
         `Action: ${dispatch.action}`,
       ].join("\n");
 
