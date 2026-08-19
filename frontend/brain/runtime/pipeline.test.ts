@@ -54,6 +54,7 @@ function runPipelineRegistrationVerification(): void {
     "Decision",
     "Validation",
     "ActionRouting",
+    "ActionDispatch",
     "Execution",
     "Response",
     "ResponseValidation",
@@ -126,8 +127,14 @@ function runPipelineRegistrationVerification(): void {
 
   assert(
     names.indexOf("ActionRouting") <
+      names.indexOf("ActionDispatch"),
+    "action dispatch must consume the validated action route"
+  );
+
+  assert(
+    names.indexOf("ActionDispatch") <
       names.indexOf("Execution"),
-    "execution must consume the action route"
+    "execution must consume the validated dispatch boundary"
   );
 
   assert(
