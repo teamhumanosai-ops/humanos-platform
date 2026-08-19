@@ -186,7 +186,16 @@ export class CognitiveRuntime {
       try {
         current =
           await stage.execute(current);
-      } catch {
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        current.errors.push(
+          `${stage.name}: ${message}`
+        );
+
         current.runtimeStatus =
           "failed";
         break;
@@ -266,6 +275,9 @@ export class CognitiveRuntime {
             executionStatus:
               current.outcome?.metadata
                 .executionStatus ?? null,
+            executionResult:
+              current.outcome?.metadata
+                .executionResult ?? null,
             planId:
               current.currentPlanId,
             decisionId:
