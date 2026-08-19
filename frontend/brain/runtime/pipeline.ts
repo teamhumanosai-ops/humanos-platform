@@ -13,119 +13,93 @@ import {
 import {
   InputStage,
 } from "./steps/inputStage";
-
 import {
   IntentStage,
 } from "./steps/intentStage";
-
 import {
   LiveKnowledgeStage,
 } from "./steps/liveKnowledgeStage";
-
 import {
   MemoryExtractionStage,
 } from "./steps/memoryExtractionStage";
-
 import {
   TimelineExtractionStage,
 } from "./steps/timelineExtractionStage";
-
 import {
   MemoryStage,
 } from "./steps/memoryStage";
-
 import {
   BrainStateStage,
 } from "./steps/brainStateStage";
-
 import {
   ProfileStage,
 } from "./steps/profileStage";
-
 import {
   ReasoningGraphStage,
 } from "./steps/reasoningGraphStage";
-
 import {
   PredictionStage,
 } from "./steps/predictionStage";
-
 import {
   PredictionHistoryStage,
 } from "./steps/predictionHistoryStage";
-
 import {
   PredictionMemoryStage,
 } from "./steps/predictionMemoryStage";
-
 import {
   PredictionConsolidationStage,
 } from "./steps/predictionConsolidationStage";
-
 import {
   PredictionConfidenceStage,
 } from "./steps/predictionConfidenceStage";
-
 import {
   SkillStage,
 } from "./steps/skillStage";
-
 import {
   ContextStage,
 } from "./steps/contextStage";
-
 import {
   RecommendationStage,
 } from "./steps/recommendationStage";
-
 import {
   ReasoningStage,
 } from "./steps/reasoningStage";
-
 import {
   InferenceStage,
 } from "./steps/inferenceStage";
-
 import {
   PlanningStage,
 } from "./steps/planningStage";
-
 import {
   DecisionStage,
 } from "./steps/decisionStage";
-
 import {
   ValidationStage,
 } from "./steps/validationStage";
-
 import {
   ActionRoutingStage,
 } from "./steps/actionRoutingStage";
-
+import {
+  ActionDispatchStage,
+} from "./steps/actionDispatchStage";
 import {
   ExecutionStage,
 } from "./steps/executionStage";
-
 import {
   ResponseStage,
 } from "./steps/responseStage";
-
 import {
   ResponseValidationStage,
 } from "./steps/responseValidationStage";
-
 import {
   OutcomeStage,
 } from "./steps/outcomeStage";
-
 import {
   ReflectionStage,
 } from "./steps/reflectionStage";
-
 import {
   AutonomyStage,
 } from "./steps/autonomyStage";
-
 import {
   Stage,
 } from "./steps/stage";
@@ -134,20 +108,8 @@ import {
  * CognitiveRuntime
  *
  * Owns the canonical Human OS cognitive lifecycle.
- *
- * The runtime is responsible for:
- *
- * - Stage registration
- * - Deterministic stage ordering
- * - Stage execution
- * - Failure propagation
- * - Outcome finalization
- * - Reflection finalization
- *
- * BrainState remains the shared cognitive state.
- *
- * Domain engines remain responsible for
- * domain-specific behavior.
+ * BrainState remains the shared cognitive state while
+ * domain services own actual provider/tool operations.
  */
 export class CognitiveRuntime {
   private readonly stages:
@@ -157,387 +119,76 @@ export class CognitiveRuntime {
     public readonly services:
       RuntimeServices
   ) {
-    /*
-    |--------------------------------------------------------------------------
-    | Input
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new InputStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Intent
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new IntentStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Live Knowledge
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new LiveKnowledgeStage(
-        this.services
-      )
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Memory Extraction
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new MemoryExtractionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Timeline Extraction
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new TimelineExtractionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Memory Retrieval
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new MemoryStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Unified BrainState
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new BrainStateStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Human Profile
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ProfileStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reasoning Graph
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ReasoningGraphStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Prediction
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new PredictionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Prediction History
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new PredictionHistoryStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Prediction Memory
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new PredictionMemoryStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Prediction Consolidation
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new PredictionConsolidationStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Prediction Confidence
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new PredictionConfidenceStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Local Skills
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new SkillStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Context
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ContextStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Recommendation
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new RecommendationStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reasoning
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ReasoningStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Inference
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new InferenceStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Planning
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new PlanningStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Decision
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new DecisionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validation
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ValidationStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Action Routing
-    |--------------------------------------------------------------------------
-    |
-    | This stage converts the validated decision into a
-    | bounded route descriptor. It does not execute anything.
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ActionRoutingStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Execution
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ExecutionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Response
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ResponseStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Response Validation
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ResponseValidationStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Outcome
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new OutcomeStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reflection
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new ReflectionStage()
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Autonomous Continuation Evaluation
-    |--------------------------------------------------------------------------
-    |
-    | This stage is advisory only. It evaluates the bounded
-    | continuation policy after the canonical cognitive cycle
-    | and records the candidate without executing it.
-    |--------------------------------------------------------------------------
-    */
-
-    this.register(
-      new AutonomyStage()
-    );
+    this.register(new InputStage());
+    this.register(new IntentStage());
+    this.register(new LiveKnowledgeStage(this.services));
+    this.register(new MemoryExtractionStage());
+    this.register(new TimelineExtractionStage());
+    this.register(new MemoryStage());
+    this.register(new BrainStateStage());
+    this.register(new ProfileStage());
+    this.register(new ReasoningGraphStage());
+    this.register(new PredictionStage());
+    this.register(new PredictionHistoryStage());
+    this.register(new PredictionMemoryStage());
+    this.register(new PredictionConsolidationStage());
+    this.register(new PredictionConfidenceStage());
+    this.register(new SkillStage());
+    this.register(new ContextStage());
+    this.register(new RecommendationStage());
+    this.register(new ReasoningStage());
+    this.register(new InferenceStage());
+    this.register(new PlanningStage());
+    this.register(new DecisionStage());
+    this.register(new ValidationStage());
+    this.register(new ActionRoutingStage());
+    this.register(new ActionDispatchStage());
+    this.register(new ExecutionStage(this.services));
+    this.register(new ResponseStage());
+    this.register(new ResponseValidationStage());
+    this.register(new OutcomeStage());
+    this.register(new ReflectionStage());
+    this.register(new AutonomyStage());
   }
 
-  /**
-   * Register a cognitive stage.
-   *
-   * Every stage must have one canonical runtime owner.
-   */
   register(
     stage: Stage
   ): void {
     const stageName =
       stage.name.trim();
 
-    if (
-      !stageName
-    ) {
+    if (!stageName) {
       throw new Error(
         "CognitiveRuntime cannot register a stage without a name."
       );
     }
 
-    const duplicate =
-      this.stages.some(
-        (
-          registeredStage
-        ) =>
-          registeredStage.name ===
-          stageName
-      );
-
     if (
-      duplicate
+      this.stages.some(
+        (registeredStage) =>
+          registeredStage.name === stageName
+      )
     ) {
       throw new Error(
         `CognitiveRuntime cannot register duplicate stage "${stageName}".`
       );
     }
 
-    this.stages.push(
-      stage
-    );
+    this.stages.push(stage);
   }
 
-  /**
-   * Execute the canonical cognitive lifecycle.
-   */
   async execute(
     state: BrainState
   ): Promise<BrainState> {
-    let current =
-      state;
+    let current = state;
 
-    for (
-      const stage of
-      this.stages
-    ) {
+    for (const stage of this.stages) {
       try {
         current =
-          await stage.execute(
-            current
-          );
+          await stage.execute(current);
       } catch {
-        /*
-        |--------------------------------------------------------------------------
-        | Stage failure
-        |--------------------------------------------------------------------------
-        |
-        | BaseStage already records:
-        |
-        | - executed stage
-        | - error
-        | - diagnostic
-        |
-        | Stop downstream cognitive processing so later
-        | stages cannot operate on invalid state.
-        |
-        */
-
         current.runtimeStatus =
           "failed";
-
         break;
       }
 
@@ -545,40 +196,20 @@ export class CognitiveRuntime {
         new Date();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Outcome finalization
-    |--------------------------------------------------------------------------
-    |
-    | If a stage failed before Outcome, execute the canonical
-    | OutcomeStage once so the cognitive cycle still receives
-    | a durable outcome artifact.
-    |
-    */
-
-    if (
-      !current.outcome
-    ) {
+    if (!current.outcome) {
       const outcomeStage =
         this.stages.find(
-          (
-            stage
-          ) =>
-            stage.name ===
-            "Outcome"
+          (stage) =>
+            stage.name === "Outcome"
         );
 
-      if (
-        outcomeStage
-      ) {
+      if (outcomeStage) {
         try {
           current =
             await outcomeStage.execute(
               current
             );
-        } catch (
-          error
-        ) {
+        } catch (error) {
           const message =
             error instanceof Error
               ? error.message
@@ -587,31 +218,16 @@ export class CognitiveRuntime {
           current.errors.push(
             `Outcome: ${message}`
           );
-
           current.runtimeStatus =
             "failed";
         }
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reflection finalization
-    |--------------------------------------------------------------------------
-    |
-    | Reflection is a post-processing feedback operation.
-    |
-    | It must not run after a failed cognitive cycle.
-    |
-    */
-
     const reflectionStage =
       this.stages.find(
-        (
-          stage
-        ) =>
-          stage.name ===
-          "Reflection"
+        (stage) =>
+          stage.name === "Reflection"
       );
 
     const reflectionExecuted =
@@ -619,23 +235,17 @@ export class CognitiveRuntime {
         "Reflection"
       );
 
-    const runtimeFailed =
-      current.errors.length >
-      0;
-
     if (
       reflectionStage &&
       !reflectionExecuted &&
-      !runtimeFailed
+      current.errors.length === 0
     ) {
       try {
         current =
           await reflectionStage.execute(
             current
           );
-      } catch (
-        error
-      ) {
+      } catch (error) {
         const message =
           error instanceof Error
             ? error.message
@@ -645,40 +255,21 @@ export class CognitiveRuntime {
           `Reflection: ${message}`
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Outcome synchronization
-        |--------------------------------------------------------------------------
-        |
-        | Outcome was finalized before Reflection.
-        | If Reflection fails, synchronize the outcome
-        | with the final runtime failure.
-        |
-        */
-
         current.outcome =
           createRuntimeOutcome({
             result:
               current.response,
-
             errors:
               current.errors,
-
             executionId:
               current.currentExecutionId,
-
             executionStatus:
-              current.outcome
-                ?.metadata
-                .executionStatus ??
-              null,
-
+              current.outcome?.metadata
+                .executionStatus ?? null,
             planId:
               current.currentPlanId,
-
             decisionId:
               current.currentDecisionId,
-
             stagesExecuted:
               current.executedStages,
           });
@@ -688,21 +279,12 @@ export class CognitiveRuntime {
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Runtime timestamp
-    |--------------------------------------------------------------------------
-    */
-
     current.updatedAt =
       new Date();
 
     return current;
   }
 
-  /**
-   * Return the canonical runtime stage list.
-   */
   getStages():
     readonly Stage[] {
     return this.stages;
