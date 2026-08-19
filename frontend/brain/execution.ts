@@ -352,6 +352,10 @@ export function blockExecution(
 
     status:
       "blocked",
+
+    completedAt:
+      execution.completedAt ??
+      new Date(),
   };
 
   saveExecution(
