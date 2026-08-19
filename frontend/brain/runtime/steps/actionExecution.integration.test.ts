@@ -34,7 +34,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `ATR-001 end-to-end execution verification failed: ${message}`
+      `ATR-002 end-to-end execution verification failed: ${message}`
     );
   }
 }
@@ -47,6 +47,16 @@ const services = {
     answer: `Search result for ${query}`,
     results: [],
     searchedAt: new Date().toISOString(),
+  }),
+  fetchWebContent: async (
+    url: string
+  ) => ({
+    url,
+    title: "Test source",
+    text: "Fetched source content",
+    status: 200,
+    contentType: "text/html",
+    fetchedAt: new Date().toISOString(),
   }),
   aiService: {} as RuntimeServices["aiService"],
 } as RuntimeServices;
