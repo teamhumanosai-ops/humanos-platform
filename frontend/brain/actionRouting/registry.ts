@@ -61,6 +61,38 @@ export const ACTION_ROUTE_RULES:
   },
 ];
 
+function keywordMatches(
+  normalizedAction: string,
+  keyword: string
+): boolean {
+  const normalizedKeyword =
+    keyword.trim().toLowerCase();
+
+  if (!normalizedKeyword) {
+    return false;
+  }
+
+  if (
+    normalizedKeyword.includes(" ")
+  ) {
+    return normalizedAction.includes(
+      normalizedKeyword
+    );
+  }
+
+  const escapedKeyword =
+    normalizedKeyword.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+  return new RegExp(
+    `\\b${escapedKeyword}\\b`
+  ).test(
+    normalizedAction
+  );
+}
+
 export function findActionRouteRule(
   action: string
 ): ActionRouteRule | null {
@@ -80,7 +112,8 @@ export function findActionRouteRule(
           (
             keyword
           ) =>
-            normalized.includes(
+            keywordMatches(
+              normalized,
               keyword
             )
         )
