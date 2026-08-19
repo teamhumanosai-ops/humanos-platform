@@ -2,6 +2,10 @@ import type {
   ActionRoute,
 } from "./types";
 
+import {
+  isExecutableActionRoute,
+} from "./guards";
+
 export type ActionDispatchKind =
   | "provider"
   | "tool"
@@ -33,18 +37,7 @@ export function createActionDispatch(
   route: ActionRoute | null,
   authorizationPolicyVersion = "atr-authorization-v1"
 ): ActionDispatch | null {
-  if (!route?.executable) {
-    return null;
-  }
-
-  if (
-    route.kind === "unknown" ||
-    route.target === "unresolved"
-  ) {
-    return null;
-  }
-
-  if (!route.action.trim()) {
+  if (!isExecutableActionRoute(route)) {
     return null;
   }
 
