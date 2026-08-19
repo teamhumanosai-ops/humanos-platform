@@ -111,9 +111,28 @@ import {
  * BrainState remains the shared cognitive state while
  * domain services own actual provider/tool operations.
  *
- * Outcome is deliberately terminal: reflection and autonomy
- * enrich the completed cognitive cycle before the final runtime
- * artifact is materialized.
+ * Canonical lifecycle:
+ *
+ * Input
+ * -> Intent
+ * -> Knowledge / Memory / Profile
+ * -> Prediction
+ * -> Context / Recommendation / Reasoning
+ * -> Inference / Planning / Decision / Validation
+ * -> ActionRouting / ActionDispatch / Execution
+ * -> Response / ResponseValidation
+ * -> Reflection
+ * -> Autonomy
+ * -> Outcome
+ *
+ * Outcome is deliberately terminal. Reflection and autonomy
+ * therefore enrich the completed cognitive cycle before the
+ * final runtime artifact is materialized.
+ *
+ * The runtime also owns terminal failure recovery. If a stage
+ * fails before Outcome, the runtime does not pretend the cycle
+ * completed successfully; it asks Outcome to materialize the
+ * durable failure artifact and then stops.
  */
 export class CognitiveRuntime {
   private readonly stages:
@@ -123,38 +142,198 @@ export class CognitiveRuntime {
     public readonly services:
       RuntimeServices
   ) {
-    this.register(new InputStage());
-    this.register(new IntentStage());
-    this.register(new LiveKnowledgeStage(this.services));
-    this.register(new MemoryExtractionStage());
-    this.register(new TimelineExtractionStage());
-    this.register(new MemoryStage());
-    this.register(new BrainStateStage());
-    this.register(new ProfileStage());
-    this.register(new ReasoningGraphStage());
-    this.register(new PredictionStage());
-    this.register(new PredictionHistoryStage());
-    this.register(new PredictionMemoryStage());
-    this.register(new PredictionConsolidationStage());
-    this.register(new PredictionConfidenceStage());
-    this.register(new SkillStage());
-    this.register(new ContextStage());
-    this.register(new RecommendationStage());
-    this.register(new ReasoningStage());
-    this.register(new InferenceStage());
-    this.register(new PlanningStage());
-    this.register(new DecisionStage());
-    this.register(new ValidationStage());
-    this.register(new ActionRoutingStage());
-    this.register(new ActionDispatchStage());
-    this.register(new ExecutionStage(this.services));
-    this.register(new ResponseStage());
-    this.register(new ResponseValidationStage());
-    this.register(new ReflectionStage());
-    this.register(new AutonomyStage());
-    this.register(new OutcomeStage());
+    this.registerCanonicalStages();
   }
 
+  /**
+   * Register every canonical stage in lifecycle order.
+   *
+   * The registration is intentionally grouped by responsibility
+   * rather than placed in one large constructor block. This keeps
+   * the lifecycle auditable while preserving the exact stage order.
+   */
+  private registerCanonicalStages(): void {
+    this.registerInputStages();
+    this.registerKnowledgeAndMemoryStages();
+    this.registerPredictionStages();
+    this.registerCognitiveStages();
+    this.registerActionStages();
+    this.registerResponseStages();
+    this.registerTerminalStages();
+  }
+
+  /**
+   * Input and intent establish the request boundary.
+   */
+  private registerInputStages(): void {
+    this.register(
+      new InputStage()
+    );
+
+    this.register(
+      new IntentStage()
+    );
+  }
+
+  /**
+   * Knowledge, memory, timeline, brain state, profile, and
+   * reasoning graph are assembled before prediction begins.
+   */
+  private registerKnowledgeAndMemoryStages(): void {
+    this.register(
+      new LiveKnowledgeStage(
+        this.services
+      )
+    );
+
+    this.register(
+      new MemoryExtractionStage()
+    );
+
+    this.register(
+      new TimelineExtractionStage()
+    );
+
+    this.register(
+      new MemoryStage()
+    );
+
+    this.register(
+      new BrainStateStage()
+    );
+
+    this.register(
+      new ProfileStage()
+    );
+
+    this.register(
+      new ReasoningGraphStage()
+    );
+  }
+
+  /**
+   * Prediction is deliberately enriched in deterministic order:
+   * history, memory, consolidation, then confidence.
+   */
+  private registerPredictionStages(): void {
+    this.register(
+      new PredictionStage()
+    );
+
+    this.register(
+      new PredictionHistoryStage()
+    );
+
+    this.register(
+      new PredictionMemoryStage()
+    );
+
+    this.register(
+      new PredictionConsolidationStage()
+    );
+
+    this.register(
+      new PredictionConfidenceStage()
+    );
+  }
+
+  /**
+   * Cognitive interpretation consumes the enriched prediction
+   * state and prepares the action decision boundary.
+   */
+  private registerCognitiveStages(): void {
+    this.register(
+      new SkillStage()
+    );
+
+    this.register(
+      new ContextStage()
+    );
+
+    this.register(
+      new RecommendationStage()
+    );
+
+    this.register(
+      new ReasoningStage()
+    );
+
+    this.register(
+      new InferenceStage()
+    );
+
+    this.register(
+      new PlanningStage()
+    );
+
+    this.register(
+      new DecisionStage()
+    );
+
+    this.register(
+      new ValidationStage()
+    );
+  }
+
+  /**
+   * Action routing and dispatch are kept separate from execution.
+   * This prevents a selected action from being treated as an
+   * executed action merely because routing succeeded.
+   */
+  private registerActionStages(): void {
+    this.register(
+      new ActionRoutingStage()
+    );
+
+    this.register(
+      new ActionDispatchStage()
+    );
+
+    this.register(
+      new ExecutionStage(
+        this.services
+      )
+    );
+  }
+
+  /**
+   * Response construction and validation must complete before
+   * reflection can evaluate the quality of the cognitive cycle.
+   */
+  private registerResponseStages(): void {
+    this.register(
+      new ResponseStage()
+    );
+
+    this.register(
+      new ResponseValidationStage()
+    );
+  }
+
+  /**
+   * Reflection and autonomy enrich the cycle; Outcome is always
+   * the final registered stage and therefore the final normal-path
+   * execution boundary.
+   */
+  private registerTerminalStages(): void {
+    this.register(
+      new ReflectionStage()
+    );
+
+    this.register(
+      new AutonomyStage()
+    );
+
+    this.register(
+      new OutcomeStage()
+    );
+
+    this.assertCanonicalTerminalOrder();
+  }
+
+  /**
+   * Register one stage after validating its identity.
+   */
   register(
     stage: Stage
   ): void {
@@ -170,7 +349,8 @@ export class CognitiveRuntime {
     if (
       this.stages.some(
         (registeredStage) =>
-          registeredStage.name === stageName
+          registeredStage.name ===
+          stageName
       )
     ) {
       throw new Error(
@@ -178,169 +358,53 @@ export class CognitiveRuntime {
       );
     }
 
-    this.stages.push(stage);
+    this.stages.push(
+      stage
+    );
   }
 
+  /**
+   * Execute the canonical lifecycle from the current state.
+   */
   async execute(
     state: BrainState
   ): Promise<BrainState> {
     let current = state;
 
-    for (const stage of this.stages) {
-      try {
-        current =
-          await stage.execute(current);
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.errors.push(
-          `${stage.name}: ${message}`
+    for (
+      const stage of this.stages
+    ) {
+      const execution =
+        await this.executeStage(
+          stage,
+          current
         );
 
-        current.runtimeStatus =
-          "failed";
-        break;
+      current =
+        execution.state;
+
+      if (
+        execution.halted
+      ) {
+        current =
+          await this.recoverTerminalOutcome(
+            current
+          );
+
+        current.updatedAt =
+          new Date();
+
+        return current;
       }
 
       current.updatedAt =
         new Date();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Terminal failure recovery
-    |--------------------------------------------------------------------------
-    |
-    | If normal forward execution halted before Outcome, materialize the
-    | terminal outcome immediately. The existing normal-path recovery logic
-    | remains intact below so this is an additive safety boundary rather than
-    | a replacement of the established runtime behavior.
-    |
-    */
-
-    const terminalOutcomeStage =
-      this.stages.find(
-        (stage) =>
-          stage.name === "Outcome"
+    current =
+      await this.ensureTerminalOutcome(
+        current
       );
-
-    if (
-      current.errors.length > 0 &&
-      !current.outcome &&
-      terminalOutcomeStage
-    ) {
-      try {
-        current =
-          await terminalOutcomeStage.execute(
-            current
-          );
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.errors.push(
-          `Outcome: ${message}`
-        );
-        current.runtimeStatus =
-          "failed";
-      }
-
-      current.updatedAt =
-        new Date();
-
-      return current;
-    }
-
-    if (!current.outcome) {
-      const outcomeStage =
-        this.stages.find(
-          (stage) =>
-            stage.name === "Outcome"
-        );
-
-      if (outcomeStage) {
-        try {
-          current =
-            await outcomeStage.execute(
-              current
-            );
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : String(error);
-
-          current.errors.push(
-            `Outcome: ${message}`
-          );
-          current.runtimeStatus =
-            "failed";
-        }
-      }
-    }
-
-    const reflectionStage =
-      this.stages.find(
-        (stage) =>
-          stage.name === "Reflection"
-      );
-
-    const reflectionExecuted =
-      current.executedStages.includes(
-        "Reflection"
-      );
-
-    if (
-      reflectionStage &&
-      !reflectionExecuted &&
-      current.errors.length === 0
-    ) {
-      try {
-        current =
-          await reflectionStage.execute(
-            current
-          );
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.errors.push(
-          `Reflection: ${message}`
-        );
-
-        current.outcome =
-          createRuntimeOutcome({
-            result:
-              current.response,
-            errors:
-              current.errors,
-            executionId:
-              current.currentExecutionId,
-            executionStatus:
-              current.outcome?.metadata
-                .executionStatus ?? null,
-            executionResult:
-              current.outcome?.metadata
-                .executionResult ?? null,
-            planId:
-              current.currentPlanId,
-            decisionId:
-              current.currentDecisionId,
-            stagesExecuted:
-              current.executedStages,
-          });
-
-        current.runtimeStatus =
-          "failed";
-      }
-    }
 
     current.updatedAt =
       new Date();
@@ -348,6 +412,223 @@ export class CognitiveRuntime {
     return current;
   }
 
+  /**
+   * Execute one stage and convert stage exceptions into runtime
+   * failure state without throwing outside the lifecycle boundary.
+   */
+  private async executeStage(
+    stage: Stage,
+    state: BrainState
+  ): Promise<{
+    state: BrainState;
+    halted: boolean;
+  }> {
+    try {
+      const next =
+        await stage.execute(
+          state
+        );
+
+      return {
+        state:
+          next,
+        halted:
+          false,
+      };
+    } catch (error) {
+      this.recordStageFailure(
+        state,
+        stage,
+        error
+      );
+
+      return {
+        state,
+        halted:
+          true,
+      };
+    }
+  }
+
+  /**
+   * Convert an unknown thrown value into a stable runtime error.
+   */
+  private recordStageFailure(
+    state: BrainState,
+    stage: Stage,
+    error: unknown
+  ): void {
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    state.errors.push(
+      `${stage.name}: ${message}`
+    );
+
+    state.runtimeStatus =
+      "failed";
+  }
+
+  /**
+   * When a failure happens before Outcome, ask the registered
+   * Outcome stage to materialize the terminal failure artifact.
+   */
+  private async recoverTerminalOutcome(
+    state: BrainState
+  ): Promise<BrainState> {
+    if (
+      state.outcome
+    ) {
+      return state;
+    }
+
+    const outcomeStage =
+      this.findStage(
+        "Outcome"
+      );
+
+    if (!outcomeStage) {
+      return state;
+    }
+
+    try {
+      return await outcomeStage.execute(
+        state
+      );
+    } catch (error) {
+      this.recordStageFailure(
+        state,
+        outcomeStage,
+        error
+      );
+
+      return state;
+    }
+  }
+
+  /**
+   * Normal execution should already have produced Outcome. This
+   * guard exists for defensive compatibility with custom stage
+   * registration or future lifecycle extensions.
+   */
+  private async ensureTerminalOutcome(
+    state: BrainState
+  ): Promise<BrainState> {
+    if (
+      state.outcome
+    ) {
+      return state;
+    }
+
+    const outcomeStage =
+      this.findStage(
+        "Outcome"
+      );
+
+    if (!outcomeStage) {
+      state.errors.push(
+        "CognitiveRuntime: terminal Outcome stage is not registered."
+      );
+
+      state.runtimeStatus =
+        "failed";
+
+      return state;
+    }
+
+    try {
+      return await outcomeStage.execute(
+        state
+      );
+    } catch (error) {
+      this.recordStageFailure(
+        state,
+        outcomeStage,
+        error
+      );
+
+      return state;
+    }
+  }
+
+  /**
+   * Resolve a stage by its canonical name.
+   */
+  private findStage(
+    name: string
+  ): Stage | undefined {
+    return this.stages.find(
+      (stage) =>
+        stage.name === name
+    );
+  }
+
+  /**
+   * Assert the lifecycle's terminal ordering during construction.
+   * This fails early if future changes accidentally move Outcome
+   * ahead of reflection or autonomy.
+   */
+  private assertCanonicalTerminalOrder(): void {
+    const reflectionIndex =
+      this.stages.findIndex(
+        (stage) =>
+          stage.name ===
+          "Reflection"
+      );
+
+    const autonomyIndex =
+      this.stages.findIndex(
+        (stage) =>
+          stage.name ===
+          "Autonomy"
+      );
+
+    const outcomeIndex =
+      this.stages.findIndex(
+        (stage) =>
+          stage.name ===
+          "Outcome"
+      );
+
+    if (
+      reflectionIndex < 0 ||
+      autonomyIndex < 0 ||
+      outcomeIndex < 0
+    ) {
+      throw new Error(
+        "CognitiveRuntime requires Reflection, Autonomy, and Outcome stages."
+      );
+    }
+
+    if (
+      !(
+        reflectionIndex <
+        autonomyIndex &&
+        autonomyIndex <
+        outcomeIndex
+      )
+    ) {
+      throw new Error(
+        "CognitiveRuntime requires Reflection -> Autonomy -> Outcome ordering."
+      );
+    }
+
+    if (
+      outcomeIndex !==
+      this.stages.length - 1
+    ) {
+      throw new Error(
+        "CognitiveRuntime requires Outcome to remain the terminal registered stage."
+      );
+    }
+  }
+
+  /**
+   * Return the complete canonical stage list for diagnostics and
+   * regression tests without exposing the mutable backing array.
+   */
   getStages():
     readonly Stage[] {
     return this.stages;
