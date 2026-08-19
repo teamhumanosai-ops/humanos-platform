@@ -7,10 +7,6 @@ import {
 } from "./runtimeServices";
 
 import {
-  createRuntimeOutcome,
-} from "./outcome";
-
-import {
   InputStage,
 } from "./steps/inputStage";
 import {
@@ -114,6 +110,11 @@ import {
  * Outcome is deliberately terminal: reflection and autonomy
  * enrich the completed cognitive cycle before the final runtime
  * artifact is materialized.
+ *
+ * If an earlier stage fails, the runtime stops normal forward
+ * execution and still materializes the terminal Outcome stage so
+ * the failure becomes a durable cognitive artifact instead of
+ * being left as an incomplete runtime cycle.
  */
 export class CognitiveRuntime {
   private readonly stages:
@@ -185,6 +186,7 @@ export class CognitiveRuntime {
     state: BrainState
   ): Promise<BrainState> {
     let current = state;
+    let halted = false;
 
     for (const stage of this.stages) {
       try {
@@ -202,6 +204,8 @@ export class CognitiveRuntime {
 
         current.runtimeStatus =
           "failed";
+
+        halted = true;
         break;
       }
 
@@ -209,7 +213,10 @@ export class CognitiveRuntime {
         new Date();
     }
 
-    if (!current.outcome) {
+    if (
+      halted &&
+      !current.outcome
+    ) {
       const outcomeStage =
         this.stages.find(
           (stage) =>
@@ -234,64 +241,6 @@ export class CognitiveRuntime {
           current.runtimeStatus =
             "failed";
         }
-      }
-    }
-
-    const reflectionStage =
-      this.stages.find(
-        (stage) =>
-          stage.name === "Reflection"
-      );
-
-    const reflectionExecuted =
-      current.executedStages.includes(
-        "Reflection"
-      );
-
-    if (
-      reflectionStage &&
-      !reflectionExecuted &&
-      current.errors.length === 0
-    ) {
-      try {
-        current =
-          await reflectionStage.execute(
-            current
-          );
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
-
-        current.errors.push(
-          `Reflection: ${message}`
-        );
-
-        current.outcome =
-          createRuntimeOutcome({
-            result:
-              current.response,
-            errors:
-              current.errors,
-            executionId:
-              current.currentExecutionId,
-            executionStatus:
-              current.outcome?.metadata
-                .executionStatus ?? null,
-            executionResult:
-              current.outcome?.metadata
-                .executionResult ?? null,
-            planId:
-              current.currentPlanId,
-            decisionId:
-              current.currentDecisionId,
-            stagesExecuted:
-              current.executedStages,
-          });
-
-        current.runtimeStatus =
-          "failed";
       }
     }
 
