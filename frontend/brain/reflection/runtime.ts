@@ -60,3 +60,18 @@ export function createRuntimeReflection(
     createdAt: new Date().toISOString(),
   };
 }
+
+export function buildRuntimeReflectionMemory(
+  reflection: Pick<
+    RuntimeReflection,
+    "summary" | "evidence"
+  >
+): string {
+  return [
+    reflection.summary,
+    reflection.evidence,
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
