@@ -127,6 +127,15 @@ function runOutcomeMetadataVerification(): void {
     "Example error",
   ];
 
+  const executionResult = {
+    status: "completed" as const,
+    summary: "Task completed successfully",
+    metadata: {
+      toolId: "task-create",
+    },
+    error: null,
+  };
+
   const outcome =
     createRuntimeOutcome({
       result: "Result",
@@ -134,6 +143,7 @@ function runOutcomeMetadataVerification(): void {
       executionId: "execution-1",
       executionStatus:
         "completed",
+      executionResult,
       planId: "plan-1",
       decisionId: "decision-1",
       stagesExecuted: stages,
@@ -146,6 +156,9 @@ function runOutcomeMetadataVerification(): void {
   errors.push(
     "Mutation"
   );
+
+  executionResult.metadata.toolId =
+    "mutated-tool";
 
   assert(
     outcome.metadata.stagesExecuted.length ===
@@ -181,6 +194,18 @@ function runOutcomeMetadataVerification(): void {
     outcome.metadata.executionStatus ===
       "completed",
     "execution status must be preserved"
+  );
+
+  assert(
+    outcome.metadata.executionResult?.summary ===
+      "Task completed successfully",
+    "execution result summary must be preserved"
+  );
+
+  assert(
+    outcome.metadata.executionResult?.metadata.toolId ===
+      "task-create",
+    "execution result metadata must be defensively copied"
   );
 
   assert(
