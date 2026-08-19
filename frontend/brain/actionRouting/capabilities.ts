@@ -1,4 +1,8 @@
 import type {
+  ActionRouteTarget,
+} from "./types";
+
+import type {
   RuntimeServices,
 } from "../runtime/runtimeServices";
 
@@ -6,11 +10,10 @@ import {
   getActionTool,
 } from "./toolCapabilities";
 
-export type ActionCapabilityTarget =
-  | "web-search"
-  | "web-content"
-  | "cognitive"
-  | "tool";
+export type ActionCapabilityTarget = Exclude<
+  ActionRouteTarget,
+  "unresolved"
+>;
 
 export type ActionCapability = {
   target:
