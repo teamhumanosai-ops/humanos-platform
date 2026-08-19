@@ -42,6 +42,10 @@ import {
  * this stage therefore never starts a second external execution for
  * the same runtime execution record, including when the existing
  * record is still pending.
+ *
+ * The stage also requires the ActionDispatch descriptor created by
+ * the preceding dispatch boundary. Execution therefore cannot bypass
+ * dispatch provenance by using a route directly.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -92,14 +96,48 @@ export class ExecutionStage
       return state;
     }
 
+    const actionDispatch =
+      state.actionDispatch;
+
+    if (!actionDispatch) {
+      state.errors.push(
+        "Execution: validated action dispatch is missing."
+      );
+      return state;
+    }
+
+    if (
+      actionDispatch.routeId !==
+      actionRoute.id
+    ) {
+      state.errors.push(
+        `Execution: dispatch route "${actionDispatch.routeId}" does not match action route "${actionRoute.id}".`
+      );
+      return state;
+    }
+
+    if (
+      actionDispatch.target !==
+      actionRoute.target ||
+      actionDispatch.kind !==
+      actionRoute.kind ||
+      actionDispatch.action !==
+      actionRoute.action
+    ) {
+      state.errors.push(
+        `Execution: dispatch descriptor does not match validated action route "${actionRoute.id}".`
+      );
+      return state;
+    }
+
     const capability =
       getActionCapability(
-        actionRoute.target
+        actionDispatch.target
       );
 
     if (!capability) {
       state.errors.push(
-        `Execution: no registered capability exists for target "${actionRoute.target}".`
+        `Execution: no registered capability exists for target "${actionDispatch.target}".`
       );
       return state;
     }
@@ -153,7 +191,7 @@ export class ExecutionStage
     try {
       const result =
         await capability.execute(
-          decision.selectedAction,
+          actionDispatch.action,
           this.services
         );
 
@@ -185,6 +223,12 @@ export class ExecutionStage
                 actionRoute.kind,
               routeConfidence:
                 String(actionRoute.confidence),
+              dispatchRouteId:
+                actionDispatch.routeId,
+              dispatchTarget:
+                actionDispatch.target,
+              dispatchKind:
+                actionDispatch.kind,
               durationMs:
                 String(durationMs),
               startedAt:
@@ -271,6 +315,12 @@ export class ExecutionStage
               actionRoute.kind,
             routeConfidence:
               String(actionRoute.confidence),
+            dispatchRouteId:
+              actionDispatch.routeId,
+            dispatchTarget:
+              actionDispatch.target,
+            dispatchKind:
+              actionDispatch.kind,
             durationMs:
               String(durationMs),
             startedAt:
