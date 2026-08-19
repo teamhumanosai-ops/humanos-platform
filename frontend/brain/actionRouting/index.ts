@@ -8,6 +8,8 @@ export * from "./guards";
 
 export * from "./execution";
 
+export * from "./authorization";
+
 export * from "./capabilities";
 
 export * from "./toolCapabilities";
