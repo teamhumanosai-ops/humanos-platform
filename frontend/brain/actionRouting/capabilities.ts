@@ -34,7 +34,7 @@ function extractUrl(
 ): string | null {
   const match =
     action.match(
-      /https?:\\/\\/[^\\s<>"]+/i
+      /https?:\/\/[^\s<>\"]+/i
     );
 
   if (!match?.[0]) {
