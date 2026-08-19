@@ -58,6 +58,16 @@ const services = {
     contentType: "text/html",
     fetchedAt: new Date().toISOString(),
   }),
+  scrapeFirecrawl: async (
+    url: string
+  ) => ({
+    url,
+    title: "Firecrawl execution source",
+    markdown: "Firecrawl fetched source content",
+    status: 200,
+    contentType: "text/markdown",
+    fetchedAt: new Date().toISOString(),
+  }),
   aiService: {} as RuntimeServices["aiService"],
 } as RuntimeServices;
 
@@ -154,6 +164,84 @@ assert(
   executions[0]?.result?.metadata.toolId ===
     "task-create",
   "normalized execution metadata must persist tool identity"
+);
+
+const contentState =
+  createBrainState(
+    "conversation",
+    [],
+    "Open the source page"
+  );
+
+const contentPlan =
+  createPlanFromMessage(
+    "Open the source page"
+  );
+
+const contentDecision = {
+  id: "decision-web-content-execution",
+  title: "Open source page",
+  description: "Fetch the requested source page.",
+  selectedAction: "Open https://example.com/source",
+  alternatives: [],
+  reason: "Explicit web-content execution test.",
+  confidence: 0.95,
+  createdAt: new Date(),
+};
+
+saveDecision(
+  contentDecision
+);
+
+contentState.currentPlanId =
+  contentPlan.id;
+contentState.currentGoal =
+  contentPlan.goal;
+contentState.currentDecisionId =
+  contentDecision.id;
+contentState.actionRoute = {
+  id: "route-web-content-execution",
+  kind: "provider",
+  action:
+    contentDecision.selectedAction,
+  target: "web-content",
+  confidence: 0.95,
+  executable: true,
+};
+
+await new ExecutionStage(
+  services
+).execute(contentState);
+
+assert(
+  contentState.errors.length === 0,
+  "web-content provider execution must complete without errors"
+);
+
+assert(
+  contentState.execution?.includes(
+    "Firecrawl fetched source content"
+  ) === true,
+  "Firecrawl content result must propagate into execution state"
+);
+
+const contentExecution =
+  getAllExecutions().find(
+    (execution) =>
+      execution.id ===
+      contentState.currentExecutionId
+  );
+
+assert(
+  contentExecution?.result?.status ===
+    "completed",
+  "web-content execution must persist completion"
+);
+
+assert(
+  contentExecution?.result?.metadata.provider ===
+    "firecrawl",
+  "web-content execution must persist its provider identity"
 );
 
 registerActionTool({
