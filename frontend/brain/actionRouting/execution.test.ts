@@ -100,6 +100,40 @@ assert(
   "web-content dispatch must preserve authorization provenance"
 );
 
+const cognitiveDispatch =
+  createActionDispatch({
+    id: "route-cognitive",
+    kind: "internal",
+    action: "Analyze the action",
+    target: "cognitive",
+    confidence: 0.9,
+    executable: true,
+  });
+
+assert(
+  cognitiveDispatch?.kind ===
+    "internal" &&
+    cognitiveDispatch.target ===
+      "cognitive",
+  "internal cognitive routes must preserve their validated kind and target"
+);
+
+assert(
+  createActionDispatch({
+    ...validRoute,
+    kind: "internal",
+  }) === null,
+  "dispatch creation must reject kind-target mismatches"
+);
+
+assert(
+  createActionDispatch({
+    ...validRoute,
+    confidence: 1.5,
+  }) === null,
+  "dispatch creation must reject invalid confidence"
+);
+
 assert(
   createActionDispatch(null) ===
     null,
