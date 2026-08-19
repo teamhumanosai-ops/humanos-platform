@@ -452,6 +452,8 @@ export class CognitiveRuntime {
 
   /**
    * Convert an unknown thrown value into a stable runtime error.
+   * BaseStage already records its own failure, so this boundary
+   * only appends the error when it has not already been preserved.
    */
   private recordStageFailure(
     state: BrainState,
@@ -463,9 +465,22 @@ export class CognitiveRuntime {
         ? error.message
         : String(error);
 
-    state.errors.push(
-      `${stage.name}: ${message}`
-    );
+    const formatted =
+      `${stage.name}: ${message}`;
+
+    const lastError =
+      state.errors[
+        state.errors.length - 1
+      ];
+
+    if (
+      lastError !==
+      formatted
+    ) {
+      state.errors.push(
+        formatted
+      );
+    }
 
     state.runtimeStatus =
       "failed";
