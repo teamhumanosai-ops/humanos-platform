@@ -1,11 +1,7 @@
 import {
-  createActionDispatch,
+  authorizeAndCreateActionDispatch,
   getActionCapability,
 } from "../../actionRouting";
-
-import {
-  evaluateActionAuthorization,
-} from "../../actionRouting/authorization";
 
 import {
   BrainState,
@@ -30,8 +26,9 @@ import {
  * so Execution can verify that the capability binding it executes
  * is exactly the one produced by the dispatch boundary.
  *
- * Authorization is evaluated at this boundary so no capability can
- * be dispatched unless the centralized action policy permits it.
+ * Authorization is evaluated through the centralized authorized
+ * dispatch boundary so route binding and policy checks cannot drift
+ * between authorization and dispatch creation.
  */
 export class ActionDispatchStage
   extends BaseStage {
@@ -47,10 +44,12 @@ export class ActionDispatchStage
       return state;
     }
 
-    const authorization =
-      evaluateActionAuthorization(
-        state
-      );
+    const {
+      authorization,
+      dispatch,
+    } = authorizeAndCreateActionDispatch(
+      state
+    );
 
     state.actionAuthorization =
       authorization;
@@ -76,12 +75,6 @@ export class ActionDispatchStage
 
       return state;
     }
-
-    const dispatch =
-      createActionDispatch(
-        state.actionRoute,
-        authorization.policyVersion
-      );
 
     if (!dispatch) {
       state.errors.push(
