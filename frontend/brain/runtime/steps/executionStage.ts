@@ -179,6 +179,12 @@ export class ExecutionStage
               ...(result.metadata ?? {}),
               route:
                 actionRoute.target,
+              routeId:
+                actionRoute.id,
+              routeKind:
+                actionRoute.kind,
+              routeConfidence:
+                String(actionRoute.confidence),
               durationMs:
                 String(durationMs),
               startedAt:
@@ -259,6 +265,12 @@ export class ExecutionStage
           metadata: {
             route:
               actionRoute.target,
+            routeId:
+              actionRoute.id,
+            routeKind:
+              actionRoute.kind,
+            routeConfidence:
+              String(actionRoute.confidence),
             durationMs:
               String(durationMs),
             startedAt:
