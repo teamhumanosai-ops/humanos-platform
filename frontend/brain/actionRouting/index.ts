@@ -9,3 +9,5 @@ export * from "./guards";
 export * from "./execution";
 
 export * from "./capabilities";
+
+export * from "./toolCapabilities";
