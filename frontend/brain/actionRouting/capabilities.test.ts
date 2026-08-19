@@ -318,6 +318,24 @@ if (toolCapability) {
       "test-tool",
     "tool metadata must identify the registered tool"
   );
+
+  assert(
+    result.metadata?.executionType ===
+      "registered-tool",
+    "tool execution must identify the registered tool execution type"
+  );
+
+  const explicitResult =
+    await toolCapability.execute(
+      "tool:test-tool:perform explicit action",
+      services
+    );
+
+  assert(
+    explicitResult.summary ===
+      "Tool result: perform explicit action",
+    "tool capability must support explicit tool execution syntax"
+  );
 }
 
 let unknownToolRejected =
