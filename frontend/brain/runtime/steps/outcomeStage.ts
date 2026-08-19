@@ -35,6 +35,7 @@ import {
  * - Goal state
  * - Decision state
  * - Execution state
+ * - Execution result
  * - Runtime outcome
  * - Overall runtime status
  *
@@ -146,23 +147,14 @@ export class OutcomeStage
       state.plan =
         [
           `Plan: ${plan.title}`,
-
           `Goal: ${goal.statement}`,
-
           `Goal Status: ${goal.status}`,
-
           `Progress: ${goal.progress}%`,
-
           `Description: ${plan.description}`,
-
           `Status: ${plan.status}`,
-
           `Next Action: ${goal.nextAction}`,
-
           `Priority: ${goal.priority}`,
-
           `Confidence: ${goal.confidence}`,
-
           `Obstacles: ${
             goal.obstacles.length > 0
               ? goal.obstacles.join(
@@ -170,7 +162,6 @@ export class OutcomeStage
                 )
               : "None identified"
           }`,
-
           `Dependencies: ${
             goal.dependencies.length > 0
               ? goal.dependencies.join(
@@ -178,13 +169,10 @@ export class OutcomeStage
                 )
               : "None identified"
           }`,
-
           `Completed Milestones: ${
             plan.completedMilestones.length
           }/${plan.milestones.length}`,
-
           "Milestones:",
-
           ...plan.milestones.map(
             (
               milestone,
@@ -217,13 +205,9 @@ export class OutcomeStage
       state.decision =
         [
           `Decision: ${decision.title}`,
-
           `Description: ${decision.description}`,
-
           `Selected Action: ${decision.selectedAction}`,
-
           "Alternatives:",
-
           ...decision.alternatives.map(
             (
               alternative,
@@ -231,9 +215,7 @@ export class OutcomeStage
             ) =>
               `${index + 1}. ${alternative}`
           ),
-
           `Reason: ${decision.reason}`,
-
           `Confidence: ${decision.confidence}`,
         ].join(
           "\n"
@@ -247,33 +229,50 @@ export class OutcomeStage
     */
 
     if (execution) {
+      const executionResult =
+        execution.result;
+
       state.execution =
         [
           `Execution: ${execution.title}`,
-
           `Action: ${execution.action}`,
-
           `Status: ${execution.status}`,
-
           `Plan ID: ${execution.planId}`,
-
           `Execution ID: ${execution.id}`,
-
           `Started At: ${
             execution.startedAt
               ?.toISOString() ??
             "Not started"
           }`,
-
           `Completed At: ${
             execution.completedAt
               ?.toISOString() ??
             "Not completed"
           }`,
+          ...(executionResult
+            ? [
+                `Result Status: ${executionResult.status}`,
+                `Result: ${executionResult.summary}`,
+                ...(executionResult.error
+                  ? [
+                      `Result Error: ${executionResult.error}`,
+                    ]
+                  : []),
+              ]
+            : []),
         ].join(
           "\n"
         );
     }
+
+    const executionResult =
+      execution?.result ??
+      null;
+
+    const outcomeResult =
+      state.response?.trim() ||
+      executionResult?.summary?.trim() ||
+      null;
 
     /*
     |--------------------------------------------------------------------------
@@ -284,7 +283,7 @@ export class OutcomeStage
     state.outcome =
       createRuntimeOutcome({
         result:
-          state.response,
+          outcomeResult,
 
         errors:
           state.errors,
@@ -296,6 +295,8 @@ export class OutcomeStage
         executionStatus:
           execution?.status ??
           null,
+
+        executionResult,
 
         planId:
           execution?.planId ??
