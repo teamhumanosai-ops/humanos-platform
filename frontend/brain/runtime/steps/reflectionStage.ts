@@ -5,6 +5,7 @@ import {
 import {
   loadReflections,
   runReflectionEngine,
+  createRuntimeReflection,
 } from "../../reflection";
 
 import {
@@ -76,15 +77,8 @@ export class ReflectionStage
 
     if (state.outcome) {
       const runtimeReflection =
-        await import(
-          "../../reflection/runtime"
-        ).then(
-          ({
-            createRuntimeReflection,
-          }) =>
-            createRuntimeReflection(
-              state
-            )
+        createRuntimeReflection(
+          state
         );
 
       await persistRuntimeOutcomeMemory(
