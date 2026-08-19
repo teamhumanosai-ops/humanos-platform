@@ -17,15 +17,32 @@ export type RegisteredTool = {
 const registeredTools =
   new Map<string, RegisteredTool>();
 
+function normalizeToolId(
+  id: string
+): string {
+  return id.trim();
+}
+
 export function registerActionTool(
   tool: RegisteredTool
 ): void {
   const id =
-    tool.id.trim();
+    normalizeToolId(
+      tool.id
+    );
 
   if (!id) {
     throw new Error(
       "Action tool registration requires a non-empty id."
+    );
+  }
+
+  if (
+    typeof tool.execute !==
+    "function"
+  ) {
+    throw new Error(
+      `Action tool "${id}" must provide an executable function.`
     );
   }
 
@@ -39,7 +56,10 @@ export function registerActionTool(
 
   registeredTools.set(
     id,
-    tool
+    {
+      ...tool,
+      id,
+    }
   );
 }
 
@@ -48,8 +68,15 @@ export function getActionTool(
 ): RegisteredTool | null {
   return (
     registeredTools.get(
-      id
+      normalizeToolId(id)
     ) ?? null
+  );
+}
+
+export function getActionTools():
+  readonly RegisteredTool[] {
+  return Array.from(
+    registeredTools.values()
   );
 }
 
