@@ -390,6 +390,15 @@ export async function scrapeFirecrawl(
           formats: [
             "markdown",
           ],
+
+          onlyMainContent:
+            true,
+
+          blockAds:
+            true,
+
+          timeout:
+            30000,
         }),
       }
     );
