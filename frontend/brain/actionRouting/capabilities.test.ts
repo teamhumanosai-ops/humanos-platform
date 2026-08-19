@@ -75,8 +75,14 @@ const services = {
     fetchedAt:
       new Date().toISOString(),
   }),
-  aiService:
-    {} as never,
+  aiService: async (
+    _systemContext: string,
+    messages: Array<{
+      role: "user" | "assistant";
+      message: string;
+    }>
+  ) =>
+    `Cognitive result: ${messages[0]?.message ?? ""}`,
 };
 
 assert(
@@ -209,6 +215,65 @@ if (webContentCapability) {
 assert(
   emptyFirecrawlContentRejected,
   "empty Firecrawl content must not be accepted as execution evidence"
+);
+
+const cognitiveCapability =
+  getActionCapability(
+    "cognitive"
+  );
+
+assert(
+  cognitiveCapability !== null,
+  "cognitive capability must resolve"
+);
+
+if (cognitiveCapability) {
+  const result =
+    await cognitiveCapability.execute(
+      "Analyze the current action plan",
+      services
+    );
+
+  assert(
+    result.summary ===
+      "Cognitive result: Analyze the current action plan",
+    "cognitive capability must return the real AI service result"
+  );
+
+  assert(
+    result.metadata?.executionType ===
+      "cognitive-ai",
+    "cognitive execution must identify its execution type"
+  );
+
+  assert(
+    result.metadata?.providerBoundary ===
+      "aiService",
+    "cognitive execution must preserve the provider service boundary"
+  );
+}
+
+let emptyCognitiveActionRejected =
+  false;
+
+if (cognitiveCapability) {
+  try {
+    await cognitiveCapability.execute(
+      "   ",
+      services
+    );
+  } catch (error) {
+    emptyCognitiveActionRejected =
+      error instanceof Error &&
+      error.message.includes(
+        "non-empty action"
+      );
+  }
+}
+
+assert(
+  emptyCognitiveActionRejected,
+  "cognitive execution must reject empty actions"
 );
 
 clearActionTools();
