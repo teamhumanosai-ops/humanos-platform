@@ -56,6 +56,43 @@ assert(
   "dispatch metadata must preserve route identity"
 );
 
+assert(
+  state.execution?.includes(
+    "Capability: web-search"
+  ) === true,
+  "dispatch must identify the concrete execution capability"
+);
+
+const unsupportedState =
+  createBrainState(
+    "conversation",
+    [],
+    "Open this web page"
+  );
+
+unsupportedState.actionRoute = {
+  id: "route-unsupported",
+  kind: "provider",
+  action: "Open this web page",
+  target: "web-content",
+  confidence: 0.9,
+  executable: true,
+};
+
+await new ActionDispatchStage().execute(
+  unsupportedState
+);
+
+assert(
+  unsupportedState.errors.some(
+    (error) =>
+      error.includes(
+        "no registered execution capability"
+      )
+  ),
+  "routes without concrete capabilities must be rejected before execution"
+);
+
 const invalidState =
   createBrainState(
     "conversation",
