@@ -12,24 +12,24 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `ATR-001 capability integration failed: ${message}`
+      `ATR-002 capability integration failed: ${message}`
     );
   }
 }
 
-const capability =
+const cognitiveCapability =
   getActionCapability(
     "cognitive"
   );
 
 assert(
-  capability !== null,
+  cognitiveCapability !== null,
   "cognitive capability must resolve"
 );
 
-if (capability) {
+if (cognitiveCapability) {
   const result =
-    await capability.execute(
+    await cognitiveCapability.execute(
       "Continue the cognitive loop",
       runtimeServices
     );
@@ -42,9 +42,32 @@ if (capability) {
   );
 }
 
+const searchCapability =
+  getActionCapability(
+    "web-search"
+  );
+
 assert(
+  searchCapability !== null,
+  "web-search capability must resolve through the runtime boundary"
+);
+
+const contentCapability =
+  getActionCapability(
+    "web-content"
+  );
+
+assert(
+  contentCapability !== null,
+  "web-content capability must resolve through the runtime boundary"
+);
+
+const toolCapability =
   getActionCapability(
     "tool"
-  ) === null,
-  "tool target must remain blocked until a concrete tool capability is registered"
+  );
+
+assert(
+  toolCapability !== null,
+  "tool capability must remain available behind the explicit registry boundary"
 );
