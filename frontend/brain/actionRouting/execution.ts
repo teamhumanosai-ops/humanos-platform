@@ -3,6 +3,10 @@ import type {
 } from "./types";
 
 import {
+  ACTION_AUTHORIZATION_POLICY_VERSION,
+} from "./authorization";
+
+import {
   isExecutableActionRoute,
 } from "./guards";
 
@@ -35,7 +39,8 @@ export type ActionDispatch = {
 
 export function createActionDispatch(
   route: ActionRoute | null,
-  authorizationPolicyVersion = "atr-authorization-v1"
+  authorizationPolicyVersion =
+    ACTION_AUTHORIZATION_POLICY_VERSION
 ): ActionDispatch | null {
   if (!isExecutableActionRoute(route)) {
     return null;
