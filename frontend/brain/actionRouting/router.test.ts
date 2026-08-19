@@ -103,6 +103,32 @@ assert(
   "tool actions must resolve to the tool target"
 );
 
+const explicitToolRoute =
+  routeDecisionAction({
+    ...baseDecision,
+    id: "decision-explicit-tool",
+    selectedAction:
+      "tool:test-tool:perform the requested action",
+  });
+
+assert(
+  explicitToolRoute.kind ===
+    "tool",
+  "explicit tool syntax must route to the tool boundary"
+);
+
+assert(
+  explicitToolRoute.target ===
+    "tool",
+  "explicit tool syntax must resolve to the tool target"
+);
+
+assert(
+  explicitToolRoute.executable ===
+    true,
+  "explicit tool syntax must produce an executable route"
+);
+
 const internalRoute =
   routeDecisionAction({
     ...baseDecision,
