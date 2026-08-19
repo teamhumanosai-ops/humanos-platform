@@ -69,6 +69,41 @@ export function authorizeAndCreateActionDispatch(
       authorization.policyVersion
     );
 
+  if (!dispatch) {
+    return {
+      authorization: {
+        ...authorization,
+        status: "blocked",
+        reason:
+          "The authorized action route could not produce a safe dispatch descriptor.",
+      },
+      dispatch: null,
+    };
+  }
+
+  if (
+    dispatch.authorizationStatus !==
+      authorization.status ||
+    dispatch.authorizationPolicyVersion !==
+      authorization.policyVersion ||
+    dispatch.authorizationRouteId !==
+      authorization.routeId ||
+    dispatch.routeId !==
+      state.actionRoute.id ||
+    dispatch.target !==
+      authorization.target
+  ) {
+    return {
+      authorization: {
+        ...authorization,
+        status: "blocked",
+        reason:
+          "The generated dispatch failed authorization provenance validation.",
+      },
+      dispatch: null,
+    };
+  }
+
   return {
     authorization,
     dispatch,
