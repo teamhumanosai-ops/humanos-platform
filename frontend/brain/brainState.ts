@@ -40,6 +40,10 @@ import type {
 } from "./inference";
 
 import type {
+  ActionAuthorization,
+} from "./actionRouting/authorization";
+
+import type {
   ActionDispatch,
   ActionRoute,
 } from "./actionRouting";
@@ -87,417 +91,116 @@ export type BrainRuntimeStatus =
   | "blocked";
 
 export type BrainState = {
-  /*
-  |--------------------------------------------------------------------------
-  | Conversation
-  |--------------------------------------------------------------------------
-  */
-
   conversation: string;
-
-  messages:
-    ConversationMessage[];
-
+  messages: ConversationMessage[];
   userMessage: string;
+  conversationContinuity: string;
 
-  conversationContinuity:
-    string;
+  intent: string | null;
+  context: string | null;
+  memory: string[];
+  knowledge: BrainKnowledge[];
+  liveKnowledge: string[];
+  reasoning: string | null;
+  reasoningObservations: ReasoningObservation[];
+  reasoningConfidence: number;
+  inferences: CognitiveInference[];
+  plan: string | null;
+  decision: string | null;
+  execution: string | null;
+  response: string | null;
+  outcome: RuntimeOutcome | null;
 
-  /*
-  |--------------------------------------------------------------------------
-  | Cognitive State
-  |--------------------------------------------------------------------------
-  */
+  memories: Memory[];
+  graph: GraphNode[];
+  graphEdges: GraphEdge[];
+  timeline: string[];
+  reflections: string[];
+  profile: HumanProfile | null;
+  citations: CitationSource[];
+  contentIntelligence: ContentIntelligence | null;
 
-  intent:
-    | string
-    | null;
+  goal: Goal | null;
+  predictions: Prediction[];
+  recommendations: Recommendation[];
 
-  context:
-    | string
-    | null;
+  actionRoute: ActionRoute | null;
+  actionAuthorization: ActionAuthorization | null;
+  actionDispatch: ActionDispatch | null;
 
-  memory:
-    string[];
+  currentGoal: string | null;
+  currentPlanId: string | null;
+  currentDecisionId: string | null;
+  currentExecutionId: string | null;
 
-  knowledge:
-    BrainKnowledge[];
+  runtimeStatus: BrainRuntimeStatus;
 
-  liveKnowledge:
-    string[];
+  executedStages: string[];
+  diagnostics: BrainDiagnostic[];
+  errors: string[];
 
-  reasoning:
-    | string
-    | null;
-
-  reasoningObservations:
-    ReasoningObservation[];
-
-  reasoningConfidence:
-    number;
-
-  inferences:
-    CognitiveInference[];
-
-  plan:
-    | string
-    | null;
-
-  decision:
-    | string
-    | null;
-
-  execution:
-    | string
-    | null;
-
-  response:
-    | string
-    | null;
-
-  outcome:
-    | RuntimeOutcome
-    | null;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Unified Brain Context
-  |--------------------------------------------------------------------------
-  */
-
-  memories:
-    Memory[];
-
-  graph:
-    GraphNode[];
-
-  graphEdges:
-    GraphEdge[];
-
-  timeline:
-    string[];
-
-  reflections:
-    string[];
-
-  profile:
-    HumanProfile
-    | null;
-
-  citations:
-    CitationSource[];
-
-  /*
-  |--------------------------------------------------------------------------
-  | Content Intelligence
-  |--------------------------------------------------------------------------
-  */
-
-  contentIntelligence:
-    ContentIntelligence
-    | null;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Goal Intelligence
-  |--------------------------------------------------------------------------
-  */
-
-  goal:
-    Goal
-    | null;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Prediction Intelligence
-  |--------------------------------------------------------------------------
-  */
-
-  predictions:
-    Prediction[];
-
-  /*
-  |--------------------------------------------------------------------------
-  | Recommendation Intelligence
-  |--------------------------------------------------------------------------
-  */
-
-  recommendations:
-    Recommendation[];
-
-  /*
-  |--------------------------------------------------------------------------
-  | Action Routing Intelligence
-  |--------------------------------------------------------------------------
-  */
-
-  actionRoute:
-    ActionRoute
-    | null;
-
-  actionDispatch:
-    ActionDispatch
-    | null;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Runtime Context
-  |--------------------------------------------------------------------------
-  */
-
-  currentGoal:
-    | string
-    | null;
-
-  currentPlanId:
-    | string
-    | null;
-
-  currentDecisionId:
-    | string
-    | null;
-
-  currentExecutionId:
-    | string
-    | null;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Runtime Status
-  |--------------------------------------------------------------------------
-  */
-
-  runtimeStatus:
-    BrainRuntimeStatus;
-
-  /*
-  |--------------------------------------------------------------------------
-  | Runtime Diagnostics
-  |--------------------------------------------------------------------------
-  */
-
-  executedStages:
-    string[];
-
-  diagnostics:
-    BrainDiagnostic[];
-
-  errors:
-    string[];
-
-  /*
-  |--------------------------------------------------------------------------
-  | Metadata
-  |--------------------------------------------------------------------------
-  */
-
-  createdAt:
-    Date;
-
-  updatedAt:
-    Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export function createBrainState(
   conversation: string,
-  messages:
-    ConversationMessage[],
+  messages: ConversationMessage[],
   userMessage: string,
   conversationContinuity = ""
 ): BrainState {
-  const now =
-    new Date();
+  const now = new Date();
 
   return {
-    /*
-    |--------------------------------------------------------------------------
-    | Conversation
-    |--------------------------------------------------------------------------
-    */
-
     conversation,
-
     messages,
-
     userMessage,
-
     conversationContinuity,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cognitive State
-    |--------------------------------------------------------------------------
-    */
+    intent: null,
+    context: null,
+    memory: [],
+    knowledge: [],
+    liveKnowledge: [],
+    reasoning: null,
+    reasoningObservations: [],
+    reasoningConfidence: 0,
+    inferences: [],
+    plan: null,
+    decision: null,
+    execution: null,
+    response: null,
+    outcome: null,
 
-    intent:
-      null,
+    memories: [],
+    graph: [],
+    graphEdges: [],
+    timeline: [],
+    reflections: [],
+    profile: null,
+    citations: [],
+    contentIntelligence: null,
 
-    context:
-      null,
+    goal: null,
+    predictions: [],
+    recommendations: [],
 
-    memory:
-      [],
+    actionRoute: null,
+    actionAuthorization: null,
+    actionDispatch: null,
 
-    knowledge:
-      [],
+    currentGoal: null,
+    currentPlanId: null,
+    currentDecisionId: null,
+    currentExecutionId: null,
 
-    liveKnowledge:
-      [],
+    runtimeStatus: "in_progress",
 
-    reasoning:
-      null,
+    executedStages: [],
+    diagnostics: [],
+    errors: [],
 
-    reasoningObservations:
-      [],
-
-    reasoningConfidence:
-      0,
-
-    inferences:
-      [],
-
-    plan:
-      null,
-
-    decision:
-      null,
-
-    execution:
-      null,
-
-    response:
-      null,
-
-    outcome:
-      null,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Unified Brain Context
-    |--------------------------------------------------------------------------
-    */
-
-    memories:
-      [],
-
-    graph:
-      [],
-
-    graphEdges:
-      [],
-
-    timeline:
-      [],
-
-    reflections:
-      [],
-
-    profile:
-      null,
-
-    citations:
-      [],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Content Intelligence
-    |--------------------------------------------------------------------------
-    */
-
-    contentIntelligence:
-      null,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Goal Intelligence
-    |--------------------------------------------------------------------------
-    */
-
-    goal:
-      null,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Prediction Intelligence
-    |--------------------------------------------------------------------------
-    */
-
-    predictions:
-      [],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Recommendation Intelligence
-    |--------------------------------------------------------------------------
-    */
-
-    recommendations:
-      [],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Action Routing Intelligence
-    |--------------------------------------------------------------------------
-    */
-
-    actionRoute:
-      null,
-
-    actionDispatch:
-      null,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Runtime Context
-    |--------------------------------------------------------------------------
-    */
-
-    currentGoal:
-      null,
-
-    currentPlanId:
-      null,
-
-    currentDecisionId:
-      null,
-
-    currentExecutionId:
-      null,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Runtime Status
-    |--------------------------------------------------------------------------
-    */
-
-    runtimeStatus:
-      "in_progress",
-
-    /*
-    |--------------------------------------------------------------------------
-    | Runtime Diagnostics
-    |--------------------------------------------------------------------------
-    */
-
-    executedStages:
-      [],
-
-    diagnostics:
-      [],
-
-    errors:
-      [],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Metadata
-    |--------------------------------------------------------------------------
-    */
-
-    createdAt:
-      now,
-
-    updatedAt:
-      now,
+    createdAt: now,
+    updatedAt: now,
   };
 }
