@@ -24,6 +24,10 @@ import {
  * This stage never executes a tool or provider call.
  * Execution remains owned by the existing Execution
  * Engine and downstream action controls.
+ *
+ * A new route invalidates any previous dispatch descriptor.
+ * This prevents a stale capability binding from surviving
+ * a decision change and crossing the dispatch boundary.
  */
 export class ActionRoutingStage
   extends BaseStage {
@@ -60,6 +64,17 @@ export class ActionRoutingStage
       routeDecisionAction(
         decision
       );
+
+    /*
+    |--------------------------------------------------------------------------
+    | A route is the source of truth for dispatch eligibility.
+    | Any route recomputation therefore invalidates the previous
+    | dispatch descriptor before the new route is evaluated.
+    |--------------------------------------------------------------------------
+    */
+
+    state.actionDispatch =
+      null;
 
     if (!isExecutableActionRoute(route)) {
       state.actionRoute = route;
