@@ -35,10 +35,20 @@ if (cognitiveCapability) {
     );
 
   assert(
-    result.summary.includes(
-      "Cognitive action acknowledged"
-    ),
-    "registered cognitive capability must execute through its explicit handler"
+    result.summary.trim().length > 0,
+    "registered cognitive capability must return a real provider-backed result"
+  );
+
+  assert(
+    result.metadata?.executionType ===
+      "cognitive-ai",
+    "cognitive execution must preserve its execution type"
+  );
+
+  assert(
+    result.metadata?.providerBoundary ===
+      "aiService",
+    "cognitive execution must preserve the AI service boundary"
   );
 }
 
