@@ -7,3 +7,5 @@ export * from "./router";
 export * from "./guards";
 
 export * from "./execution";
+
+export * from "./capabilities";
