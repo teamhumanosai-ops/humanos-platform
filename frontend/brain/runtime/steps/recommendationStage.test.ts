@@ -60,7 +60,7 @@ async function verifyRecommendationIntegration(): Promise<void> {
         new Date().toISOString(),
 
       kind:
-        "fact",
+        "long_term",
 
       importance:
         0.9,
