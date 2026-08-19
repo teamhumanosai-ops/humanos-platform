@@ -146,5 +146,91 @@ assert(
   "normalized execution metadata must persist tool identity"
 );
 
+registerActionTool({
+  id: "failing-tool",
+  async execute() {
+    throw new Error(
+      "intentional tool failure"
+    );
+  },
+});
+
+const failedState =
+  createBrainState(
+    "conversation",
+    [],
+    "Run failing tool"
+  );
+
+const failedDecision = {
+  id: "decision-tool-failure",
+  title: "Run failing tool",
+  description: "Verify execution failure propagation.",
+  selectedAction: "failing-tool:trigger failure",
+  alternatives: [],
+  reason: "Explicit failure test.",
+  confidence: 0.95,
+  createdAt: new Date(),
+};
+
+saveDecision(
+  failedDecision
+);
+
+failedState.currentPlanId =
+  plan.id;
+failedState.currentGoal =
+  plan.goal;
+failedState.currentDecisionId =
+  failedDecision.id;
+failedState.actionRoute = {
+  id: "route-tool-failure",
+  kind: "tool",
+  action:
+    failedDecision.selectedAction,
+  target: "tool",
+  confidence: 0.95,
+  executable: true,
+};
+
+await new ExecutionStage(
+  services
+).execute(failedState);
+
+assert(
+  failedState.errors.some(
+    (error) =>
+      error.includes(
+        "intentional tool failure"
+      )
+  ),
+  "tool failures must propagate into BrainState errors"
+);
+
+const failedExecution =
+  getAllExecutions().find(
+    (execution) =>
+      execution.id ===
+      failedState.currentExecutionId
+  );
+
+assert(
+  failedExecution?.status ===
+    "blocked",
+  "failed tool execution must be blocked"
+);
+
+assert(
+  failedExecution?.result?.status ===
+    "blocked",
+  "blocked execution must persist a normalized result"
+);
+
+assert(
+  failedExecution?.result?.error ===
+    "intentional tool failure",
+  "execution result must preserve the failure reason"
+);
+
 clearActionTools();
 clearExecutions();
