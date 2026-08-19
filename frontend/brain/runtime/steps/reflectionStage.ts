@@ -8,6 +8,10 @@ import {
 } from "../../reflection";
 
 import {
+  saveMemory,
+} from "../../memory/store";
+
+import {
   BaseStage,
 } from "./baseStage";
 
@@ -21,8 +25,10 @@ import {
  * for analyzing timeline history and persisting
  * inferred reflections.
  *
- * This stage only integrates that capability
- * into the runtime BrainState.
+ * This stage integrates the persisted reflection
+ * knowledge into BrainState and promotes the
+ * latest reflection evidence into the existing
+ * durable memory owner.
  */
 export class ReflectionStage
   extends BaseStage {
@@ -56,6 +62,45 @@ export class ReflectionStage
         (reflection) =>
           reflection.summary
       );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Promote reflection knowledge into the
+    | existing durable memory owner.
+    |
+    | Reflection remains responsible for inference.
+    | Memory remains responsible for persistence.
+    | This stage only bridges the two existing owners.
+    |--------------------------------------------------------------------------
+    */
+
+    const latestReflection =
+      reflections[
+        reflections.length - 1
+      ];
+
+    if (latestReflection) {
+      const memoryKey =
+        state.currentExecutionId
+          ? `runtime-reflection:${state.currentExecutionId}`
+          : "runtime-reflection:latest";
+
+      const memoryValue =
+        [
+          latestReflection.summary,
+          latestReflection.evidence,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+      if (memoryValue.trim()) {
+        await saveMemory(
+          memoryKey,
+          memoryValue,
+          0.85
+        );
+      }
+    }
 
     return state;
   }
