@@ -4,6 +4,7 @@ import {
 
 import {
   isExecutableActionRoute,
+  getActionCapability,
 } from "../../actionRouting";
 
 import {
@@ -32,10 +33,8 @@ import {
 /**
  * ExecutionStage
  *
- * Creates and executes the resolved action through the existing
- * provider/tool service boundary. The stage never evaluates an
- * arbitrary action string as code; every executable capability is
- * explicitly mapped to a supported route target.
+ * Executes a validated action through an explicitly registered
+ * capability. Arbitrary action strings are never evaluated as code.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -78,6 +77,18 @@ export class ExecutionStage
       return state;
     }
 
+    const capability =
+      getActionCapability(
+        actionRoute.target
+      );
+
+    if (!capability) {
+      state.errors.push(
+        `Execution: no registered capability exists for target "${actionRoute.target}".`
+      );
+      return state;
+    }
+
     const decision =
       getDecision(
         state.currentDecisionId
@@ -89,6 +100,9 @@ export class ExecutionStage
       );
 
     if (!decision || !plan) {
+      state.errors.push(
+        "Execution: decision or plan could not be resolved."
+      );
       return state;
     }
 
@@ -118,99 +132,46 @@ export class ExecutionStage
     }
 
     try {
-      if (
-        actionRoute.target ===
-        "web-search"
-      ) {
-        const result =
-          await this.services.searchWeb(
-            decision.selectedAction
-          );
+      const result =
+        await capability.execute(
+          decision.selectedAction,
+          this.services
+        );
 
+      const completed =
+        completeExecution(
+          execution.id
+        );
+
+      if (!completed) {
+        throw new Error(
+          "execution could not enter the completed state"
+        );
+      }
+
+      state.execution = [
+        `Execution: ${completed.title}`,
+        `Action: ${completed.action}`,
+        `Route: ${actionRoute.target}`,
+        `Status: ${completed.status}`,
+        `Plan ID: ${completed.planId}`,
+        `Execution ID: ${completed.id}`,
+        `Result: ${result.summary}`,
+      ].join("\n");
+
+      if (
+        result.metadata?.query
+      ) {
         state.liveKnowledge = [
           "ACTION EXECUTION COMPLETED.",
           `Route: ${actionRoute.target}`,
-          `Search time: ${result.searchedAt}`,
-          `Search query: ${result.query}`,
-          result.answer
-            ? `Execution result:\n${result.answer}`
-            : "Execution returned no synthesis.",
-          result.results.length > 0
-            ? `Evidence count: ${result.results.length}`
-            : "Evidence count: 0",
+          `Search query: ${result.metadata.query}`,
+          `Search time: ${result.metadata.searchedAt ?? "unknown"}`,
+          result.summary,
         ];
-
-        const completed =
-          completeExecution(
-            execution.id
-          );
-
-        if (!completed) {
-          throw new Error(
-            "execution could not enter the completed state"
-          );
-        }
-
-        state.execution = [
-          `Execution: ${completed.title}`,
-          `Action: ${completed.action}`,
-          `Route: ${actionRoute.target}`,
-          `Status: ${completed.status}`,
-          `Plan ID: ${completed.planId}`,
-          `Execution ID: ${completed.id}`,
-        ].join("\n");
-
-        return state;
       }
 
-      if (
-        actionRoute.target ===
-        "web-content"
-      ) {
-        throw new Error(
-          "web-content execution is not yet registered as a safe runtime capability."
-        );
-      }
-
-      if (
-        actionRoute.target ===
-        "tool"
-      ) {
-        throw new Error(
-          "tool execution requires an explicitly registered tool capability."
-        );
-      }
-
-      if (
-        actionRoute.target ===
-        "cognitive"
-      ) {
-        const completed =
-          completeExecution(
-            execution.id
-          );
-
-        if (!completed) {
-          throw new Error(
-            "internal cognitive execution could not complete"
-          );
-        }
-
-        state.execution = [
-          `Execution: ${completed.title}`,
-          `Action: ${completed.action}`,
-          `Route: ${actionRoute.target}`,
-          `Status: ${completed.status}`,
-          `Plan ID: ${completed.planId}`,
-          `Execution ID: ${completed.id}`,
-        ].join("\n");
-
-        return state;
-      }
-
-      throw new Error(
-        `unsupported execution target: ${actionRoute.target}`
-      );
+      return state;
     } catch (error) {
       blockExecution(
         execution.id
