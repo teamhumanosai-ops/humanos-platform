@@ -3,6 +3,7 @@ import {
 } from "../core/aiService";
 
 import {
+  fetchWebContent,
   searchWeb,
 } from "../websearch";
 
@@ -12,6 +13,9 @@ export type RuntimeServices = {
 
   searchWeb:
     typeof searchWeb;
+
+  fetchWebContent:
+    typeof fetchWebContent;
 };
 
 export const runtimeServices:
@@ -19,4 +23,6 @@ export const runtimeServices:
     aiService,
 
     searchWeb,
+
+    fetchWebContent,
   };
