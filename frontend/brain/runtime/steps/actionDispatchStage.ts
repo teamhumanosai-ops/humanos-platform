@@ -1,5 +1,6 @@
 import {
   createActionDispatch,
+  getActionCapability,
 } from "../../actionRouting";
 
 import {
@@ -14,9 +15,8 @@ import {
  * ActionDispatchStage
  *
  * Converts the validated ActionRoute into a bounded
- * dispatch descriptor. It deliberately does not invoke
- * providers or tools; those remain downstream execution
- * responsibilities.
+ * dispatch descriptor and verifies that a concrete
+ * execution capability exists before downstream execution.
  */
 export class ActionDispatchStage
   extends BaseStage {
@@ -45,12 +45,26 @@ export class ActionDispatchStage
       return state;
     }
 
+    const capability =
+      getActionCapability(
+        dispatch.target
+      );
+
+    if (!capability) {
+      state.errors.push(
+        `ActionDispatch: no registered execution capability exists for target "${dispatch.target}".`
+      );
+
+      return state;
+    }
+
     state.execution =
       [
         state.execution ??
           `Action: ${dispatch.action}`,
         `Dispatch: ${dispatch.kind}/${dispatch.target}`,
         `Route ID: ${dispatch.routeId}`,
+        `Capability: ${capability.target}`,
       ].join("\n");
 
     return state;
