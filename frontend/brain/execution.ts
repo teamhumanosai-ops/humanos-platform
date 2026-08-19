@@ -20,6 +20,19 @@ export type ExecutionStatus =
   | "completed"
   | "blocked";
 
+export type ExecutionResult = {
+  status:
+    "completed" | "blocked";
+
+  summary: string;
+
+  metadata:
+    Record<string, string>;
+
+  error:
+    string | null;
+};
+
 export type Execution = {
   id: string;
 
@@ -40,6 +53,9 @@ export type Execution = {
   completedAt: Date | null;
 
   createdAt: Date;
+
+  result:
+    ExecutionResult | null;
 };
 
 const executionStore =
@@ -124,11 +140,63 @@ export function createExecutionFromDecision(
       route
     );
 
+  const normalized:
+    Execution = {
+    ...execution,
+
+    result:
+      null,
+  };
+
   saveExecution(
-    execution
+    normalized
   );
 
-  return execution;
+  return normalized;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Execution Result
+|--------------------------------------------------------------------------
+*/
+
+export function setExecutionResult(
+  id: string,
+  result: ExecutionResult
+): Execution | null {
+  const execution =
+    getExecution(id);
+
+  if (!execution) {
+    return null;
+  }
+
+  const updated:
+    Execution = {
+    ...execution,
+
+    result: {
+      status:
+        result.status,
+
+      summary:
+        result.summary.trim(),
+
+      metadata: {
+        ...result.metadata,
+      },
+
+      error:
+        result.error,
+    },
+  };
+
+  saveExecution(
+    updated
+  );
+
+  return updated;
 }
 
 /*
@@ -147,12 +215,6 @@ export function startExecution(
   if (!execution) {
     return null;
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Only pending executions can start.
-  |--------------------------------------------------------------------------
-  */
 
   if (
     execution.status !==
@@ -190,12 +252,6 @@ export function completeExecution(
     return null;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Only active executions can complete.
-  |--------------------------------------------------------------------------
-  */
-
   if (
     execution.status !==
     "in_progress"
@@ -218,13 +274,6 @@ export function completeExecution(
     updated
   );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Completing execution advances the
-  | corresponding planning milestone.
-  |--------------------------------------------------------------------------
-  */
-
   completePlanMilestone(
     updated.planId,
     updated.action
@@ -243,13 +292,6 @@ export function blockExecution(
   if (!execution) {
     return null;
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Only pending or active executions
-  | may become blocked.
-  |--------------------------------------------------------------------------
-  */
 
   if (
     execution.status !==
