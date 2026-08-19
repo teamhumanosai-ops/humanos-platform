@@ -22,6 +22,10 @@ import {
 } from "../../actionRouting";
 
 import {
+  evaluateActionAuthorization,
+} from "../../actionRouting/authorization";
+
+import {
   ExecutionStage,
 } from "./executionStage";
 
@@ -85,9 +89,39 @@ const services = {
 function attachDispatch(
   state: ReturnType<typeof createBrainState>
 ): void {
+  state.actionAuthorization =
+    evaluateActionAuthorization(
+      state
+    );
+
   state.actionDispatch =
     createActionDispatch(
-      state.actionRoute
+      state.actionRoute,
+      state.actionAuthorization.policyVersion
+    );
+}
+
+function confirmToolFixture(
+  state: ReturnType<typeof createBrainState>
+): void {
+  if (
+    state.actionAuthorization?.target !==
+    "tool"
+  ) {
+    return;
+  }
+
+  state.actionAuthorization = {
+    ...state.actionAuthorization,
+    status: "allowed",
+    reason:
+      "Test fixture represents an already-confirmed tool action.",
+  };
+
+  state.actionDispatch =
+    createActionDispatch(
+      state.actionRoute,
+      state.actionAuthorization.policyVersion
     );
 }
 
@@ -147,8 +181,19 @@ state.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
-attachDispatch(
-  state
+attachDispatch(state);
+confirmToolFixture(state);
+
+assert(
+  state.actionAuthorization?.status ===
+    "allowed",
+  "the confirmed tool fixture must carry allowed authorization"
+);
+
+assert(
+  state.actionDispatch?.authorizationStatus ===
+    "allowed",
+  "the confirmed tool fixture must carry allowed dispatch provenance"
 );
 
 assert(
@@ -243,9 +288,7 @@ contentState.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
-attachDispatch(
-  contentState
-);
+attachDispatch(contentState);
 
 await new ExecutionStage(
   services
@@ -334,9 +377,8 @@ failedState.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
-attachDispatch(
-  failedState
-);
+attachDispatch(failedState);
+confirmToolFixture(failedState);
 
 await new ExecutionStage(
   services
