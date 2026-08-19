@@ -2,6 +2,10 @@ import {
   buildRuntimeOutcomeMemory,
 } from "./outcomeMemory";
 
+import {
+  createRuntimeOutcome,
+} from "./outcome";
+
 function assert(
   condition: boolean,
   message: string
@@ -13,26 +17,38 @@ function assert(
   }
 }
 
+const reflection = {
+  summary:
+    "Action reflection: completed.",
+  evidence:
+    "Execution: provider-backed action completed.",
+  confidence:
+    0.95,
+  createdAt:
+    "2026-08-19T00:00:00.000Z",
+};
+
 const completed =
   buildRuntimeOutcomeMemory(
-    {
-      status: "completed",
+    createRuntimeOutcome({
+      result:
+        "Provider-backed action completed.",
       errors: [],
-      metadata: {
-        executionId:
-          "execution-123",
-      },
-    } as never,
-    {
-      summary:
-        "Action reflection: completed.",
-      evidence:
-        "Execution: provider-backed action completed.",
-      confidence:
-        0.95,
-      createdAt:
-        "2026-08-19T00:00:00.000Z",
-    }
+      executionId:
+        "execution-123",
+      executionStatus:
+        "completed",
+      planId:
+        "plan-123",
+      decisionId:
+        "decision-123",
+      stagesExecuted: [
+        "Execution",
+        "Outcome",
+        "Reflection",
+      ],
+    }),
+    reflection
   );
 
 assert(
@@ -54,25 +70,113 @@ assert(
   "reflection confidence must be preserved"
 );
 
+const failed =
+  buildRuntimeOutcomeMemory(
+    createRuntimeOutcome({
+      result:
+        null,
+      errors: [
+        "provider unavailable",
+      ],
+      executionId:
+        "execution-failed",
+      executionStatus:
+        "completed",
+      planId:
+        "plan-failed",
+      decisionId:
+        "decision-failed",
+      stagesExecuted: [
+        "Execution",
+        "Outcome",
+      ],
+    }),
+    {
+      ...reflection,
+      summary:
+        "Action reflection: failed.",
+      evidence:
+        "Execution failed at the provider boundary.",
+      confidence:
+        0.5,
+    }
+  );
+
+assert(
+  failed?.key ===
+    "runtime-outcome:execution-failed",
+  "failed terminal outcomes must still be persisted by execution identity"
+);
+
+assert(
+  failed?.value.includes(
+    "provider boundary"
+  ) === true,
+  "failed outcome reflection evidence must be retained"
+);
+
+const blocked =
+  buildRuntimeOutcomeMemory(
+    createRuntimeOutcome({
+      result:
+        null,
+      errors: [],
+      executionId:
+        "execution-blocked",
+      executionStatus:
+        "blocked",
+      planId:
+        "plan-blocked",
+      decisionId:
+        "decision-blocked",
+      stagesExecuted: [
+        "Validation",
+        "Outcome",
+      ],
+    }),
+    {
+      ...reflection,
+      summary:
+        "Action reflection: blocked.",
+      evidence:
+        "Execution was blocked by authorization.",
+      confidence:
+        0.5,
+    }
+  );
+
+assert(
+  blocked?.key ===
+    "runtime-outcome:execution-blocked",
+  "blocked terminal outcomes must be persisted by execution identity"
+);
+
 const inProgress =
   buildRuntimeOutcomeMemory(
-    {
-      status: "in_progress",
+    createRuntimeOutcome({
+      result:
+        null,
       errors: [],
-      metadata: {
-        executionId:
-          "execution-456",
-      },
-    } as never,
+      executionId:
+        "execution-456",
+      executionStatus:
+        "in_progress",
+      planId:
+        "plan-456",
+      decisionId:
+        "decision-456",
+      stagesExecuted: [
+        "Execution",
+      ],
+    }),
     {
+      ...reflection,
       summary:
         "Action reflection: in_progress.",
       evidence:
         "Execution still running.",
       confidence:
         0.75,
-      createdAt:
-        "2026-08-19T00:00:00.000Z",
     }
   );
 
@@ -83,21 +187,23 @@ assert(
 
 const missingExecution =
   buildRuntimeOutcomeMemory(
-    {
-      status: "completed",
+    createRuntimeOutcome({
+      result:
+        "Completed without an execution id.",
       errors: [],
-      metadata: {},
-    } as never,
-    {
-      summary:
-        "Action reflection: completed.",
-      evidence:
-        "No execution identity.",
-      confidence:
-        0.95,
-      createdAt:
-        "2026-08-19T00:00:00.000Z",
-    }
+      executionId:
+        null,
+      executionStatus:
+        "completed",
+      planId:
+        "plan-no-execution",
+      decisionId:
+        "decision-no-execution",
+      stagesExecuted: [
+        "Outcome",
+      ],
+    }),
+    reflection
   );
 
 assert(
