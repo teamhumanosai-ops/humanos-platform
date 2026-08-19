@@ -1,4 +1,5 @@
 import {
+  buildRuntimeReflectionMemory,
   createRuntimeReflection,
 } from "./runtime";
 
@@ -90,6 +91,32 @@ assert(
   "completed execution must receive high reflection confidence"
 );
 
+const memory =
+  buildRuntimeReflectionMemory(
+    reflection
+  );
+
+assert(
+  memory.includes(
+    "Search for the latest status"
+  ),
+  "reflection memory must preserve action identity"
+);
+
+assert(
+  memory.includes(
+    "Execution: Search"
+  ),
+  "reflection memory must preserve execution evidence"
+);
+
+assert(
+  memory.includes(
+    "Status: completed"
+  ),
+  "reflection memory must preserve terminal outcome evidence"
+);
+
 state.errors.push(
   "Provider unavailable"
 );
@@ -117,6 +144,18 @@ assert(
   failedReflection.confidence ===
     0.5,
   "failed execution must lower reflection confidence"
+);
+
+const failedMemory =
+  buildRuntimeReflectionMemory(
+    failedReflection
+  );
+
+assert(
+  failedMemory.includes(
+    "Provider unavailable"
+  ),
+  "reflection memory must preserve failure evidence"
 );
 
 console.log(
