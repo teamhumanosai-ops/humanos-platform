@@ -102,18 +102,9 @@ const webContentCapability:
     }
 
     const result =
-      await services.scrapeFirecrawl(
+      await services.fetchWebContentViaFirecrawl(
         url
       );
-
-    const markdown =
-      result.markdown.trim();
-
-    if (!markdown) {
-      throw new Error(
-        "Firecrawl web content execution returned no readable content."
-      );
-    }
 
     return {
       summary:
@@ -122,8 +113,8 @@ const webContentCapability:
           `URL: ${result.url}`,
           `Status: ${result.status}`,
           `Content-Type: ${result.contentType || "unknown"}`,
-          "Markdown Content:",
-          markdown,
+          "Content:",
+          result.text,
         ].join("\n"),
 
       metadata: {
