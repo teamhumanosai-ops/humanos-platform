@@ -21,6 +21,10 @@ import {
   createActionDispatch,
 } from "../../actionRouting";
 
+import {
+  evaluateActionAuthorization,
+} from "../../actionRouting/authorization";
+
 import type {
   Decision,
 } from "../../decision";
@@ -187,12 +191,22 @@ function prepareDecisionState(
   };
 }
 
+function attachAuthorization(
+  state: ReturnType<typeof createBrainState>
+): void {
+  state.actionAuthorization =
+    evaluateActionAuthorization(
+      state
+    );
+}
+
 function attachDispatch(
   state: ReturnType<typeof createBrainState>
 ): void {
   state.actionDispatch =
     createActionDispatch(
-      state.actionRoute
+      state.actionRoute,
+      state.actionAuthorization?.policyVersion
     );
 }
 
@@ -257,6 +271,10 @@ async function verifyMissingDispatchBlocksExecution(): Promise<void> {
     executable: true,
   };
 
+  attachAuthorization(
+    state
+  );
+
   await new ExecutionStage(
     services
   ).execute(
@@ -307,6 +325,10 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
     confidence: 0.9,
     executable: true,
   };
+
+  attachAuthorization(
+    state
+  );
 
   attachDispatch(
     state
@@ -422,6 +444,10 @@ async function verifyMismatchedDispatchBlocksExecution(): Promise<void> {
     executable: true,
   };
 
+  attachAuthorization(
+    state
+  );
+
   state.actionDispatch = {
     routeId: "route-stale",
     kind: "provider",
@@ -483,9 +509,14 @@ async function verifyPendingExecutionIsNotReExecuted(): Promise<void> {
   state.actionRoute =
     actionRoute;
 
+  attachAuthorization(
+    state
+  );
+
   state.actionDispatch =
     createActionDispatch(
-      actionRoute
+      actionRoute,
+      state.actionAuthorization?.policyVersion
     );
 
   const existingExecution =
