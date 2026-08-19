@@ -45,14 +45,29 @@ const services = {
     fetchedAt:
       new Date().toISOString(),
   }),
-  scrapeFirecrawl: async (
+  fetchWebContentViaFirecrawl: async (
     url: string
   ) => ({
     url,
     title:
       "Firecrawl test source",
-    markdown:
+    text:
       "Firecrawl test source content",
+    status:
+      200,
+    contentType:
+      "text/markdown",
+    fetchedAt:
+      new Date().toISOString(),
+  }),
+  scrapeFirecrawl: async (
+    url: string
+  ) => ({
+    url,
+    title:
+      "Firecrawl raw test source",
+    markdown:
+      "Firecrawl raw test source content",
     status:
       200,
     contentType:
@@ -159,13 +174,13 @@ let emptyFirecrawlContentRejected =
 
 const emptyContentServices = {
   ...services,
-  scrapeFirecrawl: async (
+  fetchWebContentViaFirecrawl: async (
     url: string
   ) => ({
     url,
     title:
       "Empty source",
-    markdown:
+    text:
       "   ",
     status:
       200,
