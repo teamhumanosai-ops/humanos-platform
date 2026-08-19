@@ -32,6 +32,33 @@ assert(
 );
 
 assert(
+  isExecutableActionRoute({
+    ...validRoute,
+    kind: "provider",
+    target: "web-content",
+  }),
+  "provider routes must allow the web-content target"
+);
+
+assert(
+  isExecutableActionRoute({
+    ...validRoute,
+    kind: "tool",
+    target: "tool",
+  }),
+  "tool routes must pass when the tool boundary is explicitly selected"
+);
+
+assert(
+  isExecutableActionRoute({
+    ...validRoute,
+    kind: "internal",
+    target: "cognitive",
+  }),
+  "internal routes must pass when the cognitive target is explicitly selected"
+);
+
+assert(
   !isExecutableActionRoute({
     ...validRoute,
     target: "tool",
@@ -42,9 +69,25 @@ assert(
 assert(
   !isExecutableActionRoute({
     ...validRoute,
+    kind: "internal",
+  }),
+  "internal routes cannot target a provider capability"
+);
+
+assert(
+  !isExecutableActionRoute({
+    ...validRoute,
     confidence: 1.2,
   }),
   "confidence above one must invalidate a route"
+);
+
+assert(
+  !isExecutableActionRoute({
+    ...validRoute,
+    confidence: -0.1,
+  }),
+  "negative confidence must invalidate a route"
 );
 
 assert(
