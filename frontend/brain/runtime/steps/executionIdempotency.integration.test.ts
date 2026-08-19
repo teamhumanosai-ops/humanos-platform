@@ -18,7 +18,12 @@ import {
 import {
   clearActionTools,
   registerActionTool,
+  createActionDispatch,
 } from "../../actionRouting";
+
+import {
+  evaluateActionAuthorization,
+} from "../../actionRouting/authorization";
 
 import {
   ExecutionStage,
@@ -162,6 +167,42 @@ state.actionRoute = {
   confidence: 0.99,
   executable: true,
 };
+
+state.actionAuthorization =
+  evaluateActionAuthorization(
+    state
+  );
+
+assert(
+  state.actionAuthorization.status ===
+    "requires_confirmation",
+  "tool execution must remain confirmation-gated by the authorization policy"
+);
+
+/*
+ * This test verifies execution idempotency only after the action has
+ * crossed the authorization boundary. Tool confirmation itself is
+ * intentionally covered by the authorization tests rather than bypassed
+ * by mutating the policy decision in this fixture.
+ */
+state.actionAuthorization = {
+  ...state.actionAuthorization,
+  status: "allowed",
+  reason:
+    "Test fixture represents an already-confirmed tool action.",
+};
+
+state.actionDispatch =
+  createActionDispatch(
+    state.actionRoute,
+    state.actionAuthorization.policyVersion
+  );
+
+assert(
+  state.actionDispatch?.authorizationStatus ===
+    "allowed",
+  "confirmed tool fixture must carry allowed authorization into dispatch"
+);
 
 const stage =
   new ExecutionStage(
