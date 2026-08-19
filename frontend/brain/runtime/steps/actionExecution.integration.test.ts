@@ -58,12 +58,22 @@ const services = {
     contentType: "text/html",
     fetchedAt: new Date().toISOString(),
   }),
-  scrapeFirecrawl: async (
+  fetchWebContentViaFirecrawl: async (
     url: string
   ) => ({
     url,
     title: "Firecrawl execution source",
-    markdown: "Firecrawl fetched source content",
+    text: "Firecrawl fetched source content",
+    status: 200,
+    contentType: "text/markdown",
+    fetchedAt: new Date().toISOString(),
+  }),
+  scrapeFirecrawl: async (
+    url: string
+  ) => ({
+    url,
+    title: "Firecrawl raw execution source",
+    markdown: "Firecrawl raw execution content",
     status: 200,
     contentType: "text/markdown",
     fetchedAt: new Date().toISOString(),
