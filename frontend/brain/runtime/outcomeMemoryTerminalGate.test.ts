@@ -25,15 +25,30 @@ const reflection: RuntimeReflection = {
   summary: "The action completed successfully.",
   evidence: "Provider execution produced the expected result.",
   confidence: 0.92,
+  createdAt: new Date().toISOString(),
 };
+
+function metadata(
+  executionId: string | null
+): RuntimeOutcome["metadata"] {
+  return {
+    executionId,
+    executionStatus: null,
+    executionResult: null,
+    planId: null,
+    decisionId: null,
+    stagesExecuted: [],
+    createdAt: new Date(),
+    completedAt: new Date(),
+  };
+}
 
 const inProgress: RuntimeOutcome = {
   status: "in_progress",
   result: "Action still running",
   errors: [],
-  metadata: {
-    executionId: "execution-in-progress",
-  },
+  metadata:
+    metadata("execution-in-progress"),
 };
 
 assert(
@@ -48,7 +63,8 @@ const missingExecutionId: RuntimeOutcome = {
   status: "completed",
   result: "Action completed",
   errors: [],
-  metadata: {},
+  metadata:
+    metadata(null),
 };
 
 assert(
@@ -63,9 +79,8 @@ const completed: RuntimeOutcome = {
   status: "completed",
   result: "Action completed",
   errors: [],
-  metadata: {
-    executionId: "execution-completed",
-  },
+  metadata:
+    metadata("execution-completed"),
 };
 
 const memory =
@@ -104,9 +119,8 @@ const blocked: RuntimeOutcome = {
   status: "blocked",
   result: "Action was blocked",
   errors: ["Authorization required"],
-  metadata: {
-    executionId: "execution-blocked",
-  },
+  metadata:
+    metadata("execution-blocked"),
 };
 
 assert(
