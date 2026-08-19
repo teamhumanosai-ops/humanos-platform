@@ -71,6 +71,84 @@ assert(
   "tool execution must require explicit confirmation"
 );
 
+const cognitiveState =
+  createBrainState(
+    "conversation",
+    [],
+    "Analyze this action"
+  );
+
+cognitiveState.actionRoute = {
+  id: "route-cognitive",
+  kind: "internal",
+  action: "Analyze this action",
+  target: "cognitive",
+  confidence: 0.9,
+  executable: true,
+};
+
+const cognitiveAuthorization =
+  evaluateActionAuthorization(
+    cognitiveState
+  );
+
+assert(
+  cognitiveAuthorization.status ===
+    "allowed",
+  "internal cognitive execution must be allowed"
+);
+
+const malformedRouteState =
+  createBrainState(
+    "conversation",
+    [],
+    "Search for status"
+  );
+
+malformedRouteState.actionRoute = {
+  id: "route-malformed",
+  kind: "internal",
+  action: "Search for status",
+  target: "web-search",
+  confidence: 0.95,
+  executable: true,
+};
+
+const malformedAuthorization =
+  evaluateActionAuthorization(
+    malformedRouteState
+  );
+
+assert(
+  malformedAuthorization.status ===
+    "blocked",
+  "authorization must reject routes whose target does not match their route kind"
+);
+
+const invalidConfidenceState =
+  createBrainState(
+    "conversation",
+    [],
+    "Find the latest status"
+  );
+
+invalidConfidenceState.actionRoute = {
+  ...webState.actionRoute,
+  id: "route-invalid-confidence",
+  confidence: 1.5,
+};
+
+const invalidConfidenceAuthorization =
+  evaluateActionAuthorization(
+    invalidConfidenceState
+  );
+
+assert(
+  invalidConfidenceAuthorization.status ===
+    "blocked",
+  "authorization must reject executable routes with invalid confidence"
+);
+
 const unresolvedState =
   createBrainState(
     "conversation",
