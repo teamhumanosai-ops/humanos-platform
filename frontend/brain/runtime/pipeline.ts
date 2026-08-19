@@ -505,6 +505,33 @@ export class CognitiveRuntime {
       );
 
     if (!outcomeStage) {
+      state.errors.push(
+        "CognitiveRuntime: terminal Outcome stage is not registered."
+      );
+
+      state.outcome =
+        createRuntimeOutcome({
+          result:
+            state.response ?? null,
+          errors:
+            state.errors,
+          executionId:
+            state.currentExecutionId,
+          executionStatus:
+            null,
+          executionResult:
+            null,
+          planId:
+            state.currentPlanId,
+          decisionId:
+            state.currentDecisionId,
+          stagesExecuted:
+            state.executedStages,
+        });
+
+      state.runtimeStatus =
+        "failed";
+
       return state;
     }
 
@@ -546,6 +573,26 @@ export class CognitiveRuntime {
       state.errors.push(
         "CognitiveRuntime: terminal Outcome stage is not registered."
       );
+
+      state.outcome =
+        createRuntimeOutcome({
+          result:
+            state.response ?? null,
+          errors:
+            state.errors,
+          executionId:
+            state.currentExecutionId,
+          executionStatus:
+            null,
+          executionResult:
+            null,
+          planId:
+            state.currentPlanId,
+          decisionId:
+            state.currentDecisionId,
+          stagesExecuted:
+            state.executedStages,
+        });
 
       state.runtimeStatus =
         "failed";
