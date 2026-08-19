@@ -89,6 +89,12 @@ export class OutcomeStage
           )
         : undefined;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Validate cognitive artifact chain
+    |--------------------------------------------------------------------------
+    */
+
     const chainErrors =
       validateArtifactChain(
         state,
@@ -105,6 +111,12 @@ export class OutcomeStage
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Synchronize plan and goal information
+    |--------------------------------------------------------------------------
+    */
+
     if (plan) {
       const initialGoal =
         createGoalFromPlan(
@@ -117,14 +129,19 @@ export class OutcomeStage
           {
             graphNodes:
               state.graph,
+
             graphEdges:
               state.graphEdges,
+
             reasoningObservations:
               state.reasoningObservations,
+
             timeline:
               state.timeline,
+
             reflections:
               state.reflections,
+
             memories:
               state.memory,
           }
@@ -157,12 +174,16 @@ export class OutcomeStage
           `Confidence: ${goal.confidence}`,
           `Obstacles: ${
             goal.obstacles.length > 0
-              ? goal.obstacles.join("; ")
+              ? goal.obstacles.join(
+                  "; "
+                )
               : "None identified"
           }`,
           `Dependencies: ${
             goal.dependencies.length > 0
-              ? goal.dependencies.join("; ")
+              ? goal.dependencies.join(
+                  "; "
+                )
               : "None identified"
           }`,
           `Completed Milestones: ${
@@ -186,8 +207,16 @@ export class OutcomeStage
               } ${milestone}`;
             }
           ),
-        ].join("\n");
+        ].join(
+          "\n"
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Synchronize decision information
+    |--------------------------------------------------------------------------
+    */
 
     if (decision) {
       state.decision =
@@ -205,8 +234,16 @@ export class OutcomeStage
           ),
           `Reason: ${decision.reason}`,
           `Confidence: ${decision.confidence}`,
-        ].join("\n");
+        ].join(
+          "\n"
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Synchronize execution information
+    |--------------------------------------------------------------------------
+    */
 
     if (execution) {
       const executionResult =
@@ -220,11 +257,13 @@ export class OutcomeStage
           `Plan ID: ${execution.planId}`,
           `Execution ID: ${execution.id}`,
           `Started At: ${
-            execution.startedAt?.toISOString() ??
+            execution.startedAt
+              ?.toISOString() ??
             "Not started"
           }`,
           `Completed At: ${
-            execution.completedAt?.toISOString() ??
+            execution.completedAt
+              ?.toISOString() ??
             "Not completed"
           }`,
           ...(executionResult
@@ -238,7 +277,9 @@ export class OutcomeStage
                   : []),
               ]
             : []),
-        ].join("\n");
+        ].join(
+          "\n"
+        );
     }
 
     const executionResult =
@@ -250,27 +291,46 @@ export class OutcomeStage
       executionResult?.summary?.trim() ||
       null;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Create runtime outcome
+    |--------------------------------------------------------------------------
+    */
+
     state.outcome =
       createRuntimeOutcome({
         result:
           outcomeResult,
+
         errors:
           state.errors,
+
         executionId:
           execution?.id ??
           state.currentExecutionId,
+
         executionStatus:
           execution?.status ??
           null,
+
         executionResult,
+
         planId:
           execution?.planId ??
           state.currentPlanId,
+
         decisionId:
           state.currentDecisionId,
+
         stagesExecuted:
           state.executedStages,
       });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Determine overall runtime status
+    |--------------------------------------------------------------------------
+    */
 
     state.runtimeStatus =
       determineRuntimeStatus(
@@ -278,6 +338,20 @@ export class OutcomeStage
         execution?.status ??
           null
       );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Runtime reflection
+    |--------------------------------------------------------------------------
+    |
+    | Reflection consumes the completed runtime evidence. It is kept as
+    | a BrainState observation so downstream memory and context systems can
+    | use the result without needing to reconstruct execution details.
+    |
+    | Identical stage re-entry is idempotent: the same serialized
+    | reflection is not appended twice.
+    |--------------------------------------------------------------------------
+    */
 
     const reflection =
       createRuntimeReflection(
@@ -289,7 +363,9 @@ export class OutcomeStage
         reflection.summary,
         reflection.evidence,
         `Confidence: ${reflection.confidence}`,
-      ].join("\n");
+      ].join(
+        "\n"
+      );
 
     if (
       !state.reflections.includes(
@@ -301,6 +377,20 @@ export class OutcomeStage
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Persist terminal outcome learning
+    |--------------------------------------------------------------------------
+    |
+    | Outcome is the final canonical runtime stage. The reflection created
+    | here therefore has the complete execution evidence and can safely be
+    | projected into durable memory using the execution identity.
+    |
+    | The existing memory owner remains responsible for persistence.
+    | OutcomeStage only coordinates the terminal projection.
+    |--------------------------------------------------------------------------
+    */
+
     await persistRuntimeOutcomeMemory(
       state.outcome,
       reflection
@@ -309,6 +399,12 @@ export class OutcomeStage
     return state;
   }
 }
+
+/*
+|--------------------------------------------------------------------------
+| Cognitive artifact chain validation
+|--------------------------------------------------------------------------
+*/
 
 function validateArtifactChain(
   state: BrainState,
@@ -328,6 +424,12 @@ function validateArtifactChain(
   const errors:
     string[] = [];
 
+  /*
+  |--------------------------------------------------------------------------
+  | Plan resolution
+  |--------------------------------------------------------------------------
+  */
+
   if (
     state.currentPlanId &&
     !plan
@@ -336,6 +438,12 @@ function validateArtifactChain(
       `Outcome: plan ${state.currentPlanId} could not be resolved.`
     );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Decision resolution
+  |--------------------------------------------------------------------------
+  */
 
   if (
     state.currentDecisionId &&
@@ -346,6 +454,12 @@ function validateArtifactChain(
     );
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Execution resolution
+  |--------------------------------------------------------------------------
+  */
+
   if (
     state.currentExecutionId &&
     !execution
@@ -354,6 +468,15 @@ function validateArtifactChain(
       `Outcome: execution ${state.currentExecutionId} could not be resolved.`
     );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Execution → Plan relationship
+  |--------------------------------------------------------------------------
+  |
+  | Execution is the existing artifact that explicitly owns planId.
+  |
+  */
 
   if (
     execution &&
@@ -373,17 +496,35 @@ function validateArtifactChain(
   ];
 }
 
+/*
+|--------------------------------------------------------------------------
+| Runtime status
+|--------------------------------------------------------------------------
+*/
+
 function determineRuntimeStatus(
   state: BrainState,
   executionStatus:
     | ExecutionStatus
     | null
 ): BrainRuntimeStatus {
+  /*
+  |--------------------------------------------------------------------------
+  | Runtime errors take precedence.
+  |--------------------------------------------------------------------------
+  */
+
   if (
     state.errors.length > 0
   ) {
     return "failed";
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Blocked execution.
+  |--------------------------------------------------------------------------
+  */
 
   if (
     executionStatus ===
@@ -391,6 +532,12 @@ function determineRuntimeStatus(
   ) {
     return "blocked";
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Active execution.
+  |--------------------------------------------------------------------------
+  */
 
   if (
     executionStatus ===
@@ -401,6 +548,12 @@ function determineRuntimeStatus(
     return "in_progress";
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Completed execution.
+  |--------------------------------------------------------------------------
+  */
+
   if (
     executionStatus ===
     "completed"
@@ -408,11 +561,23 @@ function determineRuntimeStatus(
     return "completed";
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Successful cognitive response.
+  |--------------------------------------------------------------------------
+  */
+
   if (
     state.response?.trim()
   ) {
     return "completed";
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Conservative fallback.
+  |--------------------------------------------------------------------------
+  */
 
   return "in_progress";
 }
@@ -422,9 +587,9 @@ function determineRuntimeStatus(
 | ATR preservation notes
 |--------------------------------------------------------------------------
 |
-| This file intentionally keeps plan synchronization behavior.
-| This file intentionally keeps decision synchronization behavior.
-| This file intentionally keeps execution synchronization behavior.
+| This file intentionally keeps the full plan synchronization behavior.
+| This file intentionally keeps the full decision synchronization behavior.
+| This file intentionally keeps the full execution synchronization behavior.
 | This file intentionally keeps artifact-chain validation.
 | This file intentionally keeps runtime status precedence.
 | This file intentionally keeps blocked execution handling.
@@ -432,7 +597,7 @@ function determineRuntimeStatus(
 | This file intentionally keeps completed execution handling.
 | This file intentionally keeps response-based completion handling.
 | This file intentionally keeps the conservative in-progress fallback.
-| Runtime reflection remains an additive observation layer.
+| Runtime reflection is an additive observation layer.
 | Reflection does not own execution.
 | Reflection does not own provider routing.
 | Reflection does not replace RuntimeOutcome.
