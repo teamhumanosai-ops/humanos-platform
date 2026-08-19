@@ -26,8 +26,9 @@ const services = {
     results: [],
     searchedAt: new Date().toISOString(),
     provenance: {
-      observedProviders: ["tavily"],
-      requiredProviders: ["tavily"],
+      observedProviders: ["tavily"] as ["tavily"],
+      requiredProviders: ["tavily"] as ["tavily"],
+      resultCount: 0,
       dualProviderResultCount: 0,
       dualProviderCoverage: 0,
     },
