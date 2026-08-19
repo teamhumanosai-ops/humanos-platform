@@ -25,9 +25,10 @@ import {
  * Execution remains owned by the existing Execution
  * Engine and downstream action controls.
  *
- * A new route invalidates any previous dispatch descriptor.
- * This prevents a stale capability binding from surviving
- * a decision change and crossing the dispatch boundary.
+ * A new route invalidates any previous authorization and
+ * dispatch descriptors. This prevents stale authorization
+ * or capability bindings from surviving a decision change
+ * and crossing the dispatch boundary.
  */
 export class ActionRoutingStage
   extends BaseStage {
@@ -67,11 +68,15 @@ export class ActionRoutingStage
 
     /*
     |--------------------------------------------------------------------------
-    | A route is the source of truth for dispatch eligibility.
-    | Any route recomputation therefore invalidates the previous
-    | dispatch descriptor before the new route is evaluated.
+    | A route is the source of truth for execution eligibility.
+    | Any route recomputation therefore invalidates previous
+    | authorization and dispatch descriptors before the new route
+    | is evaluated. No prior permission may follow a new route.
     |--------------------------------------------------------------------------
     */
+
+    state.actionAuthorization =
+      null;
 
     state.actionDispatch =
       null;
