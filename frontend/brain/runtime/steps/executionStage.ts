@@ -47,6 +47,10 @@ import {
  * ActionDispatch is mandatory at this boundary. Execution must never
  * fall back to a raw ActionRoute because the dispatch descriptor is
  * the runtime's final capability-binding provenance artifact.
+ *
+ * Authorization is also enforced here as a defense-in-depth boundary.
+ * A capability cannot execute unless its dispatch was produced from
+ * an allowed authorization decision under the same policy version.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -128,6 +132,42 @@ export class ExecutionStage
       state.errors.push(
         `Execution: dispatch descriptor does not match validated action route "${actionRoute.id}".`
       );
+      return state;
+    }
+
+    if (
+      state.actionAuthorization?.status !==
+      "allowed"
+    ) {
+      state.errors.push(
+        "Execution: action execution is not authorized by the current action policy."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    if (
+      actionDispatch.authorizationStatus !==
+      "allowed"
+    ) {
+      state.errors.push(
+        "Execution: dispatch descriptor does not contain an allowed authorization decision."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    if (
+      actionDispatch.authorizationPolicyVersion !==
+      state.actionAuthorization.policyVersion
+    ) {
+      state.errors.push(
+        "Execution: dispatch authorization policy version does not match the current authorization decision."
+      );
+      state.runtimeStatus =
+        "blocked";
       return state;
     }
 
@@ -236,6 +276,10 @@ export class ExecutionStage
                 actionDispatch.target,
               dispatchKind:
                 actionDispatch.kind,
+              authorizationStatus:
+                actionDispatch.authorizationStatus,
+              authorizationPolicyVersion:
+                actionDispatch.authorizationPolicyVersion,
               durationMs:
                 String(durationMs),
               startedAt:
@@ -328,6 +372,10 @@ export class ExecutionStage
               actionDispatch.target,
             dispatchKind:
               actionDispatch.kind,
+            authorizationStatus:
+              actionDispatch.authorizationStatus,
+            authorizationPolicyVersion:
+              actionDispatch.authorizationPolicyVersion,
             durationMs:
               String(durationMs),
             startedAt:
