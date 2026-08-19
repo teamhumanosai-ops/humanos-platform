@@ -18,10 +18,17 @@ export type ActionDispatch = {
   >;
 
   action: string;
+
+  authorizationStatus:
+    "allowed";
+
+  authorizationPolicyVersion:
+    string;
 };
 
 export function createActionDispatch(
-  route: ActionRoute | null
+  route: ActionRoute | null,
+  authorizationPolicyVersion = "atr-authorization-v1"
 ): ActionDispatch | null {
   if (!route?.executable) {
     return null;
@@ -50,5 +57,10 @@ export function createActionDispatch(
 
     action:
       route.action,
+
+    authorizationStatus:
+      "allowed",
+
+    authorizationPolicyVersion,
   };
 }
