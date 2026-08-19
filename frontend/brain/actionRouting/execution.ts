@@ -24,6 +24,9 @@ export type ActionDispatch = {
 
   authorizationPolicyVersion:
     string;
+
+  authorizationRouteId:
+    string;
 };
 
 export function createActionDispatch(
@@ -62,5 +65,8 @@ export function createActionDispatch(
       "allowed",
 
     authorizationPolicyVersion,
+
+    authorizationRouteId:
+      route.id,
   };
 }
