@@ -21,6 +21,10 @@ import {
  * Dispatch is metadata preparation, not external execution.
  * Re-entering the stage with the same route is therefore a safe
  * no-op rather than a second mutation of the execution descriptor.
+ *
+ * The resolved dispatch descriptor is also preserved on BrainState
+ * so Execution can verify that the capability binding it executes
+ * is exactly the one produced by the dispatch boundary.
  */
 export class ActionDispatchStage
   extends BaseStage {
@@ -46,6 +50,9 @@ export class ActionDispatchStage
         "ActionDispatch: action route could not produce a safe dispatch descriptor."
       );
 
+      state.actionDispatch =
+        null;
+
       return state;
     }
 
@@ -59,6 +66,9 @@ export class ActionDispatchStage
         `ActionDispatch: no registered execution capability exists for target "${dispatch.target}".`
       );
 
+      state.actionDispatch =
+        null;
+
       return state;
     }
 
@@ -70,8 +80,14 @@ export class ActionDispatchStage
         `ActionDispatch: capability binding mismatch for target "${dispatch.target}".`
       );
 
+      state.actionDispatch =
+        null;
+
       return state;
     }
+
+    state.actionDispatch =
+      dispatch;
 
     const routeMarker =
       `Route ID: ${dispatch.routeId}`;
