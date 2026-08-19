@@ -14,7 +14,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `ATR-001 capability verification failed: ${message}`
+      `ATR-002 capability verification failed: ${message}`
     );
   }
 }
@@ -30,6 +30,21 @@ const services = {
     searchedAt:
       new Date().toISOString(),
   }),
+  fetchWebContent: async (
+    url: string
+  ) => ({
+    url,
+    title:
+      "Test source",
+    text:
+      "Test source content",
+    status:
+      200,
+    contentType:
+      "text/html",
+    fetchedAt:
+      new Date().toISOString(),
+  }),
   aiService:
     {} as never,
 };
@@ -37,6 +52,11 @@ const services = {
 assert(
   hasActionCapability("web-search"),
   "web-search must be explicitly registered"
+);
+
+assert(
+  hasActionCapability("web-content"),
+  "web-content must have a concrete execution capability"
 );
 
 assert(
@@ -50,18 +70,67 @@ assert(
 );
 
 assert(
-  !hasActionCapability("web-content"),
-  "unregistered web-content must not become executable"
-);
-
-assert(
   getActionCapability("web-search") !== null,
   "registered web-search capability must resolve"
 );
 
 assert(
+  getActionCapability("web-content") !== null,
+  "registered web-content capability must resolve"
+);
+
+assert(
   getActionCapability("unknown") === null,
   "unknown capabilities must resolve to null"
+);
+
+const webContentCapability =
+  getActionCapability(
+    "web-content"
+  );
+
+if (webContentCapability) {
+  const result =
+    await webContentCapability.execute(
+      "Fetch https://example.com/source",
+      services
+    );
+
+  assert(
+    result.summary.includes(
+      "Test source content"
+    ),
+    "web-content capability must propagate fetched content"
+  );
+
+  assert(
+    result.metadata?.url ===
+      "https://example.com/source",
+    "web-content capability must preserve the fetched URL"
+  );
+}
+
+let missingContentUrlRejected =
+  false;
+
+if (webContentCapability) {
+  try {
+    await webContentCapability.execute(
+      "Fetch the source page",
+      services
+    );
+  } catch (error) {
+    missingContentUrlRejected =
+      error instanceof Error &&
+      error.message.includes(
+        "explicit HTTP or HTTPS URL"
+      );
+  }
+}
+
+assert(
+  missingContentUrlRejected,
+  "web-content execution must reject actions without an explicit URL"
 );
 
 clearActionTools();
