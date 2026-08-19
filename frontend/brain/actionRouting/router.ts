@@ -27,33 +27,35 @@ function normalizeConfidence(
   );
 }
 
-function inferRouteKind(
-  action: string
-): ActionRoute["kind"] {
-  return (
-    findActionRouteRule(
-      action
-    )?.kind ??
-    "unknown"
-  );
-}
-
 function resolveRouteTarget(
   kind: ActionRoute["kind"],
-  action: string
+  target: ActionRouteTarget
 ): ActionRouteTarget {
-  return (
-    findActionRouteRule(
-      action
-    )?.target ??
-    (kind === "unknown"
-      ? "unresolved"
-      : kind === "provider"
-        ? "web-search"
-        : kind === "tool"
-          ? "tool"
-          : "cognitive")
-  );
+  if (
+    kind === "provider" &&
+    (
+      target === "web-search" ||
+      target === "web-content"
+    )
+  ) {
+    return target;
+  }
+
+  if (
+    kind === "tool" &&
+    target === "tool"
+  ) {
+    return "tool";
+  }
+
+  if (
+    kind === "internal" &&
+    target === "cognitive"
+  ) {
+    return "cognitive";
+  }
+
+  return "unresolved";
 }
 
 export function routeDecisionAction(
@@ -62,24 +64,36 @@ export function routeDecisionAction(
   const action =
     decision.selectedAction.trim();
 
+  const rule =
+    findActionRouteRule(
+      action
+    );
+
   const kind =
-    inferRouteKind(action);
+    rule?.kind ??
+    "unknown";
+
+  const target =
+    resolveRouteTarget(
+      kind,
+      rule?.target ??
+        "unresolved"
+    );
 
   const executable =
+    action.length > 0 &&
     kind !== "unknown" &&
-    action.length > 0;
+    target !== "unresolved";
 
   return {
     id: `route-${decision.id}`,
     kind,
     action,
-    target: resolveRouteTarget(
-      kind,
-      action
-    ),
-    confidence: normalizeConfidence(
-      decision.confidence
-    ),
+    target,
+    confidence:
+      normalizeConfidence(
+        decision.confidence
+      ),
     executable,
   };
 }
