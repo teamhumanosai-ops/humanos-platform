@@ -2,6 +2,11 @@ import type {
   ActionRoute,
 } from "./types";
 
+export type ExecutableActionRoute =
+  ActionRoute & {
+    executable: true;
+  };
+
 function isFiniteConfidence(
   value: number
 ): boolean {
@@ -33,7 +38,7 @@ function targetMatchesKind(
 
 export function isExecutableActionRoute(
   route: ActionRoute | null
-): route is ActionRoute {
+): route is ExecutableActionRoute {
   if (!route) {
     return false;
   }
