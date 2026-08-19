@@ -120,6 +120,32 @@ assert(
   "unknown capabilities must resolve to null"
 );
 
+const webSearchCapability =
+  getActionCapability(
+    "web-search"
+  );
+
+if (webSearchCapability) {
+  const result =
+    await webSearchCapability.execute(
+      "Search for Human OS",
+      services
+    );
+
+  assert(
+    result.summary.includes(
+      "Search result for Human OS"
+    ),
+    "web-search capability must return the provider result"
+  );
+
+  assert(
+    result.metadata?.capabilityTarget ===
+      "web-search",
+    "web-search result must preserve capability provenance"
+  );
+}
+
 const webContentCapability =
   getActionCapability(
     "web-content"
@@ -149,6 +175,12 @@ if (webContentCapability) {
     result.metadata?.provider ===
       "firecrawl",
     "web-content capability must record the provider that executed the fetch"
+  );
+
+  assert(
+    result.metadata?.capabilityTarget ===
+      "web-content",
+    "web-content result must preserve capability provenance"
   );
 }
 
@@ -251,6 +283,12 @@ if (cognitiveCapability) {
       "aiService",
     "cognitive execution must preserve the provider service boundary"
   );
+
+  assert(
+    result.metadata?.capabilityTarget ===
+      "cognitive",
+    "cognitive result must preserve capability provenance"
+  );
 }
 
 let emptyCognitiveActionRejected =
@@ -325,6 +363,12 @@ if (toolCapability) {
     "tool execution must identify the registered tool execution type"
   );
 
+  assert(
+    result.metadata?.capabilityTarget ===
+      "tool",
+    "tool result must preserve capability provenance"
+  );
+
   const explicitResult =
     await toolCapability.execute(
       "tool:test-tool:perform explicit action",
@@ -337,6 +381,41 @@ if (toolCapability) {
     "tool capability must support explicit tool execution syntax"
   );
 }
+
+let emptyToolResultRejected =
+  false;
+
+clearActionTools();
+
+registerActionTool({
+  id: "empty-result-tool",
+  async execute() {
+    return {
+      summary:
+        "   ",
+    };
+  },
+});
+
+if (toolCapability) {
+  try {
+    await toolCapability.execute(
+      "empty-result-tool:perform action",
+      services
+    );
+  } catch (error) {
+    emptyToolResultRejected =
+      error instanceof Error &&
+      error.message.includes(
+        "returned an empty execution result"
+      );
+  }
+}
+
+assert(
+  emptyToolResultRejected,
+  "tool capabilities must reject empty execution evidence"
+);
 
 let unknownToolRejected =
   false;
