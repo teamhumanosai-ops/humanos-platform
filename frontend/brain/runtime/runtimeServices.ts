@@ -5,6 +5,7 @@ import {
 import {
   fetchWebContent,
   searchWeb,
+  scrapeFirecrawl,
 } from "../websearch";
 
 export type RuntimeServices = {
@@ -16,6 +17,9 @@ export type RuntimeServices = {
 
   fetchWebContent:
     typeof fetchWebContent;
+
+  scrapeFirecrawl:
+    typeof scrapeFirecrawl;
 };
 
 export const runtimeServices:
@@ -25,4 +29,6 @@ export const runtimeServices:
     searchWeb,
 
     fetchWebContent,
+
+    scrapeFirecrawl,
   };
