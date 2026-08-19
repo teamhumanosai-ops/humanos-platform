@@ -46,6 +46,30 @@ assert(
 );
 
 assert(
+  state.actionDispatch?.routeId ===
+    "route-dispatch",
+  "BrainState must preserve the dispatch route identity"
+);
+
+assert(
+  state.actionDispatch?.kind ===
+    "provider",
+  "BrainState must preserve the dispatch kind"
+);
+
+assert(
+  state.actionDispatch?.target ===
+    "web-search",
+  "BrainState must preserve the concrete dispatch target"
+);
+
+assert(
+  state.actionDispatch?.action ===
+    "Search for status",
+  "BrainState must preserve the dispatched action"
+);
+
+assert(
   state.execution?.includes(
     "Dispatch: provider/web-search"
   ) === true,
@@ -79,6 +103,12 @@ assert(
   "re-entering dispatch with the same route must be idempotent"
 );
 
+assert(
+  state.actionDispatch?.routeId ===
+    "route-dispatch",
+  "idempotent dispatch must preserve the validated descriptor"
+);
+
 const contentState =
   createBrainState(
     "conversation",
@@ -103,6 +133,12 @@ await new ActionDispatchStage().execute(
 assert(
   contentState.errors.length === 0,
   "web-content routes must dispatch through a concrete capability"
+);
+
+assert(
+  contentState.actionDispatch?.target ===
+    "web-content",
+  "web-content dispatch must persist the concrete target"
 );
 
 assert(
@@ -137,6 +173,12 @@ invalidState.actionRoute = {
 
 await new ActionDispatchStage().execute(
   invalidState
+);
+
+assert(
+  invalidState.actionDispatch ===
+    null,
+  "invalid routes must never persist a dispatch descriptor"
 );
 
 assert(
