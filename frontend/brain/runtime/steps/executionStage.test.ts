@@ -21,6 +21,10 @@ import type {
   Decision,
 } from "../../decision";
 
+import type {
+  RuntimeServices,
+} from "../runtimeServices";
+
 import {
   ExecutionStage,
 } from "./executionStage";
@@ -35,6 +39,86 @@ function assert(
     );
   }
 }
+
+const services = {
+  searchWeb: async (
+    query: string
+  ) => ({
+    query,
+    answer:
+      `Search result for ${query}`,
+    results: [
+      {
+        title:
+          "Test result",
+        url:
+          "https://example.com/result",
+        snippet:
+          "Test evidence",
+      },
+    ],
+    searchedAt:
+      new Date().toISOString(),
+  }),
+
+  fetchWebContent: async (
+    url: string
+  ) => ({
+    url,
+    title:
+      "Test source",
+    text:
+      "Test source content",
+    status:
+      200,
+    contentType:
+      "text/html",
+    fetchedAt:
+      new Date().toISOString(),
+  }),
+
+  fetchWebContentViaFirecrawl: async (
+    url: string
+  ) => ({
+    url,
+    title:
+      "Firecrawl test source",
+    text:
+      "Firecrawl test source content",
+    status:
+      200,
+    contentType:
+      "text/markdown",
+    fetchedAt:
+      new Date().toISOString(),
+  }),
+
+  scrapeFirecrawl: async (
+    url: string
+  ) => ({
+    url,
+    title:
+      "Firecrawl test source",
+    markdown:
+      "Firecrawl test source content",
+    status:
+      200,
+    contentType:
+      "text/markdown",
+    fetchedAt:
+      new Date().toISOString(),
+  }),
+
+  aiService: async (
+    _systemContext: string,
+    messages: Array<{
+      role:
+        "user" | "assistant";
+      message: string;
+    }>
+  ) =>
+    `Cognitive result: ${messages[0]?.message ?? ""}`,
+} as RuntimeServices;
 
 function createDecision(
   id: string,
@@ -110,7 +194,9 @@ async function verifyMissingRouteBlocksExecution(): Promise<void> {
     "decision-missing-route"
   );
 
-  await new ExecutionStage().execute(
+  await new ExecutionStage(
+    services
+  ).execute(
     state
   );
 
@@ -159,14 +245,16 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
     executable: true,
   };
 
-  await new ExecutionStage().execute(
+  await new ExecutionStage(
+    services
+  ).execute(
     state
   );
 
   assert(
     state.currentExecutionId !==
       null,
-    "resolved executable routes must create pending execution"
+    "resolved executable routes must create an execution"
   );
 
   assert(
@@ -195,6 +283,30 @@ async function verifyResolvedRouteCreatesExecution(): Promise<void> {
     executions[0]?.route?.target ===
       "web-search",
     "execution record must preserve the route target"
+  );
+
+  assert(
+    executions[0]?.result?.status ===
+      "completed",
+    "real provider execution must persist completed evidence"
+  );
+
+  assert(
+    executions[0]?.result?.metadata.routeId ===
+      state.actionRoute.id,
+    "execution result must preserve route provenance"
+  );
+
+  assert(
+    executions[0]?.result?.metadata.routeKind ===
+      "provider",
+    "execution result must preserve route kind"
+  );
+
+  assert(
+    executions[0]?.result?.metadata.routeConfidence ===
+      "0.9",
+    "execution result must preserve route confidence"
   );
 
   assert(
@@ -250,7 +362,9 @@ async function verifyPendingExecutionIsNotReExecuted(): Promise<void> {
     existingExecution.id;
 
   const stage =
-    new ExecutionStage();
+    new ExecutionStage(
+      services
+    );
 
   await stage.execute(
     state
