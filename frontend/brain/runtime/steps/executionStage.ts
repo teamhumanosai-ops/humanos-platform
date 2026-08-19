@@ -16,6 +16,7 @@ import {
   completeExecution,
   startExecution,
   blockExecution,
+  setExecutionResult,
 } from "../../execution";
 
 import {
@@ -138,6 +139,20 @@ export class ExecutionStage
           this.services
         );
 
+      setExecutionResult(
+        execution.id,
+        {
+          status:
+            "completed",
+          summary:
+            result.summary,
+          metadata:
+            result.metadata ?? {},
+          error:
+            null,
+        }
+      );
+
       const completed =
         completeExecution(
           execution.id
@@ -173,14 +188,28 @@ export class ExecutionStage
 
       return state;
     } catch (error) {
-      blockExecution(
-        execution.id
-      );
-
       const message =
         error instanceof Error
           ? error.message
           : String(error);
+
+      setExecutionResult(
+        execution.id,
+        {
+          status:
+            "blocked",
+          summary:
+            "Execution was blocked.",
+          metadata:
+            {},
+          error:
+            message,
+        }
+      );
+
+      blockExecution(
+        execution.id
+      );
 
       state.errors.push(
         `Execution: ${message}`
@@ -193,6 +222,7 @@ export class ExecutionStage
         "Status: blocked",
         `Plan ID: ${execution.planId}`,
         `Execution ID: ${execution.id}`,
+        `Error: ${message}`,
       ].join("\n");
 
       return state;
