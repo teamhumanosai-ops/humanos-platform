@@ -11,6 +11,14 @@ import type {
   ActionRouteTarget,
 } from "./types";
 
+function isExplicitToolAction(
+  action: string
+): boolean {
+  return /^tool:[a-z0-9][a-z0-9._-]*:\s*.+$/i.test(
+    action
+  );
+}
+
 function normalizeConfidence(
   value: number
 ): number {
@@ -64,10 +72,23 @@ export function routeDecisionAction(
   const action =
     decision.selectedAction.trim();
 
-  const rule =
-    findActionRouteRule(
+  const explicitTool =
+    isExplicitToolAction(
       action
     );
+
+  const rule =
+    explicitTool
+      ? {
+          kind: "tool" as const,
+          target: "tool" as const,
+          keywords: [
+            "tool:<id>:<action>",
+          ],
+        }
+      : findActionRouteRule(
+          action
+        );
 
   const kind =
     rule?.kind ??
