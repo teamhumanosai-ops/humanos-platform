@@ -28,8 +28,7 @@ const route = {
 
 const dispatch =
   createActionDispatch(
-    route,
-    ACTION_AUTHORIZATION_POLICY_VERSION
+    route
   );
 
 assert(
@@ -59,7 +58,7 @@ if (dispatch) {
   assert(
     dispatch.authorizationPolicyVersion ===
       ACTION_AUTHORIZATION_POLICY_VERSION,
-    "dispatch must preserve the authorization policy version"
+    "dispatch must use the canonical authorization policy version by default"
   );
 }
 
