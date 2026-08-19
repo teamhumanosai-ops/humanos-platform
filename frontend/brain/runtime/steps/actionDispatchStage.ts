@@ -47,22 +47,6 @@ export class ActionDispatchStage
       return state;
     }
 
-    const dispatch =
-      createActionDispatch(
-        state.actionRoute
-      );
-
-    if (!dispatch) {
-      state.errors.push(
-        "ActionDispatch: action route could not produce a safe dispatch descriptor."
-      );
-
-      state.actionDispatch =
-        null;
-
-      return state;
-    }
-
     const authorization =
       evaluateActionAuthorization(
         state
@@ -89,6 +73,23 @@ export class ActionDispatchStage
         state.runtimeStatus =
           "blocked";
       }
+
+      return state;
+    }
+
+    const dispatch =
+      createActionDispatch(
+        state.actionRoute,
+        authorization.policyVersion
+      );
+
+    if (!dispatch) {
+      state.errors.push(
+        "ActionDispatch: action route could not produce a safe dispatch descriptor."
+      );
+
+      state.actionDispatch =
+        null;
 
       return state;
     }
