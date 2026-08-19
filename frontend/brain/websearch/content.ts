@@ -87,7 +87,7 @@ function isPrivateIpv4(
     octets.length !== 4 ||
     octets.some(
       (octet) =>
-        !/^\\d+$/.test(
+        !/^\d+$/.test(
           octet
         )
     )
@@ -140,7 +140,7 @@ function extractTitle(
 ): string {
   const match =
     html.match(
-      /<title[^>]*>([\\s\\S]*?)<\\/title>/i
+      /<title[^>]*>([\s\S]*?)<\/title>/i
     );
 
   if (!match?.[1]) {
@@ -160,15 +160,15 @@ function stripTags(
 ): string {
   return value
     .replace(
-      /<script[\\s\\S]*?<\\/script>/gi,
+      /<script[\s\S]*?<\/script>/gi,
       " "
     )
     .replace(
-      /<style[\\s\\S]*?<\\/style>/gi,
+      /<style[\s\S]*?<\/style>/gi,
       " "
     )
     .replace(
-      /<noscript[\\s\\S]*?<\\/noscript>/gi,
+      /<noscript[\s\S]*?<\/noscript>/gi,
       " "
     )
     .replace(
@@ -216,12 +216,12 @@ function normalizeText(
     )
   )
     .replace(
-      /[\\t\\r]+/g,
+      /[\t\r]+/g,
       " "
     )
     .replace(
-      /\\n\\s*\\n\\s*\\n+/g,
-      "\\n\\n"
+      /\n\s*\n\s*\n+/g,
+      "\n\n"
     )
     .replace(
       /[ ]{2,}/g,
@@ -285,7 +285,7 @@ export async function fetchWebContent(
     contentType
       .toLowerCase()
       .includes("text/html") ||
-    /<html[\\s>]/i.test(
+    /<html[\s>]/i.test(
       body
     );
 
