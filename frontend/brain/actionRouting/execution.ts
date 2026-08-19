@@ -1,5 +1,6 @@
 import type {
   ActionRoute,
+  ActionRouteKind,
 } from "./types";
 
 import {
@@ -10,10 +11,10 @@ import {
   isExecutableActionRoute,
 } from "./guards";
 
-export type ActionDispatchKind =
-  | "provider"
-  | "tool"
-  | "internal";
+export type ActionDispatchKind = Exclude<
+  ActionRouteKind,
+  "unknown"
+>;
 
 export type ActionDispatch = {
   routeId: string;
