@@ -10,6 +10,10 @@ import {
   saveDecision,
 } from "../../decision";
 
+import {
+  createPlanFromMessage,
+} from "../../planning";
+
 function assert(
   condition: boolean,
   message: string
@@ -28,6 +32,11 @@ const state =
     "Search the latest status"
   );
 
+const plan =
+  createPlanFromMessage(
+    "Search the latest status"
+  );
+
 saveDecision({
   id: "decision-dispatch-binding",
   title: "Search the latest status",
@@ -39,6 +48,10 @@ saveDecision({
   createdAt: new Date(),
 });
 
+state.currentPlanId =
+  plan.id;
+state.currentGoal =
+  plan.goal;
 state.currentDecisionId =
   "decision-dispatch-binding";
 
