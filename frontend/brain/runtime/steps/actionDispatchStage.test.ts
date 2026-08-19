@@ -12,7 +12,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `ATR-001 dispatch-stage verification failed: ${message}`
+      `ATR-002 dispatch-stage verification failed: ${message}`
     );
   }
 }
@@ -39,14 +39,14 @@ await new ActionDispatchStage().execute(
 
 assert(
   state.errors.length === 0,
-  "valid routes must dispatch without errors"
+  "valid search routes must dispatch without errors"
 );
 
 assert(
   state.execution?.includes(
     "Dispatch: provider/web-search"
   ) === true,
-  "dispatch metadata must preserve route kind and target"
+  "search dispatch metadata must preserve route kind and target"
 );
 
 assert(
@@ -60,37 +60,47 @@ assert(
   state.execution?.includes(
     "Capability: web-search"
   ) === true,
-  "dispatch must identify the concrete execution capability"
+  "search dispatch must identify the concrete execution capability"
 );
 
-const unsupportedState =
+const contentState =
   createBrainState(
     "conversation",
     [],
     "Open this web page"
   );
 
-unsupportedState.actionRoute = {
-  id: "route-unsupported",
+contentState.actionRoute = {
+  id: "route-content",
   kind: "provider",
-  action: "Open this web page",
+  action:
+    "Open https://example.com/source",
   target: "web-content",
   confidence: 0.9,
   executable: true,
 };
 
 await new ActionDispatchStage().execute(
-  unsupportedState
+  contentState
 );
 
 assert(
-  unsupportedState.errors.some(
-    (error) =>
-      error.includes(
-        "no registered execution capability"
-      )
-  ),
-  "routes without concrete capabilities must be rejected before execution"
+  contentState.errors.length === 0,
+  "web-content routes must dispatch through a concrete capability"
+);
+
+assert(
+  contentState.execution?.includes(
+    "Dispatch: provider/web-content"
+  ) === true,
+  "web-content dispatch metadata must preserve the provider target"
+);
+
+assert(
+  contentState.execution?.includes(
+    "Capability: web-content"
+  ) === true,
+  "web-content dispatch must identify the concrete execution capability"
 );
 
 const invalidState =
