@@ -219,8 +219,21 @@ const toolCapability:
     action,
     services
   ) {
+    const normalizedAction =
+      action.trim();
+
+    const explicitPrefix =
+      normalizedAction
+        .toLowerCase()
+        .startsWith("tool:");
+
+    const toolPayload =
+      explicitPrefix
+        ? normalizedAction.slice(5).trim()
+        : normalizedAction;
+
     const separator =
-      action.indexOf(":");
+      toolPayload.indexOf(":");
 
     if (separator <= 0) {
       throw new Error(
@@ -229,12 +242,12 @@ const toolCapability:
     }
 
     const toolId =
-      action
+      toolPayload
         .slice(0, separator)
         .trim();
 
     const toolAction =
-      action
+      toolPayload
         .slice(separator + 1)
         .trim();
 
@@ -265,6 +278,8 @@ const toolCapability:
       ...result,
       metadata: {
         ...(result.metadata ?? {}),
+        executionType:
+          "registered-tool",
         toolId,
         toolAction,
       },
