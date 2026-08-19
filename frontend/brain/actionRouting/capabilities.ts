@@ -157,11 +157,55 @@ const cognitiveCapability:
     "cognitive",
 
   async execute(
-    action
+    action,
+    services
   ) {
+    const normalizedAction =
+      action.trim();
+
+    if (!normalizedAction) {
+      throw new Error(
+        "Cognitive action execution requires a non-empty action."
+      );
+    }
+
+    const result =
+      await services.aiService(
+        [
+          "HUMAN OS ACTION EXECUTION MODE.",
+          "Execute the requested cognitive action as a real provider-backed operation.",
+          "Return a concise, useful result of the requested action.",
+          "Do not describe the action as merely acknowledged or simulated.",
+        ].join("\n"),
+        [
+          {
+            role:
+              "user",
+            message:
+              normalizedAction,
+          },
+        ]
+      );
+
+    const summary =
+      result.trim();
+
+    if (!summary) {
+      throw new Error(
+        "Cognitive action execution returned an empty provider result."
+      );
+    }
+
     return {
-      summary:
-        `Cognitive action acknowledged: ${action}`,
+      summary,
+      metadata: {
+        executionType:
+          "cognitive-ai",
+        providerBoundary:
+          "aiService",
+        action:
+          normalizedAction,
+      },
     };
   },
 };
