@@ -2,9 +2,14 @@ import type {
   RuntimeServices,
 } from "../runtime/runtimeServices";
 
+import {
+  getActionTool,
+} from "./toolCapabilities";
+
 export type ActionCapabilityTarget =
   | "web-search"
-  | "cognitive";
+  | "cognitive"
+  | "tool";
 
 export type ActionCapability = {
   target:
@@ -72,6 +77,58 @@ const cognitiveCapability:
   },
 };
 
+const toolCapability:
+  ActionCapability = {
+  target:
+    "tool",
+
+  async execute(
+    action,
+    services
+  ) {
+    const separator =
+      action.indexOf(":");
+
+    if (separator <= 0) {
+      throw new Error(
+        "Tool execution requires an explicit registered tool id followed by ':'."
+      );
+    }
+
+    const toolId =
+      action
+        .slice(0, separator)
+        .trim();
+
+    const toolAction =
+      action
+        .slice(separator + 1)
+        .trim();
+
+    const tool =
+      getActionTool(
+        toolId
+      );
+
+    if (!tool) {
+      throw new Error(
+        `No registered action tool exists for "${toolId}".`
+      );
+    }
+
+    if (!toolAction) {
+      throw new Error(
+        `Registered action tool "${toolId}" requires an action.`
+      );
+    }
+
+    return tool.execute(
+      toolAction,
+      services
+    );
+  },
+};
+
 const capabilities: ReadonlyMap<
   ActionCapabilityTarget,
   ActionCapability
@@ -83,6 +140,10 @@ const capabilities: ReadonlyMap<
   [
     "cognitive",
     cognitiveCapability,
+  ],
+  [
+    "tool",
+    toolCapability,
   ],
 ]);
 
