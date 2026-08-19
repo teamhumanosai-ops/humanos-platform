@@ -15,7 +15,8 @@ export type ActionAuthorization = {
   evaluatedAt: Date;
 };
 
-const POLICY_VERSION = "atr-authorization-v1";
+export const ACTION_AUTHORIZATION_POLICY_VERSION =
+  "atr-authorization-v1";
 
 const READ_ONLY_TARGETS: ReadonlySet<ActionRouteTarget> =
   new Set([
@@ -36,7 +37,8 @@ export function evaluateActionAuthorization(
       routeId: "unresolved",
       reason:
         "No resolved action route exists for authorization.",
-      policyVersion: POLICY_VERSION,
+      policyVersion:
+        ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
     };
   }
@@ -48,7 +50,8 @@ export function evaluateActionAuthorization(
       routeId: route.id,
       reason:
         "The resolved action is not executable.",
-      policyVersion: POLICY_VERSION,
+      policyVersion:
+        ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
     };
   }
@@ -64,7 +67,8 @@ export function evaluateActionAuthorization(
       routeId: route.id,
       reason:
         "Read-only provider execution is allowed by the current action policy.",
-      policyVersion: POLICY_VERSION,
+      policyVersion:
+        ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
     };
   }
@@ -78,7 +82,8 @@ export function evaluateActionAuthorization(
       routeId: route.id,
       reason:
         "Registered tool execution requires explicit user confirmation before external execution.",
-      policyVersion: POLICY_VERSION,
+      policyVersion:
+        ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
     };
   }
@@ -92,7 +97,8 @@ export function evaluateActionAuthorization(
       routeId: route.id,
       reason:
         "Internal cognitive execution does not perform an external side effect by itself.",
-      policyVersion: POLICY_VERSION,
+      policyVersion:
+        ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
     };
   }
@@ -103,7 +109,8 @@ export function evaluateActionAuthorization(
     routeId: route.id,
     reason:
       "The action target is not recognized by the authorization policy.",
-    policyVersion: POLICY_VERSION,
+    policyVersion:
+      ACTION_AUTHORIZATION_POLICY_VERSION,
     evaluatedAt,
   };
 }
