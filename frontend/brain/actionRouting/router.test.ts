@@ -42,7 +42,7 @@ assert(
 assert(
   providerRoute.target ===
     "web-search",
-  "search actions must resolve to the web-search target"
+  "search actions must resolve to web-search"
 );
 
 assert(
@@ -55,6 +55,12 @@ assert(
   providerRoute.confidence ===
     1,
   "route confidence must be normalized to one"
+);
+
+assert(
+  providerRoute.id ===
+    "route-decision-1",
+  "route identifiers must remain deterministic"
 );
 
 const contentRoute =
@@ -147,4 +153,24 @@ assert(
   unknownRoute.confidence ===
     0,
   "route confidence must not fall below zero"
+);
+
+const falsePositiveRoute =
+  routeDecisionAction({
+    ...baseDecision,
+    id: "decision-false-positive",
+    selectedAction:
+      "Please resend the message",
+  });
+
+assert(
+  falsePositiveRoute.kind ===
+    "unknown",
+  "route keywords must not match inside larger words"
+);
+
+assert(
+  falsePositiveRoute.executable ===
+    false,
+  "false-positive routes must never become executable"
 );
