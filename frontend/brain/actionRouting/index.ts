@@ -10,6 +10,8 @@ export * from "./execution";
 
 export * from "./authorization";
 
+export * from "./authorizedDispatch";
+
 export * from "./capabilities";
 
 export * from "./toolCapabilities";
