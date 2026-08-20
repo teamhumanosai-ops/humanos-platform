@@ -342,7 +342,8 @@ export class CognitiveRuntime {
   }
 
   /**
-   * Register one stage after validating its identity.
+   * Register one stage after validating its identity and terminal
+   * lifecycle ownership.
    */
   register(
     stage: Stage
@@ -365,6 +366,18 @@ export class CognitiveRuntime {
     ) {
       throw new Error(
         `CognitiveRuntime cannot register duplicate stage "${stageName}".`
+      );
+    }
+
+    if (
+      this.stages.some(
+        (registeredStage) =>
+          registeredStage.name ===
+          "Outcome"
+      )
+    ) {
+      throw new Error(
+        "CognitiveRuntime cannot register a stage after terminal Outcome."
       );
     }
 
