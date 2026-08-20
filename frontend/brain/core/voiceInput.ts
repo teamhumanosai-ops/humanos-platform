@@ -36,8 +36,17 @@ type SpeechRecognitionWindow = Window & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 };
 
+export type VoiceRecognitionTranscriptState = {
+  finalTranscript: string;
+  interimTranscript: string;
+  final: boolean;
+};
+
 let activeRecognition:
   SpeechRecognitionLike | null = null;
+
+let activeCancel:
+  (() => void) | null = null;
 
 function getSpeechRecognitionConstructor():
   SpeechRecognitionConstructor | null {
@@ -67,6 +76,44 @@ function normalizeOptions(
       options.interimResults ?? false,
     maxAlternatives:
       options.maxAlternatives ?? 1,
+  };
+}
+
+export function collectVoiceRecognitionResults(
+  event: SpeechRecognitionEventLike
+): VoiceRecognitionTranscriptState {
+  let finalTranscript = "";
+  let interimTranscript = "";
+  let final = false;
+
+  for (
+    let index = 0;
+    index < event.results.length;
+    index += 1
+  ) {
+    const result =
+      event.results[index];
+    const transcript =
+      result[0].transcript.trim();
+
+    if (!transcript) {
+      continue;
+    }
+
+    if (result.isFinal) {
+      finalTranscript =
+        `${finalTranscript} ${transcript}`.trim();
+      final = true;
+    } else {
+      interimTranscript =
+        `${interimTranscript} ${transcript}`.trim();
+    }
+  }
+
+  return {
+    finalTranscript,
+    interimTranscript,
+    final,
   };
 }
 
@@ -114,7 +161,8 @@ export function captureVoiceInput(
 
   return new Promise<VoiceInputResult>(
     (resolve, reject) => {
-      let transcript = "";
+      let finalTranscript = "";
+      let interimTranscript = "";
       let final = false;
       let settled = false;
 
@@ -126,6 +174,16 @@ export function captureVoiceInput(
           activeRecognition =
             null;
         }
+
+        if (
+          activeCancel !==
+          cancelRecognition
+        ) {
+          return;
+        }
+
+        activeCancel =
+          null;
       };
 
       const rejectOnce = (
@@ -134,25 +192,36 @@ export function captureVoiceInput(
         if (settled) {
           return;
         }
+
         settled = true;
         clearActive();
         reject(error);
       };
 
+      const cancelRecognition = () => {
+        rejectOnce(
+          new Error(
+            "Voice input was stopped."
+          )
+        );
+      };
+
+      activeCancel =
+        cancelRecognition;
+
       recognition.onresult =
         (event) => {
-          for (
-            let index = 0;
-            index < event.results.length;
-            index += 1
-          ) {
-            const result =
-              event.results[index];
-            transcript +=
-              result[0].transcript;
-            final =
-              final || result.isFinal;
-          }
+          const result =
+            collectVoiceRecognitionResults(
+              event
+            );
+
+          finalTranscript =
+            result.finalTranscript;
+          interimTranscript =
+            result.interimTranscript;
+          final =
+            result.final;
         };
 
       recognition.onerror =
@@ -173,7 +242,8 @@ export function captureVoiceInput(
           }
 
           const normalizedTranscript =
-            transcript.trim();
+            `${finalTranscript} ${interimTranscript}`
+              .trim();
 
           if (!normalizedTranscript) {
             rejectOnce(
@@ -210,9 +280,17 @@ export function captureVoiceInput(
 export function stopVoiceInput(): void {
   const recognition =
     activeRecognition;
+  const cancel =
+    activeCancel;
 
   activeRecognition =
     null;
+  activeCancel =
+    null;
+
+  if (cancel) {
+    cancel();
+  }
 
   if (!recognition) {
     return;
