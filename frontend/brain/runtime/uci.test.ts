@@ -104,6 +104,45 @@ async function runUciVerification(): Promise<void> {
     "UCI requestId \"uci-test-001\" was reused with a different request payload."
   );
 
+  const mutableRequest = {
+    requestId:
+      "uci-snapshot-001",
+    messages: [
+      {
+        role: "user" as const,
+        message:
+          "Original payload must survive caller mutation.",
+      },
+    ],
+  };
+
+  const snapshotExecution =
+    executeCognitiveRequest(
+      mutableRequest
+    );
+
+  mutableRequest.messages[0].message =
+    "Mutated payload must not reach the runtime.";
+
+  const snapshotResponse =
+    await snapshotExecution;
+
+  assert(
+    snapshotResponse.state.userMessage ===
+      "Original payload must survive caller mutation.",
+    "UCI must snapshot validated messages before async runtime execution"
+  );
+
+  await expectFailure(
+    {
+      requestId: "uci-invalid-message",
+      messages: [
+        null,
+      ],
+    },
+    "UCI message 0 must be an object."
+  );
+
   await expectFailure(
     {
       requestId: "",
