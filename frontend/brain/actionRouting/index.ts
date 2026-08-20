@@ -15,3 +15,5 @@ export * from "./authorizedDispatch";
 export * from "./capabilities";
 
 export * from "./toolCapabilities";
+
+export * from "./integrationContracts";
