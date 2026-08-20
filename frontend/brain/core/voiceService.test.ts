@@ -1,7 +1,9 @@
 import {
   isVoiceOutputAvailable,
+  isVoiceOutputSpeaking,
   speakText,
   stopSpeaking,
+  subscribeVoiceOutputState,
 } from "./voiceService";
 
 function assert(
@@ -49,6 +51,11 @@ assert(
   "voice output must preserve normalized response text"
 );
 
+assert(
+  !isVoiceOutputSpeaking(),
+  "disabled voice output must not remain active"
+);
+
 let invalidRateRejected =
   false;
 
@@ -69,7 +76,30 @@ assert(
   "invalid voice options must be rejected"
 );
 
+let observedState: boolean | null =
+  null;
+
+const unsubscribe =
+  subscribeVoiceOutputState(
+    (speaking) => {
+      observedState =
+        speaking;
+    }
+  );
+
+assert(
+  observedState === false,
+  "voice output subscribers must receive the current inactive state"
+);
+
 stopSpeaking();
+
+assert(
+  !isVoiceOutputSpeaking(),
+  "stopping voice output must clear active state"
+);
+
+unsubscribe();
 
 if (
   typeof window !==
