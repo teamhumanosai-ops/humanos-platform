@@ -83,6 +83,53 @@ async function runRegistryVerification(): Promise<void> {
     "matching cleanup must release the registration"
   );
 
+  for (
+    let index = 0;
+    index < 256;
+    index += 1
+  ) {
+    registerRequest(
+      `registry-${index}`,
+      `fingerprint-${index}`,
+      first
+    );
+  }
+
+  const recentlyUsed =
+    getRegisteredRequest(
+      "registry-0",
+      "fingerprint-0"
+    );
+
+  assert(
+    recentlyUsed === first,
+    "reading a registered request must retain its promise"
+  );
+
+  registerRequest(
+    "registry-256",
+    "fingerprint-256",
+    first
+  );
+
+  assert(
+    getRegisteredRequest(
+      "registry-0",
+      "fingerprint-0"
+    ) === first,
+    "recently used entries must survive bounded registry eviction"
+  );
+
+  assert(
+    getRegisteredRequest(
+      "registry-1",
+      "fingerprint-1"
+    ) === null,
+    "least recently used entries must be evicted when the registry is full"
+  );
+
+  clearUciRequestRegistry();
+
   console.log(
     "UCI request registry verification passed."
   );
@@ -90,6 +137,7 @@ async function runRegistryVerification(): Promise<void> {
 
 runRegistryVerification().catch(
   (error) => {
+    clearUciRequestRegistry();
     throw error;
   }
 );
