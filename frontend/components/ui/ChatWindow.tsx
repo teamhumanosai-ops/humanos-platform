@@ -9,6 +9,7 @@ import type {
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
 import TypingIndicator from "./TypingIndicator";
+import VoiceControls from "./VoiceControls";
 
 type Citation = {
   index: number;
@@ -40,6 +41,14 @@ export default function ChatWindow() {
 
   const [typing, setTyping] =
     useState(false);
+
+  const latestAssistantMessage =
+    [...messages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === "assistant"
+      )?.message ?? "";
 
   async function sendMessage() {
     if (!input.trim()) {
@@ -199,6 +208,15 @@ export default function ChatWindow() {
           }
           onSend={
             sendMessage
+          }
+        />
+
+        <VoiceControls
+          text={
+            latestAssistantMessage
+          }
+          onTranscript={
+            setInput
           }
         />
       </div>
