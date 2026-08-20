@@ -30,10 +30,22 @@ import {
  * context consumed by downstream reasoning
  * and response stages.
  *
- * Life domain intelligence is included as a bounded
- * cognitive routing signal. It describes the user's
- * likely domain without pretending to be a fact about
- * the user's identity or intent beyond the current request.
+ * Live web evidence is explicitly included
+ * when LiveKnowledgeStage has executed.
+ *
+ * Content Intelligence analyzes source structure,
+ * freshness, completeness, and provider agreement
+ * without treating metadata as proof of truth.
+ *
+ * Conversation continuity is included when older
+ * messages fall outside the short-term window.
+ *
+ * The persisted Human Profile is included when
+ * ProfileStage has hydrated it into BrainState.
+ *
+ * Life Domain Intelligence is included as a bounded
+ * request-routing signal and is not treated as a
+ * permanent user attribute.
  */
 export class ContextStage
   extends BaseStage {
