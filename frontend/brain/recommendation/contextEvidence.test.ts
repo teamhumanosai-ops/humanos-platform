@@ -232,6 +232,78 @@ function verifyProfileEvidence(): void {
   );
 }
 
+function verifyLifeDomainEvidence(): void {
+  const state =
+    createBrainState(
+      "conversation",
+      [],
+      "Help me prepare for my quarterly work review."
+    );
+
+  state.primaryLifeDomain =
+    "work";
+
+  const recommendations =
+    enrichRecommendationsWithContext(
+      state,
+      [
+        {
+          ...createRecommendation(),
+
+          statement:
+            "Prepare the work review agenda and next steps.",
+
+          rationale:
+            "The current work responsibility needs a clear review plan.",
+        },
+      ]
+    );
+
+  const lifeDomainEvidence =
+    recommendations[0]?.evidence.find(
+      (item) =>
+        item.source ===
+        "life_domain"
+    );
+
+  assert(
+    Boolean(
+      lifeDomainEvidence
+    ),
+    "matching life-domain context must enrich the recommendation"
+  );
+
+  assert(
+    lifeDomainEvidence?.statement.includes(
+      "Work (work)"
+    ) === true,
+    "life-domain evidence must preserve canonical domain identity"
+  );
+
+  assert(
+    lifeDomainEvidence?.confidence ===
+      0.8,
+    "life-domain evidence must use the canonical contextual confidence"
+  );
+
+  const unrelated =
+    enrichRecommendationsWithContext(
+      state,
+      [
+        createRecommendation(),
+      ]
+    );
+
+  assert(
+    !unrelated[0]?.evidence.some(
+      (item) =>
+        item.source ===
+        "life_domain"
+    ),
+    "unrelated recommendations must not receive life-domain evidence"
+  );
+}
+
 function verifyConfidenceNormalization(): void {
   const state =
     createBrainState(
@@ -286,4 +358,5 @@ function verifyConfidenceNormalization(): void {
 verifyMemoryEvidence();
 verifyReflectionEvidence();
 verifyProfileEvidence();
+verifyLifeDomainEvidence();
 verifyConfidenceNormalization();

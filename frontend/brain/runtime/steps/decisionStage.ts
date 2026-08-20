@@ -10,6 +10,14 @@ import {
   getPlan,
 } from "../../planning";
 
+import type {
+  Plan,
+} from "../../planning";
+
+import {
+  getLifeDomain,
+} from "../../lifeDomains";
+
 import {
   BaseStage,
 } from "./baseStage";
@@ -49,6 +57,39 @@ export function formatInferenceEvidence(
         ) || "none"})`;
       }
     );
+}
+
+function applyLifeDomainDecisionContext(
+  state: BrainState,
+  plan: Plan
+): Plan {
+  if (
+    state.primaryLifeDomain ===
+      "general"
+  ) {
+    return plan;
+  }
+
+  const domain =
+    getLifeDomain(
+      state.primaryLifeDomain
+    );
+
+  const domainContext =
+    `Life domain context: ${domain.id}, ${domain.label}`;
+
+  return {
+    ...plan,
+
+    description:
+      [
+        plan.description,
+
+        domainContext,
+
+        `Domain guidance: ${domain.description}`,
+      ].join("\n"),
+  };
 }
 
 /**
@@ -113,13 +154,21 @@ export class DecisionStage
     |--------------------------------------------------------------------------
     |
     | The engine remains responsible for selecting
-    | the best action from the current plan.
-    |
+    | the best action from the current plan. Life
+    | domain context is applied to a request-scoped
+    | plan copy so persisted plan data is unchanged.
+    |--------------------------------------------------------------------------
     */
+
+    const decisionPlan =
+      applyLifeDomainDecisionContext(
+        state,
+        plan
+      );
 
     const decision =
       getBestDecision(
-        plan
+        decisionPlan
       );
 
     state.currentDecisionId =
@@ -185,6 +234,17 @@ export class DecisionStage
         `Reason: ${decision.reason}`,
 
         `Confidence: ${decision.confidence}`,
+
+        ...(state.primaryLifeDomain !==
+          "general"
+          ? [
+              "",
+
+              `Life Domain: ${getLifeDomain(
+                state.primaryLifeDomain
+              ).label}`,
+            ]
+          : []),
 
         ...(reasoningEvidence.length > 0
           ? [

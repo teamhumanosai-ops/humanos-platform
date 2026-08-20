@@ -2,6 +2,10 @@ import type {
   BrainState,
 } from "../brainState";
 
+import {
+  getLifeDomain,
+} from "../lifeDomains";
+
 import type {
   Recommendation,
   RecommendationEvidence,
@@ -288,6 +292,55 @@ function buildProfileEvidence(
   ];
 }
 
+function buildLifeDomainEvidence(
+  state: BrainState,
+  recommendation: Recommendation
+): RecommendationEvidence[] {
+  const domain =
+    state.primaryLifeDomain;
+
+  if (
+    !domain ||
+    domain === "general"
+  ) {
+    return [];
+  }
+
+  const metadata =
+    getLifeDomain(
+      domain
+    );
+
+  const domainEvidenceText = [
+    metadata.id,
+    metadata.label,
+    metadata.description,
+    ...metadata.aliases,
+  ].join(" ");
+
+  if (
+    !hasRelevantOverlap(
+      recommendation,
+      domainEvidenceText
+    )
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      source:
+        "life_domain",
+
+      statement:
+        `Life-domain context: ${metadata.label} (${metadata.id}). ${metadata.description}`,
+
+      confidence:
+        0.8,
+    },
+  ];
+}
+
 function normalizeEvidence(
   evidence: RecommendationEvidence[]
 ): RecommendationEvidence[] {
@@ -380,6 +433,10 @@ export function enrichRecommendationsWithContext(
           recommendation
         ),
         ...buildProfileEvidence(
+          state,
+          recommendation
+        ),
+        ...buildLifeDomainEvidence(
           state,
           recommendation
         ),

@@ -15,13 +15,12 @@ const MAX_RELEVANT_MEMORIES = 10;
 const MAX_MEMORY_QUERY_LENGTH = 4200;
 
 /**
- * Build the memory retrieval query from the current request and the
- * bounded conversation continuity artifact.
+ * Build the memory retrieval query from the current request, bounded
+ * conversation continuity, and the request-scoped life-domain signal.
  *
- * The current user message remains the strongest and most immediate
- * retrieval signal. Continuity is appended only when older conversation
- * exists, allowing durable memories relevant to earlier turns to re-enter
- * the current cognitive state without loading the entire conversation.
+ * Life-domain context is intentionally a routing hint rather than a
+ * durable user attribute. The current user message remains the strongest
+ * retrieval signal.
  */
 function buildMemoryQuery(
   state: BrainState
@@ -32,11 +31,21 @@ function buildMemoryQuery(
   const continuity =
     state.conversationContinuity.trim();
 
-  if (!continuity) {
-    return currentMessage;
-  }
+  const primaryDomain =
+    state.primaryLifeDomain;
 
-  return `${currentMessage}\n\nConversation continuity:\n${continuity}`
+  const domainContext =
+    primaryDomain &&
+    primaryDomain !== "general"
+      ? `\n\nRequest life domain: ${primaryDomain}`
+      : "";
+
+  const continuityContext =
+    continuity
+      ? `\n\nConversation continuity:\n${continuity}`
+      : "";
+
+  return `${currentMessage}${domainContext}${continuityContext}`
     .slice(
       0,
       MAX_MEMORY_QUERY_LENGTH

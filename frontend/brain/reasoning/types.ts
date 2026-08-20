@@ -5,7 +5,8 @@ export type ReasoningSource =
   | "timeline"
   | "reflection"
   | "prediction"
-  | "live_knowledge";
+  | "live_knowledge"
+  | "life_domain";
 
 export type ReasoningObservationKind =
   | "known_fact"

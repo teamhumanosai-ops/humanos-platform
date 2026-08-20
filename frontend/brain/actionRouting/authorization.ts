@@ -273,11 +273,18 @@ export function evaluateActionAuthorization(
   };
 }
 
+/**
+ * Authorization is derived from the current route and the private
+ * confirmation binding. A mutable BrainState authorization object alone
+ * can never manufacture permission.
+ */
 export function isActionAuthorized(
   state: BrainState
 ): boolean {
   return (
-    state.actionAuthorization?.status ===
+    evaluateActionAuthorization(
+      state
+    ).status ===
     "allowed"
   );
 }

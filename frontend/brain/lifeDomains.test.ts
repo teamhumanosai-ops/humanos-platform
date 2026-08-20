@@ -1,4 +1,5 @@
 import {
+  LIFE_DOMAINS,
   getLifeDomain,
   isLifeDomainId,
   resolveLifeDomains,
@@ -14,6 +15,21 @@ function assert(
     );
   }
 }
+
+assert(
+  Object.isFrozen(LIFE_DOMAINS),
+  "canonical life-domain registry must be frozen"
+);
+
+assert(
+  Object.isFrozen(LIFE_DOMAINS[0]),
+  "canonical life-domain entries must be frozen"
+);
+
+assert(
+  Object.isFrozen(LIFE_DOMAINS[0]?.aliases),
+  "canonical life-domain aliases must be frozen"
+);
 
 const work =
   resolveLifeDomains(

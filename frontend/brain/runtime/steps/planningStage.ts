@@ -11,7 +11,12 @@ import {
   createPlanFromMessageWithContext,
   enrichGoalFromContext,
   getAllPlans,
+  savePlan,
 } from "../../planning";
+
+import {
+  getLifeDomain,
+} from "../../lifeDomains";
 
 import {
   BaseStage,
@@ -31,6 +36,7 @@ import {
  * - Return persisted planning results for task queries
  * - Preserve cognitive evidence when creating plans
  * - Build the canonical Goal artifact from the persisted Plan
+ * - Preserve Life Domain context on user-owned plan artifacts
  * - Prevent informational task queries from
  *   falling through to an LLM-generated/fabricated
  *   task list
@@ -190,6 +196,43 @@ export class PlanningStage
       !plan
     ) {
       return state;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Life Domain planning context
+    |--------------------------------------------------------------------------
+    |
+    | Life Domain detection remains request-scoped in BrainState.
+    | When the request creates an actual user-owned plan, the
+    | detected domain is preserved on that plan artifact so
+    | downstream planning and decision stages reason from the
+    | same cognitive signal. This does not write the domain to
+    | the user's permanent profile or make it a user attribute.
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      state.primaryLifeDomain !==
+      "general"
+    ) {
+      const domain =
+        getLifeDomain(
+          state.primaryLifeDomain
+        );
+
+      plan.description =
+        [
+          plan.description,
+
+          `Life domain context: ${domain.id}, ${domain.label}`,
+
+          `Domain guidance: ${domain.description}`,
+        ].join("\n");
+
+      savePlan(
+        plan
+      );
     }
 
     /*
