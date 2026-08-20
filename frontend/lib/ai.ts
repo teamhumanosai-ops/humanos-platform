@@ -37,7 +37,7 @@ export const AI_CONFIG = {
   */
 
   geminiModel:
-    "gemini-2.5-flash",
+    "gemini-3.6-flash",
 
   openRouterModel:
     "openai/gpt-4.1-mini",
