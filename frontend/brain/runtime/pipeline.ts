@@ -477,6 +477,10 @@ export class CognitiveRuntime {
           null,
       });
 
+      state.executedStages.push(
+        stage.name
+      );
+
       return {
         state:
           next,
@@ -508,6 +512,10 @@ export class CognitiveRuntime {
         error:
           message,
       });
+
+      state.executedStages.push(
+        stage.name
+      );
 
       this.recordStageFailure(
         state,
