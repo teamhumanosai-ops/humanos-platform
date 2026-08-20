@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Human OS",
+    "slug": "humanos-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "humanos",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.teamhumanos.humanos"
+    },
+    "android": {
+      "package": "ai.teamhumanos.humanos"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
