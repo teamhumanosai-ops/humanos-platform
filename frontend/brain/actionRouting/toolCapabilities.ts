@@ -2,6 +2,10 @@ import type {
   RuntimeServices,
 } from "../runtime/runtimeServices";
 
+import type {
+  IntegrationExecutionPolicy,
+} from "./integrationExecution";
+
 export type RegisteredTool = {
   id: string;
 
@@ -12,6 +16,18 @@ export type RegisteredTool = {
     summary: string;
     metadata?: Record<string, string>;
   }>;
+
+  /**
+   * Optional external integration identity. The executor remains the
+   * canonical real-execution owner; this metadata makes provider provenance
+   * explicit without introducing a second integration registry.
+   */
+  integration?: {
+    provider: string;
+    operation: string;
+    isConfigured?: () => boolean;
+    executionPolicy?: IntegrationExecutionPolicy;
+  };
 };
 
 const registeredTools =
@@ -21,6 +37,61 @@ function normalizeToolId(
   id: string
 ): string {
   return id.trim();
+}
+
+function normalizeIntegrationMetadata(
+  id: string,
+  integration: RegisteredTool["integration"]
+): RegisteredTool["integration"] {
+  if (!integration) {
+    return undefined;
+  }
+
+  const provider = integration.provider.trim();
+  const operation = integration.operation.trim();
+
+  if (!provider) {
+    throw new Error(
+      `Action tool "${id}" integration metadata requires a provider.`
+    );
+  }
+
+  if (!operation) {
+    throw new Error(
+      `Action tool "${id}" integration metadata requires an operation.`
+    );
+  }
+
+  if (
+    integration.isConfigured !== undefined &&
+    typeof integration.isConfigured !== "function"
+  ) {
+    throw new Error(
+      `Action tool "${id}" integration metadata requires a callable configuration check.`
+    );
+  }
+
+  if (
+    integration.executionPolicy !== undefined &&
+    integration.executionPolicy !==
+      "allow-duplicate" &&
+    integration.executionPolicy !==
+      "deduplicate-concurrent"
+  ) {
+    throw new Error(
+      `Action tool "${id}" integration metadata requires a valid execution policy.`
+    );
+  }
+
+  return {
+    provider,
+    operation,
+    isConfigured:
+      integration.isConfigured,
+    executionPolicy:
+      integration.executionPolicy ??
+      "deduplicate-concurrent",
+  };
 }
 
 export function registerActionTool(
@@ -59,6 +130,11 @@ export function registerActionTool(
     {
       ...tool,
       id,
+      integration:
+        normalizeIntegrationMetadata(
+          id,
+          tool.integration
+        ),
     }
   );
 }
@@ -80,12 +156,28 @@ export function getActionTools():
   );
 }
 
+export function getExternalActionTools():
+  readonly RegisteredTool[] {
+  return getActionTools().filter(
+    (tool) =>
+      Boolean(tool.integration)
+  );
+}
+
 export function hasActionTool(
   id: string
 ): boolean {
   return (
     getActionTool(id) !==
     null
+  );
+}
+
+export function hasExternalActionTool(
+  id: string
+): boolean {
+  return Boolean(
+    getActionTool(id)?.integration
   );
 }
 
