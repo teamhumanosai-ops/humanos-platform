@@ -11,6 +11,10 @@ import {
 } from "../../contentIntelligence";
 
 import {
+  getLifeDomain,
+} from "../../lifeDomains";
+
+import {
   Intent,
 } from "../../intent";
 
@@ -26,18 +30,10 @@ import {
  * context consumed by downstream reasoning
  * and response stages.
  *
- * Live web evidence is explicitly included
- * when LiveKnowledgeStage has executed.
- *
- * Content Intelligence analyzes source structure,
- * freshness, completeness, and provider agreement
- * without treating metadata as proof of truth.
- *
- * Conversation continuity is included when older
- * messages fall outside the short-term window.
- *
- * The persisted Human Profile is included when
- * ProfileStage has hydrated it into BrainState.
+ * Life domain intelligence is included as a bounded
+ * cognitive routing signal. It describes the user's
+ * likely domain without pretending to be a fact about
+ * the user's identity or intent beyond the current request.
  */
 export class ContextStage
   extends BaseStage {
@@ -65,6 +61,26 @@ export class ContextStage
 
     let prompt =
       structuredContext.prompt;
+
+    const primaryDomain =
+      getLifeDomain(
+        state.primaryLifeDomain
+      );
+
+    prompt +=
+      [
+        "",
+        "LIFE DOMAIN CONTEXT:",
+        `Primary domain: ${primaryDomain.label} (${primaryDomain.id})`,
+        `Domain description: ${primaryDomain.description}`,
+        `Detected domains: ${state.lifeDomains
+          .map(
+            (match) =>
+              `${match.domain}=${match.score}`
+          )
+          .join(", ")}`,
+        "Treat domain detection as a routing signal for this request, not as a permanent user attribute.",
+      ].join("\n");
 
     if (
       state.profile
