@@ -35,6 +35,7 @@ const state = {
   userMessage:
     "diagnostics test",
   diagnostics: [],
+  executedStages: [],
   errors: [],
 } as unknown as BrainState;
 
@@ -90,6 +91,11 @@ assert(
 assert(
   (diagnostic?.durationMs ?? -1) >= 0,
   "diagnostic duration must be non-negative"
+);
+assert(
+  state.executedStages.length === 1 &&
+    state.executedStages[0] === stage.name,
+  "executed stage history must record the stage exactly once"
 );
 
 console.log(
