@@ -9,8 +9,15 @@ import {
   prepareConversation,
 } from "../conversation";
 
+import type {
+  MultimodalInput,
+} from "../core/multimodalContracts";
+
 export function createRuntimeBrainState(
-  messages: ConversationMessage[]
+  messages: ConversationMessage[],
+  multimodalInput:
+    MultimodalInput
+    | null = null
 ): BrainState {
   const preparedMessages =
     prepareConversation(
@@ -43,6 +50,7 @@ export function createRuntimeBrainState(
     conversation,
     preparedMessages,
     lastUserMessage,
-    conversationContinuity
+    conversationContinuity,
+    multimodalInput
   );
 }
