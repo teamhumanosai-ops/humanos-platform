@@ -26,8 +26,10 @@ const stage = {
   name:
     "FailingDiagnosticsTest",
   execute: async (
-    _state: BrainState
+    state: BrainState
   ): Promise<BrainState> => {
+    void state;
+
     throw new Error(
       "diagnostic failure"
     );
