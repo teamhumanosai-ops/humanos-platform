@@ -7,6 +7,10 @@ import {
 } from "../../contentIntelligence";
 
 import {
+  getLifeDomain,
+} from "../../lifeDomains";
+
+import {
   reason,
 } from "../../reasoning";
 
@@ -30,6 +34,11 @@ import {
  * Live-web reasoning is additionally weighted
  * by the canonical Content Intelligence evidence
  * quality signal before it is persisted.
+ *
+ * Life Domain detection is preserved as a
+ * request-scoped reasoning signal so downstream
+ * planning and decision stages can reason from
+ * the same canonical domain context.
  */
 export class ReasoningStage
   extends BaseStage {
@@ -67,6 +76,33 @@ export class ReasoningStage
         result.observations,
         state.contentIntelligence
       );
+
+    if (
+      state.primaryLifeDomain !==
+      "general"
+    ) {
+      const domain =
+        getLifeDomain(
+          state.primaryLifeDomain
+        );
+
+      observations.push({
+        statement:
+          `Request domain signal: ${domain.label} (${domain.id}). ${domain.description}`,
+
+        confidence:
+          0.8,
+
+        relevance:
+          1,
+
+        source:
+          "life_domain",
+
+        kind:
+          "derived_inference",
+      });
+    }
 
     const confidence =
       observations.length === 0
