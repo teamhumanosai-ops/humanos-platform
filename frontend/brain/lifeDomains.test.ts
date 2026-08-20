@@ -78,6 +78,26 @@ assert(
   "unmatched requests must remain in the general domain"
 );
 
+const boundaryFalsePositive =
+  resolveLifeDomains(
+    "The taxi route is already planned and the classic design is finished."
+  );
+
+assert(
+  boundaryFalsePositive[0]?.domain === "general",
+  "domain aliases must not match inside unrelated words"
+);
+
+const punctuationBoundary =
+  resolveLifeDomains(
+    "Should I compare these options?"
+  );
+
+assert(
+  punctuationBoundary[0]?.domain === "decisions",
+  "multi-word aliases must match across punctuation boundaries"
+);
+
 console.log(
   "Life domain verification passed."
 );
