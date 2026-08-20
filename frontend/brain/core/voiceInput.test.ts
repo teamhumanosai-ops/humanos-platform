@@ -15,12 +15,16 @@ function assert(
   }
 }
 
-stopVoiceInput();
+async function verifyServerBoundary(): Promise<void> {
+  stopVoiceInput();
 
-if (
-  typeof window ===
-  "undefined"
-) {
+  if (
+    typeof window !==
+    "undefined"
+  ) {
+    return;
+  }
+
   assert(
     !isVoiceInputAvailable(),
     "server environments must not report browser voice input availability"
@@ -41,3 +45,5 @@ if (
     "voice input must reject when browser recognition is unavailable"
   );
 }
+
+void verifyServerBoundary();
