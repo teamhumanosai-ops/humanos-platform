@@ -48,6 +48,14 @@ export default function VoiceControls({
         result.transcript
       );
     } catch (voiceError) {
+      if (
+        voiceError instanceof Error &&
+        voiceError.message ===
+          "Voice input was stopped."
+      ) {
+        return;
+      }
+
       setError(
         voiceError instanceof Error
           ? voiceError.message
