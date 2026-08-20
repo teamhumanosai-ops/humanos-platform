@@ -249,6 +249,16 @@ export class OutcomeStage
       const executionResult =
         execution.result;
 
+      const integrationOperations =
+        executionResult?.metadata
+          .integrationOperations ??
+        "";
+
+      const executionPolicy =
+        executionResult?.metadata
+          .executionPolicy ??
+        "";
+
       state.execution =
         [
           `Execution: ${execution.title}`,
@@ -256,6 +266,16 @@ export class OutcomeStage
           `Status: ${execution.status}`,
           `Plan ID: ${execution.planId}`,
           `Execution ID: ${execution.id}`,
+          ...(integrationOperations
+            ? [
+                `Integration: ${integrationOperations}`,
+              ]
+            : []),
+          ...(executionPolicy
+            ? [
+                `Execution Policy: ${executionPolicy}`,
+              ]
+            : []),
           `Started At: ${
             execution.startedAt
               ?.toISOString() ??
