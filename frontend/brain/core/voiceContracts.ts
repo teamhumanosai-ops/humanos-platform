@@ -11,6 +11,10 @@ export type VoiceOutputResult = {
   text: string;
 };
 
+export type VoiceOutputStateListener = (
+  speaking: boolean
+) => void;
+
 export type VoiceInputOptions = {
   lang?: string;
   continuous?: boolean;
