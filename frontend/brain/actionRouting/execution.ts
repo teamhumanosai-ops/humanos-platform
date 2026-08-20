@@ -7,6 +7,10 @@ import {
   ACTION_AUTHORIZATION_POLICY_VERSION,
 } from "./authorization";
 
+import type {
+  ActionAuthorization,
+} from "./authorization";
+
 import {
   isExecutableActionRoute,
 } from "./guards";
@@ -40,16 +44,18 @@ export type ActionDispatch = {
 
 export function createActionDispatch(
   route: ActionRoute | null,
-  authorizationPolicyVersion =
-    ACTION_AUTHORIZATION_POLICY_VERSION
+  authorization: ActionAuthorization
 ): ActionDispatch | null {
   if (!isExecutableActionRoute(route)) {
     return null;
   }
 
   if (
-    route.kind === "unknown" ||
-    route.target === "unresolved"
+    authorization.status !== "allowed" ||
+    authorization.policyVersion !==
+      ACTION_AUTHORIZATION_POLICY_VERSION ||
+    authorization.routeId !== route.id ||
+    authorization.target !== route.target
   ) {
     return null;
   }
@@ -68,11 +74,12 @@ export function createActionDispatch(
       route.action,
 
     authorizationStatus:
-      "allowed",
+      authorization.status,
 
-    authorizationPolicyVersion,
+    authorizationPolicyVersion:
+      authorization.policyVersion,
 
     authorizationRouteId:
-      route.id,
+      authorization.routeId,
   };
 }
