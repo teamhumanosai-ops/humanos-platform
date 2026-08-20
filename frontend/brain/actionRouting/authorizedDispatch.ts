@@ -71,8 +71,6 @@ export function authorizeAndCreateActionDispatch(
     state.actionRoute.target ===
     "tool"
   ) {
-    const separator =
-      state.actionRoute.action.indexOf(":");
     const normalizedAction =
       state.actionRoute.action.trim();
     const toolPayload =
@@ -86,27 +84,29 @@ export function authorizeAndCreateActionDispatch(
     const toolId =
       toolSeparator > 0
         ? toolPayload.slice(0, toolSeparator).trim()
-        : separator > 0
-          ? normalizedAction.slice(0, separator).trim()
-          : "";
+        : "";
     const tool =
       toolId
         ? getActionTool(toolId)
         : null;
 
     if (
-      tool?.integration?.isConfigured &&
-      !tool.integration.isConfigured()
+      tool?.integration
     ) {
-      return {
-        authorization: {
-          ...authorization,
-          status: "blocked",
-          reason:
-            `External integration "${tool.integration.provider}" is not configured for action tool "${toolId}".`,
-        },
-        dispatch: null,
-      };
+      if (
+        !tool.integration.isConfigured ||
+        !tool.integration.isConfigured()
+      ) {
+        return {
+          authorization: {
+            ...authorization,
+            status: "blocked",
+            reason:
+              `External integration "${tool.integration.provider}" is not configured for action tool "${toolId}".`,
+          },
+          dispatch: null,
+        };
+      }
     }
   }
 
