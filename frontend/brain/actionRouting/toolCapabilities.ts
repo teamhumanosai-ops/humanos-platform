@@ -2,6 +2,10 @@ import type {
   RuntimeServices,
 } from "../runtime/runtimeServices";
 
+import type {
+  IntegrationExecutionPolicy,
+} from "./integrationExecution";
+
 export type RegisteredTool = {
   id: string;
 
@@ -22,6 +26,7 @@ export type RegisteredTool = {
     provider: string;
     operation: string;
     isConfigured?: () => boolean;
+    executionPolicy?: IntegrationExecutionPolicy;
   };
 };
 
@@ -66,11 +71,26 @@ function normalizeIntegrationMetadata(
     );
   }
 
+  if (
+    integration.executionPolicy !== undefined &&
+    integration.executionPolicy !==
+      "allow-duplicate" &&
+    integration.executionPolicy !==
+      "deduplicate-concurrent"
+  ) {
+    throw new Error(
+      `Action tool "${id}" integration metadata requires a valid execution policy.`
+    );
+  }
+
   return {
     provider,
     operation,
     isConfigured:
       integration.isConfigured,
+    executionPolicy:
+      integration.executionPolicy ??
+      "deduplicate-concurrent",
   };
 }
 
