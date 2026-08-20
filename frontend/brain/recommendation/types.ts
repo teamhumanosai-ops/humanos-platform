@@ -11,7 +11,8 @@ export type RecommendationEvidenceSource =
   | "timeline"
   | "graph"
   | "reflection"
-  | "profile";
+  | "profile"
+  | "life_domain";
 
 export type RecommendationEvidence = {
   source:
