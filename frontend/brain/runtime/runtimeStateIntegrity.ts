@@ -45,6 +45,60 @@ export function assertRuntimeStateIntegrity(
   }
 
   if (
+    state.outcome.errors.length !==
+    state.errors.length
+  ) {
+    throw new Error(
+      "Runtime state integrity failed: outcome errors do not match BrainState errors."
+    );
+  }
+
+  for (
+    let index = 0;
+    index < state.errors.length;
+    index += 1
+  ) {
+    if (
+      state.outcome.errors[index] !==
+      state.errors[index]
+    ) {
+      throw new Error(
+        "Runtime state integrity failed: outcome errors do not preserve BrainState error order."
+      );
+    }
+  }
+
+  const metadata =
+    state.outcome.metadata;
+
+  if (
+    metadata.executionId !==
+    state.currentExecutionId
+  ) {
+    throw new Error(
+      "Runtime state integrity failed: outcome executionId does not match BrainState currentExecutionId."
+    );
+  }
+
+  if (
+    metadata.planId !==
+    state.currentPlanId
+  ) {
+    throw new Error(
+      "Runtime state integrity failed: outcome planId does not match BrainState currentPlanId."
+    );
+  }
+
+  if (
+    metadata.decisionId !==
+    state.currentDecisionId
+  ) {
+    throw new Error(
+      "Runtime state integrity failed: outcome decisionId does not match BrainState currentDecisionId."
+    );
+  }
+
+  if (
     state.outcome.status ===
       "failed" &&
     state.errors.length === 0
@@ -73,6 +127,17 @@ export function assertRuntimeStateIntegrity(
   ) {
     throw new Error(
       "Runtime state integrity failed: completed outcome does not match runtime status."
+    );
+  }
+
+  if (
+    state.outcome.status ===
+      "in_progress" &&
+    state.runtimeStatus !==
+      "in_progress"
+  ) {
+    throw new Error(
+      "Runtime state integrity failed: in-progress outcome does not match runtime status."
     );
   }
 
