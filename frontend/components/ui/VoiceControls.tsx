@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   captureVoiceInput,
@@ -10,8 +13,10 @@ import {
 
 import {
   isVoiceOutputAvailable,
+  isVoiceOutputSpeaking,
   speakText,
   stopSpeaking,
+  subscribeVoiceOutputState,
 } from "@/brain/core/voiceService";
 
 type VoiceControlsProps = {
@@ -26,9 +31,17 @@ export default function VoiceControls({
   const [listening, setListening] =
     useState(false);
   const [speaking, setSpeaking] =
-    useState(false);
+    useState(() =>
+      isVoiceOutputSpeaking()
+    );
   const [error, setError] =
     useState<string | null>(null);
+
+  useEffect(() => {
+    return subscribeVoiceOutputState(
+      setSpeaking
+    );
+  }, []);
 
   async function handleVoiceInput() {
     if (!isVoiceInputAvailable()) {
@@ -48,14 +61,6 @@ export default function VoiceControls({
         result.transcript
       );
     } catch (voiceError) {
-      if (
-        voiceError instanceof Error &&
-        voiceError.message ===
-          "Voice input was stopped."
-      ) {
-        return;
-      }
-
       setError(
         voiceError instanceof Error
           ? voiceError.message
@@ -86,14 +91,11 @@ export default function VoiceControls({
     try {
       if (speaking) {
         stopSpeaking();
-        setSpeaking(false);
         return;
       }
 
       speakText(text);
-      setSpeaking(true);
     } catch (voiceError) {
-      setSpeaking(false);
       setError(
         voiceError instanceof Error
           ? voiceError.message
