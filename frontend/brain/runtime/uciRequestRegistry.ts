@@ -54,6 +54,15 @@ export function getRegisteredRequest(
     );
   }
 
+  entries.delete(
+    requestId
+  );
+
+  entries.set(
+    requestId,
+    entry
+  );
+
   return entry.promise;
 }
 
