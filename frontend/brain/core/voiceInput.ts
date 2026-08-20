@@ -36,6 +36,9 @@ type SpeechRecognitionWindow = Window & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 };
 
+let activeRecognition:
+  SpeechRecognitionLike | null = null;
+
 function getSpeechRecognitionConstructor():
   SpeechRecognitionConstructor | null {
   if (typeof window === "undefined") {
@@ -90,10 +93,15 @@ export function captureVoiceInput(
     );
   }
 
+  stopVoiceInput();
+
   const normalized =
     normalizeOptions(options);
   const recognition =
     new Recognition();
+
+  activeRecognition =
+    recognition;
 
   recognition.lang =
     normalized.lang;
@@ -108,6 +116,28 @@ export function captureVoiceInput(
     (resolve, reject) => {
       let transcript = "";
       let final = false;
+      let settled = false;
+
+      const clearActive = () => {
+        if (
+          activeRecognition ===
+          recognition
+        ) {
+          activeRecognition =
+            null;
+        }
+      };
+
+      const rejectOnce = (
+        error: Error
+      ) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearActive();
+        reject(error);
+      };
 
       recognition.onresult =
         (event) => {
@@ -127,7 +157,7 @@ export function captureVoiceInput(
 
       recognition.onerror =
         () => {
-          reject(
+          rejectOnce(
             new Error(
               "Voice input recognition failed."
             )
@@ -136,11 +166,17 @@ export function captureVoiceInput(
 
       recognition.onend =
         () => {
+          clearActive();
+
+          if (settled) {
+            return;
+          }
+
           const normalizedTranscript =
             transcript.trim();
 
           if (!normalizedTranscript) {
-            reject(
+            rejectOnce(
               new Error(
                 "Voice input produced an empty transcript."
               )
@@ -148,6 +184,7 @@ export function captureVoiceInput(
             return;
           }
 
+          settled = true;
           resolve({
             transcript:
               normalizedTranscript,
@@ -158,7 +195,7 @@ export function captureVoiceInput(
       try {
         recognition.start();
       } catch (error) {
-        reject(
+        rejectOnce(
           error instanceof Error
             ? error
             : new Error(
@@ -171,10 +208,20 @@ export function captureVoiceInput(
 }
 
 export function stopVoiceInput(): void {
-  const Recognition =
-    getSpeechRecognitionConstructor();
+  const recognition =
+    activeRecognition;
 
-  if (!Recognition) {
+  activeRecognition =
+    null;
+
+  if (!recognition) {
     return;
+  }
+
+  try {
+    recognition.stop();
+  } catch {
+    // Browser implementations may throw when stopping an already-ended
+    // recognition session. The active session has already been cleared.
   }
 }
