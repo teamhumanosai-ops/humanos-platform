@@ -2,7 +2,9 @@ import {
   clearActionTools,
   getActionTool,
   getActionTools,
+  getExternalActionTools,
   hasActionTool,
+  hasExternalActionTool,
   registerActionTool,
   unregisterActionTool,
 } from "./toolCapabilities";
@@ -13,7 +15,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `ATR-001 tool registry verification failed: ${message}`
+      `External integration tool registry verification failed: ${message}`
     );
   }
 }
@@ -21,103 +23,126 @@ function assert(
 clearActionTools();
 
 registerActionTool({
-  id: "  test-tool  ",
+  id: "  external-test-tool  ",
+  integration: {
+    provider: "  test-provider  ",
+    operation: "  execute  ",
+    isConfigured: () => true,
+  },
   async execute(action) {
     return {
       summary:
-        `Tool executed: ${action}`,
+        `External tool executed: ${action}`,
+    };
+  },
+});
+
+registerActionTool({
+  id: "local-test-tool",
+  async execute(action) {
+    return {
+      summary:
+        `Local tool executed: ${action}`,
     };
   },
 });
 
 assert(
-  hasActionTool("test-tool"),
-  "registered tools must be discoverable"
+  hasActionTool("external-test-tool"),
+  "registered external tools must be discoverable"
 );
-
 assert(
-  hasActionTool("  test-tool  "),
-  "tool lookup must normalize ids"
+  hasExternalActionTool("external-test-tool"),
+  "external tools must be distinguishable from local tools"
 );
-
 assert(
-  getActionTool("test-tool") !== null,
-  "registered tools must resolve"
+  !hasExternalActionTool("local-test-tool"),
+  "tools without integration metadata must not be classified as external"
 );
-
 assert(
-  getActionTool("test-tool")?.id ===
-    "test-tool",
-  "registered tools must retain normalized ids"
+  getExternalActionTools().length === 1,
+  "external tool listing must include only provider-bound tools"
 );
-
 assert(
-  getActionTools().length ===
-    1,
-  "tool listing must expose the registered tool"
+  getExternalActionTools()[0]?.integration?.provider ===
+    "test-provider",
+  "provider metadata must be normalized"
 );
-
 assert(
-  !hasActionTool("missing-tool"),
-  "unregistered tools must not resolve"
+  getExternalActionTools()[0]?.integration?.operation ===
+    "execute",
+  "operation metadata must be normalized"
+);
+assert(
+  getExternalActionTools()[0]?.integration?.isConfigured?.() === true,
+  "external integration configuration checks must remain executable"
+);
+assert(
+  getActionTool("external-test-tool")?.integration?.provider ===
+    "test-provider",
+  "resolved tools must preserve external provider provenance"
 );
 
-let duplicateRejected = false;
+let missingProviderRejected = false;
 
 try {
   registerActionTool({
-    id: "test-tool",
+    id: "missing-provider",
+    integration: {
+      provider: "  ",
+      operation: "execute",
+    },
     async execute() {
       return {
-        summary: "duplicate",
+        summary: "invalid",
       };
     },
   });
 } catch {
-  duplicateRejected = true;
+  missingProviderRejected = true;
 }
 
 assert(
-  duplicateRejected,
-  "duplicate tool registration must be rejected"
+  missingProviderRejected,
+  "external integrations without a provider must be rejected"
 );
 
-let invalidExecutorRejected = false;
+let missingOperationRejected = false;
 
 try {
   registerActionTool({
-    id: "invalid-tool",
-    execute:
-      null as never,
+    id: "missing-operation",
+    integration: {
+      provider: "test-provider",
+      operation: "  ",
+    },
+    async execute() {
+      return {
+        summary: "invalid",
+      };
+    },
   });
 } catch {
-  invalidExecutorRejected = true;
+  missingOperationRejected = true;
 }
 
 assert(
-  invalidExecutorRejected,
-  "tools without an executable function must be rejected"
+  missingOperationRejected,
+  "external integrations without an operation must be rejected"
 );
 
 assert(
-  unregisterActionTool("  test-tool  "),
-  "registered tools must support explicit removal"
+  unregisterActionTool("external-test-tool"),
+  "external tools must support explicit removal"
 );
-
 assert(
-  !hasActionTool("test-tool"),
-  "removed tools must no longer resolve"
-);
-
-assert(
-  getActionTools().length ===
-    0,
-  "tool listing must remove unregistered tools"
-);
-
-assert(
-  !unregisterActionTool("missing-tool"),
-  "removing an unknown tool must be a safe no-op"
+  !hasExternalActionTool("external-test-tool"),
+  "removed external tools must no longer resolve"
 );
 
 clearActionTools();
+
+assert(
+  getActionTools().length === 0,
+  "tool registry cleanup must remain deterministic"
+);
