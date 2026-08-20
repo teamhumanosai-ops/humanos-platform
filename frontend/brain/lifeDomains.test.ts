@@ -1,5 +1,6 @@
 import {
   getLifeDomain,
+  isLifeDomainId,
   resolveLifeDomains,
 } from "./lifeDomains";
 
@@ -66,6 +67,16 @@ assert(
   getLifeDomain("health").label ===
     "Health",
   "domain registry must expose canonical metadata"
+);
+
+assert(
+  isLifeDomainId("health"),
+  "canonical domain identifiers must be recognized"
+);
+
+assert(
+  !isLifeDomainId("not-a-domain"),
+  "unknown identifiers must be rejected"
 );
 
 const unknown =
