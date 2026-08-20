@@ -93,6 +93,37 @@ assert(
   "a completed execution key must be reusable for a later execution"
 );
 
+let failedExecutionRejected = false;
+
+try {
+  await executeWithIntegrationSafety(
+    "provider:operation:action-failure",
+    "deduplicate-concurrent",
+    async () => {
+      throw new Error(
+        "provider failure"
+      );
+    }
+  );
+} catch (error) {
+  failedExecutionRejected =
+    error instanceof Error &&
+    error.message ===
+      "provider failure";
+}
+
+assert(
+  failedExecutionRejected,
+  "provider failures must propagate to the caller"
+);
+
+await Promise.resolve();
+
+assert(
+  getInFlightIntegrationExecutionCount() === 0,
+  "failed executions must be removed from the in-flight registry"
+);
+
 const duplicateA =
   executeWithIntegrationSafety(
     "provider:operation:action-2",
