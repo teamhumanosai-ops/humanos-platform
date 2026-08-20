@@ -5,6 +5,8 @@ import {
 import {
   isExecutableActionRoute,
   getActionCapability,
+  integrationMetadata,
+  executeWithIntegrationSafety,
 } from "../../actionRouting";
 
 import {
@@ -52,6 +54,11 @@ import {
  * A capability cannot execute unless its dispatch was produced from an
  * allowed authorization decision under the same policy version, route,
  * and target binding.
+ *
+ * External capabilities additionally execute through the integration
+ * safety boundary so concurrent duplicate provider work shares the
+ * same in-flight execution promise. Provider/operation provenance is
+ * persisted into the execution result rather than inferred later.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -267,11 +274,26 @@ export class ExecutionStage
       started.startedAt?.getTime() ??
       Date.now();
 
+    const executionPolicy =
+      capability.integrations.length > 0
+        ? "deduplicate-concurrent" as const
+        : "allow-duplicate" as const;
+
+    const integrationProvenance =
+      integrationMetadata(
+        capability.integrations
+      );
+
     try {
       const result =
-        await capability.execute(
-          executionAction,
-          this.services
+        await executeWithIntegrationSafety(
+          execution.id,
+          executionPolicy,
+          () =>
+            capability.execute(
+              executionAction,
+              this.services
+            )
         );
 
       const completedAt =
@@ -294,6 +316,8 @@ export class ExecutionStage
               result.summary,
             metadata: {
               ...(result.metadata ?? {}),
+              ...integrationProvenance,
+              executionPolicy,
               route:
                 actionRoute.target,
               routeId:
@@ -347,6 +371,8 @@ export class ExecutionStage
         this.formatExecution(
           completed,
           actionRoute.target,
+          `Integration: ${integrationProvenance.integrationOperations || "internal"}`,
+          `Execution policy: ${executionPolicy}`,
           `Duration: ${durationMs} ms`,
           `Result: ${result.summary}`
         );
@@ -390,6 +416,8 @@ export class ExecutionStage
           summary:
             "Action execution failed.",
           metadata: {
+            ...integrationProvenance,
+            executionPolicy,
             route:
               actionRoute.target,
             routeId:
@@ -434,6 +462,8 @@ export class ExecutionStage
         this.formatExecution(
           execution,
           actionRoute.target,
+          `Integration: ${integrationProvenance.integrationOperations || "internal"}`,
+          `Execution policy: ${executionPolicy}`,
           "Status: blocked",
           `Duration: ${durationMs} ms`,
           `Error: ${message}`
