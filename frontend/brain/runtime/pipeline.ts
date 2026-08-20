@@ -693,6 +693,8 @@ export class CognitiveRuntime {
    */
   getStages():
     readonly Stage[] {
-    return this.stages;
+    return [
+      ...this.stages,
+    ];
   }
 }
