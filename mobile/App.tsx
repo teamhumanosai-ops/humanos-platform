@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -21,6 +21,14 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestController = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      requestController.current?.abort();
+      requestController.current = null;
+    };
+  }, []);
 
   async function handleSend() {
     const message = draft.trim();
@@ -32,27 +40,44 @@ export default function App() {
       ...messages,
       { role: "user", message },
     ];
+    const controller = new AbortController();
 
+    requestController.current = controller;
     setMessages(nextMessages);
     setDraft("");
     setError(null);
     setSending(true);
 
     try {
-      const response = await sendChat({ messages: nextMessages });
+      const response = await sendChat(
+        { messages: nextMessages },
+        controller.signal
+      );
+
       setMessages([
         ...nextMessages,
         { role: "assistant", message: response.message },
       ]);
     } catch (requestError) {
+      if (requestError instanceof DOMException && requestError.name === "AbortError") {
+        return;
+      }
+
       setError(
         requestError instanceof Error
           ? requestError.message
           : "Unable to reach Human OS."
       );
     } finally {
-      setSending(false);
+      if (requestController.current === controller) {
+        requestController.current = null;
+        setSending(false);
+      }
     }
+  }
+
+  function handleCancel() {
+    requestController.current?.abort();
   }
 
   return (
@@ -114,17 +139,20 @@ export default function App() {
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Send message"
-            disabled={sending || !draft.trim()}
-            onPress={handleSend}
+            accessibilityLabel={sending ? "Cancel request" : "Send message"}
+            disabled={!sending && !draft.trim()}
+            onPress={sending ? handleCancel : handleSend}
             style={({ pressed }) => [
               styles.sendButton,
-              (sending || !draft.trim()) && styles.sendButtonDisabled,
+              !sending && !draft.trim() && styles.sendButtonDisabled,
               pressed && styles.sendButtonPressed,
             ]}
           >
             {sending ? (
-              <ActivityIndicator />
+              <>
+                <ActivityIndicator />
+                <Text style={styles.cancelText}>Cancel</Text>
+              </>
             ) : (
               <Text style={styles.sendText}>Send</Text>
             )}
@@ -249,6 +277,7 @@ const styles = StyleSheet.create({
   sendButton: {
     minWidth: 70,
     minHeight: 48,
+    paddingHorizontal: 10,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 16,
@@ -262,6 +291,12 @@ const styles = StyleSheet.create({
   },
   sendText: {
     color: "#ffffff",
+    fontWeight: "700",
+  },
+  cancelText: {
+    marginTop: 2,
+    color: "#ffffff",
+    fontSize: 11,
     fontWeight: "700",
   },
 });
