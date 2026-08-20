@@ -2,6 +2,10 @@ import type {
   BrainState,
 } from "../brainState";
 
+import {
+  getLifeDomain,
+} from "../lifeDomains";
+
 import type {
   Recommendation,
   RecommendationEvidence,
@@ -302,10 +306,22 @@ function buildLifeDomainEvidence(
     return [];
   }
 
+  const metadata =
+    getLifeDomain(
+      domain
+    );
+
+  const domainEvidenceText = [
+    metadata.id,
+    metadata.label,
+    metadata.description,
+    ...metadata.aliases,
+  ].join(" ");
+
   if (
     !hasRelevantOverlap(
       recommendation,
-      domain
+      domainEvidenceText
     )
   ) {
     return [];
@@ -314,11 +330,13 @@ function buildLifeDomainEvidence(
   return [
     {
       source:
-        "profile",
+        "life_domain",
+
       statement:
-        `Life-domain context: ${domain}`,
+        `Life-domain context: ${metadata.label} (${metadata.id}). ${metadata.description}`,
+
       confidence:
-        0.7,
+        0.8,
     },
   ];
 }
