@@ -57,6 +57,10 @@ import type {
   LifeDomainMatch,
 } from "./lifeDomains";
 
+import type {
+  MultimodalInput,
+} from "./core/multimodalContracts";
+
 export type ConversationMessage = {
   role:
     | "user"
@@ -111,6 +115,10 @@ export type BrainState = {
 
   conversationContinuity:
     string;
+
+  multimodalInput:
+    MultimodalInput
+    | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -328,7 +336,10 @@ export function createBrainState(
   messages:
     ConversationMessage[],
   userMessage: string,
-  conversationContinuity = ""
+  conversationContinuity = "",
+  multimodalInput:
+    MultimodalInput
+    | null = null
 ): BrainState {
   const now =
     new Date();
@@ -347,6 +358,8 @@ export function createBrainState(
     userMessage,
 
     conversationContinuity,
+
+    multimodalInput,
 
     /*
     |--------------------------------------------------------------------------
