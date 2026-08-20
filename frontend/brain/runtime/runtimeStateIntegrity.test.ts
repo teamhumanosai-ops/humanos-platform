@@ -31,6 +31,36 @@ function createState(): BrainState {
       "Input",
       "Outcome",
     ],
+    diagnostics: [
+      {
+        stage:
+          "Input",
+        startedAt:
+          new Date(1000),
+        completedAt:
+          new Date(2000),
+        durationMs:
+          1000,
+        success:
+          true,
+        error:
+          null,
+      },
+      {
+        stage:
+          "Outcome",
+        startedAt:
+          new Date(3000),
+        completedAt:
+          new Date(5000),
+        durationMs:
+          2000,
+        success:
+          true,
+        error:
+          null,
+      },
+    ],
     errors: [],
     outcome: {
       status:
@@ -94,6 +124,99 @@ try {
 assert(
   historyFailed,
   "mismatched outcome stage history must fail validation"
+);
+
+const mismatchedDiagnosticsLength =
+  createState();
+
+mismatchedDiagnosticsLength.diagnostics = [
+  mismatchedDiagnosticsLength.diagnostics[0],
+];
+
+let diagnosticsLengthFailed =
+  false;
+
+try {
+  assertRuntimeStateIntegrity(
+    mismatchedDiagnosticsLength
+  );
+} catch {
+  diagnosticsLengthFailed =
+    true;
+}
+
+assert(
+  diagnosticsLengthFailed,
+  "diagnostic count must match executed stage count"
+);
+
+const mismatchedDiagnosticStage =
+  createState();
+
+mismatchedDiagnosticStage.diagnostics[1].stage =
+  "Reflection";
+
+let diagnosticStageFailed =
+  false;
+
+try {
+  assertRuntimeStateIntegrity(
+    mismatchedDiagnosticStage
+  );
+} catch {
+  diagnosticStageFailed =
+    true;
+}
+
+assert(
+  diagnosticStageFailed,
+  "diagnostic stage order must match executed stage order"
+);
+
+const invalidDiagnosticDuration =
+  createState();
+
+invalidDiagnosticDuration.diagnostics[0].durationMs =
+  -1;
+
+let diagnosticDurationFailed =
+  false;
+
+try {
+  assertRuntimeStateIntegrity(
+    invalidDiagnosticDuration
+  );
+} catch {
+  diagnosticDurationFailed =
+    true;
+}
+
+assert(
+  diagnosticDurationFailed,
+  "diagnostic duration must be non-negative and timestamp-consistent"
+);
+
+const invalidDiagnosticSuccess =
+  createState();
+
+invalidDiagnosticSuccess.diagnostics[0].success =
+  false;
+
+let diagnosticSuccessFailed =
+  false;
+
+try {
+  assertRuntimeStateIntegrity(
+    invalidDiagnosticSuccess
+  );
+} catch {
+  diagnosticSuccessFailed =
+    true;
+}
+
+assert(
+  diagnosticSuccessFailed,
+  "failed diagnostics must preserve an error"
 );
 
 const mismatchedErrors =
