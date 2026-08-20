@@ -45,6 +45,65 @@ export function assertRuntimeStateIntegrity(
   }
 
   if (
+    state.diagnostics.length !==
+    state.executedStages.length
+  ) {
+    throw new Error(
+      "Runtime state integrity failed: diagnostic count does not match BrainState executedStages."
+    );
+  }
+
+  for (
+    let index = 0;
+    index < state.diagnostics.length;
+    index += 1
+  ) {
+    const diagnostic =
+      state.diagnostics[index];
+
+    if (
+      diagnostic.stage !==
+      state.executedStages[index]
+    ) {
+      throw new Error(
+        "Runtime state integrity failed: diagnostic stage order does not match BrainState executedStages."
+      );
+    }
+
+    const expectedDuration =
+      diagnostic.completedAt.getTime() -
+      diagnostic.startedAt.getTime();
+
+    if (
+      expectedDuration < 0 ||
+      diagnostic.durationMs !==
+      expectedDuration
+    ) {
+      throw new Error(
+        "Runtime state integrity failed: diagnostic duration is inconsistent with its timestamps."
+      );
+    }
+
+    if (
+      diagnostic.success &&
+      diagnostic.error !== null
+    ) {
+      throw new Error(
+        "Runtime state integrity failed: successful diagnostic contains an error."
+      );
+    }
+
+    if (
+      !diagnostic.success &&
+      !diagnostic.error?.trim()
+    ) {
+      throw new Error(
+        "Runtime state integrity failed: failed diagnostic is missing an error."
+      );
+    }
+  }
+
+  if (
     state.outcome.errors.length !==
     state.errors.length
   ) {
