@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import type { ChatRequest, ChatResponse } from "./contracts";
 
 const DEFAULT_API_URL = "http://localhost:3000";
@@ -14,11 +15,16 @@ export class HumanOsApiError extends Error {
 
 export function getApiUrl(): string {
   const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+  if (!configured && Platform.OS !== "web") {
+    throw new Error("EXPO_PUBLIC_API_URL must be configured for native mobile builds.");
+  }
+
   const value = (configured || DEFAULT_API_URL).replace(/\/$/, "");
 
   try {
     const url = new URL(value);
-    if (!url.protocol.startsWith("http")) {
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
       throw new Error("Unsupported protocol");
     }
     return url.toString().replace(/\/$/, "");
