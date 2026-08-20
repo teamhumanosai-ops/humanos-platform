@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
@@ -24,35 +24,35 @@ type VoiceControlsProps = {
   onTranscript: (transcript: string) => void;
 };
 
+const emptySubscribe = () => () => undefined;
+const serverUnavailable = () => false;
+
 export default function VoiceControls({
   text,
   onTranscript,
 }: VoiceControlsProps) {
   const [listening, setListening] =
     useState(false);
-  const [voiceInputAvailable, setVoiceInputAvailable] =
-    useState(false);
-  const [voiceOutputAvailable, setVoiceOutputAvailable] =
-    useState(false);
-  const [speaking, setSpeaking] =
-    useState(() =>
-      isVoiceOutputSpeaking()
+  const voiceInputAvailable =
+    useSyncExternalStore(
+      emptySubscribe,
+      isVoiceInputAvailable,
+      serverUnavailable
+    );
+  const voiceOutputAvailable =
+    useSyncExternalStore(
+      emptySubscribe,
+      isVoiceOutputAvailable,
+      serverUnavailable
+    );
+  const speaking =
+    useSyncExternalStore(
+      subscribeVoiceOutputState,
+      isVoiceOutputSpeaking,
+      serverUnavailable
     );
   const [error, setError] =
     useState<string | null>(null);
-
-  useEffect(() => {
-    setVoiceInputAvailable(
-      isVoiceInputAvailable()
-    );
-    setVoiceOutputAvailable(
-      isVoiceOutputAvailable()
-    );
-
-    return subscribeVoiceOutputState(
-      setSpeaking
-    );
-  }, []);
 
   async function handleVoiceInput() {
     if (!isVoiceInputAvailable()) {
