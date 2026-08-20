@@ -2,6 +2,10 @@ import {
   summarizeMultimodalInput,
 } from "./multimodalRuntime";
 
+import {
+  createRuntimeBrainState,
+} from "../runtime/createBrainState";
+
 function assert(
   condition: boolean,
   message: string
@@ -71,6 +75,37 @@ assert(
   combined.join(",") ===
     "text,image,audio",
   "combined multimodal input must preserve all modalities"
+);
+
+const runtimeInput = {
+  text: "Inspect this",
+  image: {
+    mimeType: "image/png",
+    dataBase64: "aW1hZ2U=",
+  },
+};
+
+const runtimeState =
+  createRuntimeBrainState(
+    [
+      {
+        role: "user",
+        message: "Inspect this",
+      },
+    ],
+    runtimeInput
+  );
+
+assert(
+  runtimeState.multimodalInput ===
+    runtimeInput,
+  "runtime BrainState must retain the exact normalized multimodal request"
+);
+
+assert(
+  runtimeState.userMessage ===
+    "Inspect this",
+  "multimodal runtime state must preserve the user message"
 );
 
 let emptyRejected =
