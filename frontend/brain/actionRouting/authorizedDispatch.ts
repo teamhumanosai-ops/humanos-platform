@@ -8,6 +8,10 @@ import {
   createActionDispatch,
 } from "./execution";
 
+import {
+  getActionTool,
+} from "./toolCapabilities";
+
 import type {
   ActionAuthorization,
 } from "./authorization";
@@ -61,6 +65,49 @@ export function authorizeAndCreateActionDispatch(
       },
       dispatch: null,
     };
+  }
+
+  if (
+    state.actionRoute.target ===
+    "tool"
+  ) {
+    const normalizedAction =
+      state.actionRoute.action.trim();
+    const toolPayload =
+      normalizedAction
+        .toLowerCase()
+        .startsWith("tool:")
+        ? normalizedAction.slice(5).trim()
+        : normalizedAction;
+    const toolSeparator =
+      toolPayload.indexOf(":");
+    const toolId =
+      toolSeparator > 0
+        ? toolPayload.slice(0, toolSeparator).trim()
+        : "";
+    const tool =
+      toolId
+        ? getActionTool(toolId)
+        : null;
+
+    if (
+      tool?.integration
+    ) {
+      if (
+        !tool.integration.isConfigured ||
+        !tool.integration.isConfigured()
+      ) {
+        return {
+          authorization: {
+            ...authorization,
+            status: "blocked",
+            reason:
+              `External integration "${tool.integration.provider}" is not configured for action tool "${toolId}".`,
+          },
+          dispatch: null,
+        };
+      }
+    }
   }
 
   const dispatch =
