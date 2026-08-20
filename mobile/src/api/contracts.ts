@@ -48,14 +48,22 @@ function validateBase64(dataBase64: string, label: string): string {
   return normalizedData;
 }
 
+function normalizeMimeType(mimeType: string, label: string): string {
+  const normalizedMimeType = mimeType.trim().toLowerCase();
+  if (!normalizedMimeType) {
+    throw new Error(`${label} input requires a MIME type.`);
+  }
+  return normalizedMimeType;
+}
+
 export function createImageInput(
   mimeType: string,
   dataBase64: string
 ): MultimodalInput {
-  const normalizedMimeType = mimeType.trim().toLowerCase();
+  const normalizedMimeType = normalizeMimeType(mimeType, "Image");
 
   if (!IMAGE_MIME_TYPES.includes(normalizedMimeType)) {
-    throw new Error(`Unsupported image MIME type: ${normalizedMimeType || "unknown"}.`);
+    throw new Error(`Unsupported image MIME type: ${normalizedMimeType}.`);
   }
 
   return {
@@ -70,10 +78,10 @@ export function createAudioInput(
   mimeType: string,
   dataBase64: string
 ): MultimodalInput {
-  const normalizedMimeType = mimeType.trim().toLowerCase();
+  const normalizedMimeType = normalizeMimeType(mimeType, "Audio");
 
   if (!AUDIO_MIME_TYPES.includes(normalizedMimeType)) {
-    throw new Error(`Unsupported audio MIME type: ${normalizedMimeType || "unknown"}.`);
+    throw new Error(`Unsupported audio MIME type: ${normalizedMimeType}.`);
   }
 
   return {

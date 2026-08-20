@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import type { ChatRequest, ChatResponse } from "./contracts";
 
 const DEFAULT_API_URL = "http://localhost:3000";
@@ -14,7 +15,22 @@ export class HumanOsApiError extends Error {
 
 export function getApiUrl(): string {
   const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
-  return (configured || DEFAULT_API_URL).replace(/\/$/, "");
+
+  if (!configured && Platform.OS !== "web") {
+    throw new Error("EXPO_PUBLIC_API_URL must be configured for native mobile builds.");
+  }
+
+  const value = (configured || DEFAULT_API_URL).replace(/\/$/, "");
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("Unsupported protocol");
+    }
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    throw new Error("EXPO_PUBLIC_API_URL must be a valid HTTP or HTTPS URL.");
+  }
 }
 
 export async function sendChat(
@@ -37,6 +53,10 @@ export async function sendChat(
       throw error;
     }
 
+    if (error instanceof Error && error.message.includes("EXPO_PUBLIC_API_URL")) {
+      throw error;
+    }
+
     throw new Error("Unable to reach Human OS. Check the API URL and connection.");
   }
 
@@ -47,7 +67,12 @@ export async function sendChat(
     );
   }
 
-  const payload: unknown = await response.json();
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error("Human OS API returned an invalid JSON response.");
+  }
 
   if (!isChatResponse(payload)) {
     throw new Error("Human OS API returned an invalid chat response.");

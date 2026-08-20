@@ -9,10 +9,15 @@
     "plugins": ["expo-image-picker", "expo-audio"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ai.teamhumanos.humanos"
+      "bundleIdentifier": "ai.teamhumanos.humanos",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Human OS uses the microphone to create voice messages for the canonical AI service.",
+        "NSPhotoLibraryUsageDescription": "Human OS uses your photo library so you can attach images to conversations."
+      }
     },
     "android": {
-      "package": "ai.teamhumanos.humanos"
+      "package": "ai.teamhumanos.humanos",
+      "permissions": ["android.permission.RECORD_AUDIO", "android.permission.READ_MEDIA_IMAGES"]
     },
     "web": {
       "bundler": "metro"

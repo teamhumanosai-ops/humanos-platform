@@ -45,18 +45,29 @@ export default function App() {
     return () => {
       requestController.current?.abort();
       requestController.current = null;
+      void recorder.stop().catch(() => undefined);
+      void setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
     };
   }, []);
 
   async function handlePickImage() {
     if (sending || recorderState.isRecording) return;
     setError(null);
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], allowsEditing: false, quality: 0.8, base64: true,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
+
     try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        throw new Error("Photo library permission is required to attach an image.");
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.8,
+        base64: true,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
       if (!asset.base64) throw new Error("The selected image could not be read.");
       const input = createImageInput(asset.mimeType || "image/jpeg", asset.base64);
       setAttachment({ uri: asset.uri, input });
@@ -79,6 +90,7 @@ export default function App() {
         const input = createAudioInput(mimeType, base64);
         setAudioAttachment({ input, durationSeconds: Math.max(1, Math.round(recorder.currentTime)) });
         setAttachment(null);
+        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
         return;
       }
 
@@ -88,6 +100,7 @@ export default function App() {
       await recorder.prepareToRecordAsync();
       recorder.record();
     } catch (recordingError) {
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
       setError(recordingError instanceof Error ? recordingError.message : "Unable to record audio.");
     }
   }
