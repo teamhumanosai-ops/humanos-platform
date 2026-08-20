@@ -132,11 +132,59 @@ export function getLifeDomain(
   return DOMAIN_MAP.get(id) ?? DOMAIN_MAP.get("general")!;
 }
 
+/**
+ * Normalize request text for alias matching without allowing an alias
+ * to match inside a larger unrelated word. Punctuation becomes a word
+ * boundary so phrases such as "should I" still match naturally.
+ */
+function normalizeForAliasMatching(
+  value: string
+): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Match a single alias against normalized request text using explicit
+ * token boundaries. This prevents false positives such as "tax" inside
+ * "taxi" or "class" inside "classic" while preserving multi-word aliases.
+ */
+function matchesAlias(
+  normalizedText: string,
+  alias: string
+): boolean {
+  const normalizedAlias =
+    normalizeForAliasMatching(alias);
+
+  if (!normalizedAlias) {
+    return false;
+  }
+
+  const escapedAlias =
+    normalizedAlias.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+  return new RegExp(
+    `(^|\\s)${escapedAlias}(?=\\s|$)`,
+    "u"
+  ).test(
+    normalizedText
+  );
+}
+
 export function resolveLifeDomains(
   text: string,
   limit = 3
 ): LifeDomainMatch[] {
-  const normalized = text.trim().toLowerCase();
+  const normalized =
+    normalizeForAliasMatching(text);
 
   if (!normalized) {
     return [
@@ -152,7 +200,7 @@ export function resolveLifeDomains(
     .filter((domain) => domain.id !== "general")
     .map((domain) => {
       const matchedTerms = domain.aliases.filter((alias) =>
-        normalized.includes(alias)
+        matchesAlias(normalized, alias)
       );
 
       return {
