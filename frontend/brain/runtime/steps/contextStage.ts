@@ -11,6 +11,10 @@ import {
 } from "../../contentIntelligence";
 
 import {
+  getLifeDomain,
+} from "../../lifeDomains";
+
+import {
   Intent,
 } from "../../intent";
 
@@ -38,6 +42,10 @@ import {
  *
  * The persisted Human Profile is included when
  * ProfileStage has hydrated it into BrainState.
+ *
+ * Life Domain Intelligence is included as a bounded
+ * request-routing signal and is not treated as a
+ * permanent user attribute.
  */
 export class ContextStage
   extends BaseStage {
@@ -65,6 +73,26 @@ export class ContextStage
 
     let prompt =
       structuredContext.prompt;
+
+    const primaryDomain =
+      getLifeDomain(
+        state.primaryLifeDomain
+      );
+
+    prompt +=
+      [
+        "",
+        "LIFE DOMAIN CONTEXT:",
+        `Primary domain: ${primaryDomain.label} (${primaryDomain.id})`,
+        `Domain description: ${primaryDomain.description}`,
+        `Detected domains: ${state.lifeDomains
+          .map(
+            (match) =>
+              `${match.domain}=${match.score}`
+          )
+          .join(", ")}`,
+        "Treat domain detection as a routing signal for this request, not as a permanent user attribute.",
+      ].join("\n");
 
     if (
       state.profile

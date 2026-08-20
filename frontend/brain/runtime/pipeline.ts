@@ -17,6 +17,9 @@ import {
   IntentStage,
 } from "./steps/intentStage";
 import {
+  LifeDomainStage,
+} from "./steps/lifeDomainStage";
+import {
   LiveKnowledgeStage,
 } from "./steps/liveKnowledgeStage";
 import {
@@ -115,6 +118,7 @@ import {
  *
  * Input
  * -> Intent
+ * -> LifeDomain
  * -> Knowledge / Memory / Profile
  * -> Prediction
  * -> Context / Recommendation / Reasoning
@@ -163,7 +167,9 @@ export class CognitiveRuntime {
   }
 
   /**
-   * Input and intent establish the request boundary.
+   * Input and intent establish the request boundary. Life domain
+   * detection follows intent so downstream cognition receives a
+   * stable domain routing signal.
    */
   private registerInputStages(): void {
     this.register(
@@ -172,6 +178,10 @@ export class CognitiveRuntime {
 
     this.register(
       new IntentStage()
+    );
+
+    this.register(
+      new LifeDomainStage()
     );
   }
 
@@ -332,7 +342,8 @@ export class CognitiveRuntime {
   }
 
   /**
-   * Register one stage after validating its identity.
+   * Register one stage after validating its identity and terminal
+   * lifecycle ownership.
    */
   register(
     stage: Stage
@@ -355,6 +366,18 @@ export class CognitiveRuntime {
     ) {
       throw new Error(
         `CognitiveRuntime cannot register duplicate stage "${stageName}".`
+      );
+    }
+
+    if (
+      this.stages.some(
+        (registeredStage) =>
+          registeredStage.name ===
+          "Outcome"
+      )
+    ) {
+      throw new Error(
+        "CognitiveRuntime cannot register a stage after terminal Outcome."
       );
     }
 

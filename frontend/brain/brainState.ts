@@ -52,6 +52,11 @@ import type {
   ContentIntelligence,
 } from "./contentIntelligence";
 
+import type {
+  LifeDomainId,
+  LifeDomainMatch,
+} from "./lifeDomains";
+
 export type ConversationMessage = {
   role:
     | "user"
@@ -200,6 +205,18 @@ export type BrainState = {
   contentIntelligence:
     ContentIntelligence
     | null;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Life Domain Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  lifeDomains:
+    LifeDomainMatch[];
+
+  primaryLifeDomain:
+    LifeDomainId;
 
   /*
   |--------------------------------------------------------------------------
@@ -414,6 +431,18 @@ export function createBrainState(
 
     contentIntelligence:
       null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Life Domain Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    lifeDomains:
+      [],
+
+    primaryLifeDomain:
+      "general",
 
     /*
     |--------------------------------------------------------------------------

@@ -21,3 +21,19 @@ export {
 export * from "./steps/reasoningGraphStage";
 
 export * from "./steps/autonomyStage";
+
+export {
+  LIFE_DOMAINS,
+  getLifeDomain,
+  resolveLifeDomains,
+} from "../lifeDomains";
+
+export type {
+  LifeDomain,
+  LifeDomainId,
+  LifeDomainMatch,
+} from "../lifeDomains";
+
+export {
+  LifeDomainStage,
+} from "./steps/lifeDomainStage";
