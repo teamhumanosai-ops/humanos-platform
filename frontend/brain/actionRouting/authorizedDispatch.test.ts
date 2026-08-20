@@ -3,6 +3,15 @@ import {
 } from "./authorizedDispatch";
 
 import {
+  confirmActionAuthorization,
+} from "./authorization";
+
+import {
+  clearActionTools,
+  registerActionTool,
+} from "./toolCapabilities";
+
+import {
   createBrainState,
 } from "../brainState";
 
@@ -92,6 +101,74 @@ assert(
   toolResult.dispatch === null,
   "confirmation-required tool routes must not produce dispatches"
 );
+
+clearActionTools();
+
+registerActionTool({
+  id: "unconfigured-tool",
+  integration: {
+    provider: "calendar",
+    operation: "create-event",
+    isConfigured: () => false,
+  },
+  async execute() {
+    return {
+      summary: "should not execute",
+    };
+  },
+});
+
+const unconfiguredState =
+  createBrainState(
+    "conversation",
+    [],
+    "tool:unconfigured-tool:create event"
+  );
+
+unconfiguredState.actionRoute = {
+  id: "route-unconfigured-tool",
+  kind: "tool",
+  action: "tool:unconfigured-tool:create event",
+  target: "tool",
+  confidence: 0.95,
+  executable: true,
+};
+
+const confirmation =
+  confirmActionAuthorization(
+    unconfiguredState
+  );
+
+assert(
+  confirmation.status ===
+    "allowed",
+  "a valid tool route must become authorized after explicit confirmation"
+);
+
+const unconfiguredResult =
+  authorizeAndCreateActionDispatch(
+    unconfiguredState
+  );
+
+assert(
+  unconfiguredResult.authorization.status ===
+    "blocked",
+  "unconfigured external integrations must be blocked at the dispatch boundary"
+);
+
+assert(
+  unconfiguredResult.authorization.reason.includes(
+    "calendar"
+  ),
+  "configuration failure must identify the external provider"
+);
+
+assert(
+  unconfiguredResult.dispatch === null,
+  "unconfigured external integrations must never produce a dispatch"
+);
+
+clearActionTools();
 
 const blockedState =
   createBrainState(
