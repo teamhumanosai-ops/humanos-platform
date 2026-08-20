@@ -10,6 +10,10 @@ import {
   getPlan,
 } from "../../planning";
 
+import type {
+  Plan,
+} from "../../planning";
+
 import {
   getLifeDomain,
 } from "../../lifeDomains";
@@ -57,10 +61,9 @@ export function formatInferenceEvidence(
 
 function applyLifeDomainDecisionContext(
   state: BrainState,
-  plan: Awaited<ReturnType<typeof getPlan>>
-) {
+  plan: Plan
+): Plan {
   if (
-    !plan ||
     state.primaryLifeDomain ===
       "general"
   ) {
