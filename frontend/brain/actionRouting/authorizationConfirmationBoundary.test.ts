@@ -6,6 +6,11 @@ import {
   ActionDispatchStage,
 } from "../runtime/steps/actionDispatchStage";
 
+import {
+  confirmActionAuthorization,
+  clearActionAuthorizationConfirmation,
+} from "./authorization";
+
 function assert(
   condition: boolean,
   message: string
@@ -69,6 +74,68 @@ assert(
   state.runtimeStatus ===
     "blocked",
   "confirmation-required execution must remain blocked until an explicit confirmation path exists"
+);
+
+const confirmed =
+  confirmActionAuthorization(
+    state
+  );
+
+assert(
+  confirmed.status ===
+    "allowed",
+  "explicit confirmation must convert the exact tool route to an allowed authorization"
+);
+
+assert(
+  confirmed.confirmedAt !== null,
+  "confirmed authorization must retain the confirmation timestamp"
+);
+
+state.errors = [];
+state.actionDispatch = null;
+state.runtimeStatus = "in_progress";
+
+await new ActionDispatchStage().execute(
+  state
+);
+
+assert(
+  state.actionAuthorization?.status ===
+    "allowed",
+  "confirmed tool routes must be re-authorizable as allowed"
+);
+
+assert(
+  state.actionAuthorization?.confirmedAt !== null,
+  "confirmed dispatch must preserve confirmation provenance"
+);
+
+assert(
+  state.actionDispatch?.target ===
+    "tool",
+  "confirmed tool routes must receive an executable dispatch descriptor"
+);
+
+assert(
+  state.actionDispatch?.routeId ===
+    "route-confirmation-required",
+  "confirmed dispatch must remain bound to the exact confirmed route"
+);
+
+clearActionAuthorizationConfirmation(
+  state
+);
+
+assert(
+  state.actionAuthorization?.status ===
+    "requires_confirmation",
+  "clearing confirmation must restore the confirmation boundary"
+);
+
+assert(
+  state.actionDispatch !== null,
+  "clearing confirmation must not silently mutate an already-created dispatch artifact"
 );
 
 console.log(
