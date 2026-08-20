@@ -170,6 +170,65 @@ assert(
 
 clearActionTools();
 
+registerActionTool({
+  id: "configured-tool",
+  integration: {
+    provider: "calendar",
+    operation: "create-event",
+    isConfigured: () => true,
+  },
+  async execute() {
+    return {
+      summary: "configured",
+    };
+  },
+});
+
+const configuredState =
+  createBrainState(
+    "conversation",
+    [],
+    "tool:configured-tool:create event"
+  );
+
+configuredState.actionRoute = {
+  id: "route-configured-tool",
+  kind: "tool",
+  action: "tool:configured-tool:create event",
+  target: "tool",
+  confidence: 0.95,
+  executable: true,
+};
+
+const configuredConfirmation =
+  confirmActionAuthorization(
+    configuredState
+  );
+
+assert(
+  configuredConfirmation.status ===
+    "allowed",
+  "configured tool must become authorized after explicit confirmation"
+);
+
+const configuredResult =
+  authorizeAndCreateActionDispatch(
+    configuredState
+  );
+
+assert(
+  configuredResult.authorization.status ===
+    "allowed",
+  "configured external integrations must remain allowed"
+);
+
+assert(
+  configuredResult.dispatch !== null,
+  "configured external integrations must produce a dispatch"
+);
+
+clearActionTools();
+
 const blockedState =
   createBrainState(
     "conversation",
