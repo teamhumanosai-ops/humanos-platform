@@ -9,6 +9,10 @@ import type {
 } from "../brainState";
 
 import type {
+  MultimodalInput,
+} from "../core/multimodalContracts";
+
+import type {
   Recommendation,
 } from "../recommendation";
 
@@ -22,20 +26,20 @@ export type OrchestratorCitation = {
 
 export type OrchestratorResult = {
   message: string;
-
   citations: OrchestratorCitation[];
-
   recommendations: Recommendation[];
 };
 
 export async function orchestrate(
-  messages: ConversationMessage[]
+  messages: ConversationMessage[],
+  multimodalInput?: MultimodalInput
 ): Promise<OrchestratorResult> {
   await initializeBrain();
 
   const state =
     await executeRuntime(
-      messages
+      messages,
+      multimodalInput
     );
 
   return {
