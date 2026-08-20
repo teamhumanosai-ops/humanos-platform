@@ -48,7 +48,7 @@ export function executeWithIntegrationSafety<T>(
     execution
   );
 
-  void execution.finally(() => {
+  const cleanup = () => {
     if (
       inFlightExecutions.get(
         normalizedKey
@@ -58,7 +58,12 @@ export function executeWithIntegrationSafety<T>(
         normalizedKey
       );
     }
-  });
+  };
+
+  void execution.then(
+    cleanup,
+    cleanup
+  );
 
   return execution;
 }
