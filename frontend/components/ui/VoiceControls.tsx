@@ -30,6 +30,10 @@ export default function VoiceControls({
 }: VoiceControlsProps) {
   const [listening, setListening] =
     useState(false);
+  const [voiceInputAvailable, setVoiceInputAvailable] =
+    useState(false);
+  const [voiceOutputAvailable, setVoiceOutputAvailable] =
+    useState(false);
   const [speaking, setSpeaking] =
     useState(() =>
       isVoiceOutputSpeaking()
@@ -38,6 +42,13 @@ export default function VoiceControls({
     useState<string | null>(null);
 
   useEffect(() => {
+    setVoiceInputAvailable(
+      isVoiceInputAvailable()
+    );
+    setVoiceOutputAvailable(
+      isVoiceOutputAvailable()
+    );
+
     return subscribeVoiceOutputState(
       setSpeaking
     );
@@ -119,7 +130,7 @@ export default function VoiceControls({
             : handleVoiceInput
         }
         className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
-        disabled={!isVoiceInputAvailable()}
+        disabled={!voiceInputAvailable}
       >
         {listening
           ? "Stop listening"
@@ -130,7 +141,7 @@ export default function VoiceControls({
         type="button"
         onClick={handleSpeak}
         className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
-        disabled={!text.trim() || !isVoiceOutputAvailable()}
+        disabled={!text.trim() || !voiceOutputAvailable}
       >
         {speaking
           ? "Stop speaking"
