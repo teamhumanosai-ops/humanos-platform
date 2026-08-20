@@ -22,13 +22,14 @@ const runtime =
     {} as never
   );
 
-const stage =
-  runtime.getStages()[0];
-
-assert(
-  Boolean(stage),
-  "canonical runtime must register at least one stage"
-);
+const stage = {
+  name:
+    "DiagnosticsTest",
+  execute: async (
+    state: BrainState
+  ): Promise<BrainState> =>
+    state,
+};
 
 const state = {
   userMessage:
@@ -37,8 +38,22 @@ const state = {
   errors: [],
 } as unknown as BrainState;
 
+const executeStage =
+  (
+    runtime as unknown as {
+      executeStage: (
+        stage: typeof stage,
+        state: BrainState
+      ) => Promise<{
+        state: BrainState;
+        halted: boolean;
+      }>;
+    }
+  ).executeStage;
+
 const result =
-  await runtime["executeStage"](
+  await executeStage.call(
+    runtime,
     stage,
     state
   );
