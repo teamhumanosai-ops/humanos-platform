@@ -616,19 +616,19 @@ export class CognitiveRuntime {
       return state;
     }
 
-    try {
-      return await outcomeStage.execute(
+    // Route terminal recovery through the canonical runtime boundary.
+    // This preserves diagnostics and executed-stage history.
+    const execution =
+      await this.executeStage(
+        outcomeStage,
         state
       );
-    } catch (error) {
-      this.recordStageFailure(
-        state,
-        outcomeStage,
-        error
-      );
 
-      return state;
-    }
+    // Return the boundary-produced state unchanged.
+    // OutcomeStage remains the terminal artifact owner.
+    // Runtime status and failure handling stay centralized.
+    // Direct OutcomeStage execution is intentionally avoided.
+    return execution.state;
   }
 
   /**
@@ -681,19 +681,19 @@ export class CognitiveRuntime {
       return state;
     }
 
-    try {
-      return await outcomeStage.execute(
+    // Route terminal recovery through the canonical runtime boundary.
+    // This preserves diagnostics and executed-stage history.
+    const execution =
+      await this.executeStage(
+        outcomeStage,
         state
       );
-    } catch (error) {
-      this.recordStageFailure(
-        state,
-        outcomeStage,
-        error
-      );
 
-      return state;
-    }
+    // Return the boundary-produced state unchanged.
+    // OutcomeStage remains the terminal artifact owner.
+    // Runtime status and failure handling stay centralized.
+    // Direct OutcomeStage execution is intentionally avoided.
+    return execution.state;
   }
 
   /**

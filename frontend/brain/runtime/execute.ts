@@ -6,6 +6,9 @@ import {
 import { CognitiveRuntime } from "./pipeline";
 import { createRuntimeBrainState } from "./createBrainState";
 import { runtimeServices } from "./runtimeServices";
+import {
+  assertRuntimeStateIntegrity,
+} from "./runtimeStateIntegrity";
 
 /**
  * Executes the Human OS Cognitive Runtime.
@@ -23,7 +26,12 @@ export async function executeRuntime(
       messages
     );
 
-  return runtime.execute(
-    state
+  const result =
+    await runtime.execute(
+      state
+    );
+
+  return assertRuntimeStateIntegrity(
+    result
   );
 }

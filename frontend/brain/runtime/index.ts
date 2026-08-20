@@ -18,6 +18,19 @@ export {
   summarizeRuntimeDiagnostics,
 } from "./diagnosticsSummary";
 
+export {
+  assertRuntimeStateIntegrity,
+} from "./runtimeStateIntegrity";
+
+export {
+  createRuntimeOutcome,
+} from "./outcome";
+
+export type {
+  RuntimeOutcome,
+  RuntimeOutcomeStatus,
+} from "./outcome";
+
 export * from "./steps/reasoningGraphStage";
 
 export * from "./steps/autonomyStage";
