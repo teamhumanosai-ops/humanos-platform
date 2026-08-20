@@ -6,6 +6,11 @@ import {
   executeRuntime,
 } from "./execute";
 
+import {
+  getRegisteredRequest,
+  registerRequest,
+} from "./uciRequestRegistry";
+
 export const UCI_PROTOCOL_VERSION =
   "uci-1";
 
@@ -106,12 +111,26 @@ function validateMessages(
   }
 }
 
+function fingerprintMessages(
+  messages: ConversationMessage[]
+): string {
+  return JSON.stringify(
+    messages.map(
+      (message) => ({
+        role: message.role,
+        message: message.message,
+      })
+    )
+  );
+}
+
 /**
  * Canonical Universal Cognitive Interface boundary.
  *
  * All external callers that need a request/response contract can use this
  * entrypoint without owning CognitiveRuntime or BrainState construction.
  * Validation occurs before any runtime stage or provider can execute.
+ * Request ids are idempotent for the bounded lifetime of the process.
  */
 export async function executeCognitiveRequest(
   request: CognitiveRequest
@@ -134,15 +153,38 @@ export async function executeCognitiveRequest(
     request.messages
   );
 
-  const state =
-    await executeRuntime(
+  const fingerprint =
+    fingerprintMessages(
       request.messages
     );
 
-  return {
+  const registered =
+    getRegisteredRequest(
+      requestId,
+      fingerprint
+    );
+
+  if (registered) {
+    return registered;
+  }
+
+  const execution =
+    executeRuntime(
+      request.messages
+    ).then(
+      (state) => ({
+        requestId,
+        protocolVersion:
+          UCI_PROTOCOL_VERSION,
+        state,
+      })
+    );
+
+  registerRequest(
     requestId,
-    protocolVersion:
-      UCI_PROTOCOL_VERSION,
-    state,
-  };
+    fingerprint,
+    execution
+  );
+
+  return execution;
 }
