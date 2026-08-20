@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,11 +16,18 @@ import {
 import { StatusBar } from "expo-status-bar";
 
 import { sendChat } from "./src/api/client";
-import type { ChatMessage } from "./src/api/contracts";
+import { createImageInput } from "./src/api/contracts";
+import type { ChatMessage, MultimodalInput } from "./src/api/contracts";
+
+type ImageAttachment = {
+  uri: string;
+  input: MultimodalInput;
+};
 
 export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [attachment, setAttachment] = useState<ImageAttachment | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestController = useRef<AbortController | null>(null);
@@ -30,11 +39,49 @@ export default function App() {
     };
   }, []);
 
-  async function handleSend() {
-    const message = draft.trim();
-    if (!message || sending) {
-      return;
+  async function handlePickImage() {
+    if (sending) return;
+
+    setError(null);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: false,
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+
+    try {
+      if (!asset.base64) {
+        throw new Error("The selected image could not be read.");
+      }
+
+      const input = createImageInput(
+        asset.mimeType || "image/jpeg",
+        asset.base64
+      );
+
+      setAttachment({ uri: asset.uri, input });
+    } catch (selectionError) {
+      setError(
+        selectionError instanceof Error
+          ? selectionError.message
+          : "Unable to attach the selected image."
+      );
     }
+  }
+
+  async function handleSend() {
+    if (sending) return;
+
+    const message =
+      draft.trim() ||
+      (attachment ? "Please analyze the attached image." : "");
+
+    if (!message) return;
 
     const nextMessages: ChatMessage[] = [
       ...messages,
@@ -50,7 +97,10 @@ export default function App() {
 
     try {
       const response = await sendChat(
-        { messages: nextMessages },
+        {
+          messages: nextMessages,
+          multimodal: attachment?.input,
+        },
         controller.signal
       );
 
@@ -58,6 +108,7 @@ export default function App() {
         ...nextMessages,
         { role: "assistant", message: response.message },
       ]);
+      setAttachment(null);
     } catch (requestError) {
       if (requestError instanceof DOMException && requestError.name === "AbortError") {
         return;
@@ -90,7 +141,9 @@ export default function App() {
         <View style={styles.header}>
           <Text style={styles.eyebrow}>HUMAN OS</Text>
           <Text style={styles.title}>Mobile Brain</Text>
-          <Text style={styles.subtitle}>Connected to the canonical chat runtime.</Text>
+          <Text style={styles.subtitle}>
+            Connected to the canonical chat runtime.
+          </Text>
         </View>
 
         <ScrollView
@@ -102,7 +155,7 @@ export default function App() {
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>Start a conversation</Text>
               <Text style={styles.emptyText}>
-                Your messages are sent through the existing Human OS Brain API.
+                Text and image requests use the existing Human OS Brain API.
               </Text>
             </View>
           ) : (
@@ -125,7 +178,38 @@ export default function App() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
+        {attachment ? (
+          <View style={styles.attachmentPreview}>
+            <Image source={{ uri: attachment.uri }} style={styles.attachmentImage} />
+            <View style={styles.attachmentMeta}>
+              <Text style={styles.attachmentTitle}>Image attached</Text>
+              <Text style={styles.attachmentText}>Ready for Human OS analysis.</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Remove image"
+              disabled={sending}
+              onPress={() => setAttachment(null)}
+              style={styles.removeButton}
+            >
+              <Text style={styles.removeText}>Remove</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.composer}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Attach image"
+            disabled={sending}
+            onPress={handlePickImage}
+            style={({ pressed }) => [
+              styles.attachButton,
+              pressed && styles.sendButtonPressed,
+            ]}
+          >
+            <Text style={styles.attachText}>+</Text>
+          </Pressable>
           <TextInput
             value={draft}
             onChangeText={setDraft}
@@ -140,11 +224,11 @@ export default function App() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={sending ? "Cancel request" : "Send message"}
-            disabled={!sending && !draft.trim()}
+            disabled={!sending && !draft.trim() && !attachment}
             onPress={sending ? handleCancel : handleSend}
             style={({ pressed }) => [
               styles.sendButton,
-              !sending && !draft.trim() && styles.sendButtonDisabled,
+              !sending && !draft.trim() && !attachment && styles.sendButtonDisabled,
               pressed && styles.sendButtonPressed,
             ]}
           >
@@ -164,139 +248,37 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f7f7f5",
-  },
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 2,
-    color: "#66666e",
-  },
-  title: {
-    marginTop: 4,
-    fontSize: 30,
-    fontWeight: "700",
-    color: "#17171b",
-  },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 14,
-    color: "#66666e",
-  },
-  messages: {
-    flex: 1,
-  },
-  messageContent: {
-    padding: 20,
-    gap: 12,
-  },
-  emptyState: {
-    marginTop: 100,
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#17171b",
-  },
-  emptyText: {
-    marginTop: 8,
-    textAlign: "center",
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#66666e",
-  },
-  bubble: {
-    maxWidth: "88%",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  userBubble: {
-    alignSelf: "flex-end",
-    backgroundColor: "#17171b",
-  },
-  assistantBubble: {
-    alignSelf: "flex-start",
-    backgroundColor: "#e8e8e4",
-  },
-  role: {
-    marginBottom: 4,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    color: "#77777f",
-  },
-  message: {
-    fontSize: 16,
-    lineHeight: 23,
-    color: "#17171b",
-  },
-  error: {
-    marginHorizontal: 20,
-    marginBottom: 8,
-    color: "#b42318",
-    fontSize: 13,
-  },
-  composer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#d7d7d2",
-    backgroundColor: "#ffffff",
-  },
-  input: {
-    flex: 1,
-    minHeight: 48,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderColor: "#d7d7d2",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#17171b",
-    backgroundColor: "#fafaf8",
-  },
-  sendButton: {
-    minWidth: 70,
-    minHeight: 48,
-    paddingHorizontal: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-    backgroundColor: "#17171b",
-  },
-  sendButtonDisabled: {
-    opacity: 0.45,
-  },
-  sendButtonPressed: {
-    opacity: 0.8,
-  },
-  sendText: {
-    color: "#ffffff",
-    fontWeight: "700",
-  },
-  cancelText: {
-    marginTop: 2,
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "700",
-  },
+  safeArea: { flex: 1, backgroundColor: "#f7f7f5" },
+  container: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  eyebrow: { fontSize: 12, fontWeight: "700", letterSpacing: 2, color: "#66666e" },
+  title: { marginTop: 4, fontSize: 30, fontWeight: "700", color: "#17171b" },
+  subtitle: { marginTop: 4, fontSize: 14, color: "#66666e" },
+  messages: { flex: 1 },
+  messageContent: { padding: 20, gap: 12 },
+  emptyState: { marginTop: 100, alignItems: "center", paddingHorizontal: 24 },
+  emptyTitle: { fontSize: 22, fontWeight: "700", color: "#17171b" },
+  emptyText: { marginTop: 8, textAlign: "center", fontSize: 15, lineHeight: 22, color: "#66666e" },
+  bubble: { maxWidth: "88%", borderRadius: 18, paddingHorizontal: 16, paddingVertical: 12 },
+  userBubble: { alignSelf: "flex-end", backgroundColor: "#17171b" },
+  assistantBubble: { alignSelf: "flex-start", backgroundColor: "#e8e8e4" },
+  role: { marginBottom: 4, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, color: "#77777f" },
+  message: { fontSize: 16, lineHeight: 23, color: "#17171b" },
+  error: { marginHorizontal: 20, marginBottom: 8, color: "#b42318", fontSize: 13 },
+  attachmentPreview: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 8, padding: 8, borderWidth: 1, borderColor: "#d7d7d2", borderRadius: 14, backgroundColor: "#ffffff" },
+  attachmentImage: { width: 56, height: 56, borderRadius: 10 },
+  attachmentMeta: { flex: 1 },
+  attachmentTitle: { fontSize: 13, fontWeight: "700", color: "#17171b" },
+  attachmentText: { marginTop: 2, fontSize: 12, color: "#66666e" },
+  removeButton: { paddingHorizontal: 8, paddingVertical: 8 },
+  removeText: { fontSize: 12, fontWeight: "700", color: "#b42318" },
+  composer: { flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "#d7d7d2", backgroundColor: "#ffffff" },
+  attachButton: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#d7d7d2", borderRadius: 16, backgroundColor: "#fafaf8" },
+  attachText: { fontSize: 28, lineHeight: 28, color: "#17171b", fontWeight: "300" },
+  input: { flex: 1, minHeight: 48, maxHeight: 120, borderWidth: 1, borderColor: "#d7d7d2", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: "#17171b", backgroundColor: "#fafaf8" },
+  sendButton: { minWidth: 70, minHeight: 48, paddingHorizontal: 10, alignItems: "center", justifyContent: "center", borderRadius: 16, backgroundColor: "#17171b" },
+  sendButtonDisabled: { opacity: 0.45 },
+  sendButtonPressed: { opacity: 0.8 },
+  sendText: { color: "#ffffff", fontWeight: "700" },
+  cancelText: { marginTop: 2, color: "#ffffff", fontSize: 11, fontWeight: "700" },
 });
