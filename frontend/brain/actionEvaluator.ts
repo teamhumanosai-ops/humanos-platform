@@ -31,6 +31,16 @@ function hasGraphContext(
   );
 }
 
+function hasLifeDomainContext(
+  plan: Plan
+): boolean {
+  return plan.description
+    .toLowerCase()
+    .includes(
+      "life domain context:"
+    );
+}
+
 function calculateGraphBonus(
   plan: Plan,
   action: string
@@ -65,11 +75,61 @@ function calculateGraphBonus(
   return 0;
 }
 
+function calculateLifeDomainBonus(
+  plan: Plan,
+  action: string
+): number {
+  if (
+    !hasLifeDomainContext(
+      plan
+    )
+  ) {
+    return 0;
+  }
+
+  const domainSignals =
+    plan.description
+      .toLowerCase()
+      .split(
+        "life domain context:"
+      )[1]
+      ?.split("\n")[0]
+      ?.split(",")
+      .map(
+        (value) =>
+          value.trim()
+      )
+      .filter(Boolean) ?? [];
+
+  if (
+    domainSignals.length === 0
+  ) {
+    return 0;
+  }
+
+  const normalizedAction =
+    action.toLowerCase();
+
+  return domainSignals.some(
+    (signal) =>
+      normalizedAction.includes(
+        signal
+      )
+  )
+    ? 8
+    : 0;
+}
+
 export function evaluateActions(
   plan: Plan
 ): ActionEvaluation[] {
   const graphAware =
     hasGraphContext(
+      plan
+    );
+
+  const lifeDomainAware =
+    hasLifeDomainContext(
       plan
     );
 
@@ -109,10 +169,17 @@ export function evaluateActions(
           milestone
         );
 
+      const lifeDomainBonus =
+        calculateLifeDomainBonus(
+          plan,
+          milestone
+        );
+
       const score =
         Math.min(
           baseScore +
-            graphBonus,
+            graphBonus +
+            lifeDomainBonus,
           100
         );
 
@@ -126,6 +193,11 @@ export function evaluateActions(
           graphAware &&
           graphBonus > 0
             ? "Supported by available knowledge graph context"
+            : null,
+
+          lifeDomainAware &&
+          lifeDomainBonus > 0
+            ? "Aligned with the detected life domain"
             : null,
         ].filter(
           (
