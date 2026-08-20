@@ -37,11 +37,19 @@ export class LiveKnowledgeStage
       return state;
     }
 
+    console.log(
+      `[LiveKnowledge] Executing live web search: ${state.userMessage}`
+    );
+
     try {
       const search =
         await this.services.searchWeb(
           state.userMessage
         );
+
+      console.log(
+        `[LiveKnowledge] Search succeeded: ${search.results.length} result(s), providers=${search.provenance?.observedProviders.join(",") ?? "unknown"}`
+      );
 
       state.citations =
         buildCitationSources(
@@ -56,14 +64,10 @@ export class LiveKnowledgeStage
       const evidence =
         search.results.map(
           (result, index) =>
-            `[${index + 1}]
-Title: ${result.title}
-URL: ${result.url}
-Published: ${
+            `[${index + 1}]\nTitle: ${result.title}\nURL: ${result.url}\nPublished: ${
               result.publishedDate ??
               "unknown"
-            }
-Evidence: ${result.snippet}`
+            }\nEvidence: ${result.snippet}`
         );
 
       state.liveKnowledge = [
@@ -92,6 +96,11 @@ Evidence: ${result.snippet}`
         error instanceof Error
           ? error.message
           : String(error);
+
+      console.error(
+        `[LiveKnowledge] Search failed: ${message}`,
+        error
+      );
 
       state.citations = [];
 
