@@ -49,6 +49,35 @@ function createMultimodalContext(
   return `Multimodal input received: ${modalities.join(", ")}.`;
 }
 
+function appendAssistantResponse(
+  messages: BrainState["messages"],
+  response: string
+): BrainState["messages"] {
+  const lastMessage =
+    messages[messages.length - 1];
+
+  if (
+    lastMessage?.role ===
+    "assistant"
+  ) {
+    return [
+      ...messages.slice(0, -1),
+      {
+        role: "assistant",
+        message: response,
+      },
+    ];
+  }
+
+  return [
+    ...messages,
+    {
+      role: "assistant",
+      message: response,
+    },
+  ];
+}
+
 /**
  * Executes the existing multimodal provider service and materializes its
  * response into the canonical BrainState lifecycle without creating a second
@@ -72,20 +101,37 @@ export async function applyMultimodalInput(
     input.text?.trim() ??
     `[${modalities.join(" + ")} input]`;
 
+  const lastMessage =
+    state.messages[
+      state.messages.length - 1
+    ];
+
+  const hasCanonicalUserMessage =
+    lastMessage?.role ===
+    "user";
+
+  const messages =
+    hasCanonicalUserMessage
+      ? appendAssistantResponse(
+          state.messages,
+          response
+        )
+      : [
+          ...state.messages,
+          {
+            role: "user" as const,
+            message: userMessage,
+          },
+          {
+            role: "assistant" as const,
+            message: response,
+          },
+        ];
+
   return {
     ...state,
     userMessage,
-    messages: [
-      ...state.messages,
-      {
-        role: "user",
-        message: userMessage,
-      },
-      {
-        role: "assistant",
-        message: response,
-      },
-    ],
+    messages,
     response,
     context: createMultimodalContext(
       modalities
