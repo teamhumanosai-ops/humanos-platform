@@ -22,6 +22,7 @@ import {
 } from "../../actionRouting";
 
 import {
+  confirmActionAuthorization,
   evaluateActionAuthorization,
 } from "../../actionRouting/authorization";
 
@@ -39,7 +40,7 @@ function assert(
 ): void {
   if (!condition) {
     throw new Error(
-      `ATR-002 execution idempotency verification failed: ${message}`
+      `ATR-001 execution idempotency verification failed: ${message}`
     );
   }
 }
@@ -138,7 +139,7 @@ const decision = {
   description:
     "Verify repeated stage entry does not execute twice.",
   selectedAction:
-    "idempotent-test:once",
+    "tool:idempotent-test:Run the test action",
   alternatives: [],
   reason:
     "Execution idempotency regression test.",
@@ -179,29 +180,30 @@ assert(
   "tool execution must remain confirmation-gated by the authorization policy"
 );
 
-/*
- * This test verifies execution idempotency only after the action has
- * crossed the authorization boundary. Tool confirmation itself is
- * intentionally covered by the authorization tests rather than bypassed
- * by mutating the policy decision in this fixture.
- */
-state.actionAuthorization = {
-  ...state.actionAuthorization,
-  status: "allowed",
-  reason:
-    "Test fixture represents an already-confirmed tool action.",
-};
+const confirmedAuthorization =
+  confirmActionAuthorization(
+    state
+  );
+
+assert(
+  confirmedAuthorization.status ===
+    "allowed",
+  "idempotency fixture must cross the real confirmation boundary"
+);
+
+state.actionAuthorization =
+  confirmedAuthorization;
 
 state.actionDispatch =
   createActionDispatch(
     state.actionRoute,
-    state.actionAuthorization.policyVersion
+    confirmedAuthorization
   );
 
 assert(
   state.actionDispatch?.authorizationStatus ===
     "allowed",
-  "confirmed tool fixture must carry allowed authorization into dispatch"
+  "confirmed tool execution must carry allowed authorization into dispatch"
 );
 
 const stage =
@@ -245,5 +247,5 @@ clearActionTools();
 clearExecutions();
 
 console.log(
-  "ATR-002 execution idempotency verification passed."
+  "ATR-001 execution idempotency verification passed."
 );
