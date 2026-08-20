@@ -1,9 +1,13 @@
 import type {
   ActionRoute,
+  ActionRouteKind,
+  ActionRouteTarget,
 } from "./types";
 
 export type ExecutableActionRoute =
-  ActionRoute & {
+  Omit<ActionRoute, "kind" | "target" | "executable"> & {
+    kind: Exclude<ActionRouteKind, "unknown">;
+    target: Exclude<ActionRouteTarget, "unresolved">;
     executable: true;
   };
 
