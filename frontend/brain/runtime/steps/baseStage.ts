@@ -24,11 +24,14 @@ import {
  * Every stage automatically:
  *
  * - validates the incoming BrainState
- * - records execution
  * - executes its responsibility
  * - validates the returned BrainState
  * - updates timestamps
  * - captures failures
+ *
+ * Runtime stage history and diagnostics are owned by CognitiveRuntime.
+ * This prevents BaseStage and the runtime boundary from recording the
+ * same stage twice while preserving BrainState as the shared artifact.
  *
  * BrainState remains the single shared cognitive artifact.
  *
@@ -41,9 +44,6 @@ export abstract class BaseStage
   async execute(
     state: BrainState
   ): Promise<BrainState> {
-    const startedAt =
-      Date.now();
-
     try {
       /*
       |--------------------------------------------------------------------------
@@ -56,16 +56,6 @@ export abstract class BaseStage
 
       validateBrainState(
         state,
-        this.name
-      );
-
-      /*
-      |--------------------------------------------------------------------------
-      | Record stage execution
-      |--------------------------------------------------------------------------
-      */
-
-      state.executedStages.push(
         this.name
       );
 
@@ -117,40 +107,8 @@ export abstract class BaseStage
       result.updatedAt =
         new Date();
 
-      /*
-      |--------------------------------------------------------------------------
-      | Diagnostics
-      |--------------------------------------------------------------------------
-      |
-      | Every stage persists a durable diagnostic artifact in BrainState.
-      |
-      */
-
-      const completedAt =
-        new Date();
-
-      result.diagnostics.push({
-        stage:
-          this.name,
-
-        startedAt:
-          new Date(startedAt),
-
-        completedAt,
-
-        durationMs:
-          completedAt.getTime() -
-          startedAt,
-
-        success:
-          true,
-
-        error:
-          null,
-      });
-
       console.debug(
-        `[Runtime] ${this.name} (${Date.now() - startedAt} ms)`
+        `[Runtime] ${this.name}`
       );
 
       return result;
@@ -164,36 +122,18 @@ export abstract class BaseStage
 
       /*
       |--------------------------------------------------------------------------
-      | Preserve diagnostic context
+      | Preserve failure context
+      |--------------------------------------------------------------------------
+      |
+      | The runtime boundary owns terminal diagnostic timing. BaseStage
+      | preserves the semantic error so the runtime can attach the stage,
+      | timing, and failure status without creating duplicate records.
       |--------------------------------------------------------------------------
       */
 
       state.errors.push(
         `${this.name}: ${message}`
       );
-
-      const completedAt =
-        new Date();
-
-      state.diagnostics.push({
-        stage:
-          this.name,
-
-        startedAt:
-          new Date(startedAt),
-
-        completedAt,
-
-        durationMs:
-          completedAt.getTime() -
-          startedAt,
-
-        success:
-          false,
-
-        error:
-          message,
-      });
 
       console.error(
         `[Runtime] ${this.name} failed`,
