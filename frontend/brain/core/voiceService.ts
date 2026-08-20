@@ -1,7 +1,27 @@
 import type {
   VoiceOutputOptions,
   VoiceOutputResult,
+  VoiceOutputStateListener,
 } from "./voiceContracts";
+
+let speaking = false;
+
+const outputStateListeners =
+  new Set<VoiceOutputStateListener>();
+
+function setSpeaking(
+  nextSpeaking: boolean
+): void {
+  if (speaking === nextSpeaking) {
+    return;
+  }
+
+  speaking = nextSpeaking;
+
+  for (const listener of outputStateListeners) {
+    listener(speaking);
+  }
+}
 
 function getSpeechSynthesis(): SpeechSynthesis | null {
   if (typeof window === "undefined") {
@@ -83,6 +103,7 @@ export function speakText(
   );
 
   if (!normalized.enabled) {
+    setSpeaking(false);
     return {
       spoken: false,
       text: normalizedText,
@@ -93,6 +114,7 @@ export function speakText(
     getSpeechSynthesis();
 
   if (!speechSynthesis) {
+    setSpeaking(false);
     throw new Error(
       "Voice output is unavailable in this environment."
     );
@@ -112,10 +134,27 @@ export function speakText(
   utterance.lang =
     normalized.lang;
 
+  utterance.onstart =
+    () => {
+      setSpeaking(true);
+    };
+
+  utterance.onend =
+    () => {
+      setSpeaking(false);
+    };
+
+  utterance.onerror =
+    () => {
+      setSpeaking(false);
+    };
+
   speechSynthesis.cancel();
+  setSpeaking(false);
   speechSynthesis.speak(
     utterance
   );
+  setSpeaking(true);
 
   return {
     spoken: true,
@@ -124,7 +163,27 @@ export function speakText(
 }
 
 export function stopSpeaking(): void {
-  getSpeechSynthesis()?.cancel();
+  const speechSynthesis =
+    getSpeechSynthesis();
+
+  speechSynthesis?.cancel();
+  setSpeaking(false);
+}
+
+export function isVoiceOutputSpeaking(): boolean {
+  return speaking;
+}
+
+export function subscribeVoiceOutputState(
+  listener: VoiceOutputStateListener
+): () => void {
+  outputStateListeners.add(listener);
+
+  listener(speaking);
+
+  return () => {
+    outputStateListeners.delete(listener);
+  };
 }
 
 export function isVoiceOutputAvailable(): boolean {
