@@ -82,6 +82,16 @@ export function createRuntimeOutcome(
       input
     );
 
+  const stagesExecuted =
+    input.stagesExecuted.includes(
+      "Outcome"
+    )
+      ? [...input.stagesExecuted]
+      : [
+          ...input.stagesExecuted,
+          "Outcome",
+        ];
+
   return {
     status,
 
@@ -114,8 +124,7 @@ export function createRuntimeOutcome(
       decisionId:
         input.decisionId,
 
-      stagesExecuted:
-        [...input.stagesExecuted],
+      stagesExecuted,
 
       createdAt:
         completedAt,

@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
@@ -24,24 +24,35 @@ type VoiceControlsProps = {
   onTranscript: (transcript: string) => void;
 };
 
+const emptySubscribe = () => () => undefined;
+const serverUnavailable = () => false;
+
 export default function VoiceControls({
   text,
   onTranscript,
 }: VoiceControlsProps) {
   const [listening, setListening] =
     useState(false);
-  const [speaking, setSpeaking] =
-    useState(() =>
-      isVoiceOutputSpeaking()
+  const voiceInputAvailable =
+    useSyncExternalStore(
+      emptySubscribe,
+      isVoiceInputAvailable,
+      serverUnavailable
+    );
+  const voiceOutputAvailable =
+    useSyncExternalStore(
+      emptySubscribe,
+      isVoiceOutputAvailable,
+      serverUnavailable
+    );
+  const speaking =
+    useSyncExternalStore(
+      subscribeVoiceOutputState,
+      isVoiceOutputSpeaking,
+      serverUnavailable
     );
   const [error, setError] =
     useState<string | null>(null);
-
-  useEffect(() => {
-    return subscribeVoiceOutputState(
-      setSpeaking
-    );
-  }, []);
 
   async function handleVoiceInput() {
     if (!isVoiceInputAvailable()) {
@@ -119,7 +130,7 @@ export default function VoiceControls({
             : handleVoiceInput
         }
         className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
-        disabled={!isVoiceInputAvailable()}
+        disabled={!voiceInputAvailable}
       >
         {listening
           ? "Stop listening"
@@ -130,7 +141,7 @@ export default function VoiceControls({
         type="button"
         onClick={handleSpeak}
         className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
-        disabled={!text.trim() || !isVoiceOutputAvailable()}
+        disabled={!text.trim() || !voiceOutputAvailable}
       >
         {speaking
           ? "Stop speaking"
