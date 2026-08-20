@@ -3,6 +3,14 @@ import {
 } from "./execution";
 
 import {
+  ACTION_AUTHORIZATION_POLICY_VERSION,
+} from "./authorization";
+
+import type {
+  ActionAuthorization,
+} from "./authorization";
+
+import {
   getActionCapability,
 } from "./capabilities";
 
@@ -26,9 +34,20 @@ const route = {
   executable: true,
 };
 
+const authorization: ActionAuthorization = {
+  status: "allowed",
+  target: route.target,
+  routeId: route.id,
+  reason: "Test authorization",
+  policyVersion:
+    ACTION_AUTHORIZATION_POLICY_VERSION,
+  evaluatedAt: new Date(),
+};
+
 const dispatch =
   createActionDispatch(
-    route
+    route,
+    authorization
   );
 
 assert(
