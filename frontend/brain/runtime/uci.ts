@@ -75,6 +75,15 @@ function validateMessages(
     messages.entries()
   ) {
     if (
+      !message ||
+      typeof message !== "object"
+    ) {
+      throw new Error(
+        `UCI message ${index} must be an object.`
+      );
+    }
+
+    if (
       message.role !== "user" &&
       message.role !== "assistant"
     ) {
@@ -112,6 +121,17 @@ function validateMessages(
   }
 }
 
+function snapshotMessages(
+  messages: ConversationMessage[]
+): ConversationMessage[] {
+  return messages.map(
+    (message) => ({
+      role: message.role,
+      message: message.message,
+    })
+  );
+}
+
 function fingerprintMessages(
   messages: ConversationMessage[]
 ): string {
@@ -133,6 +153,8 @@ function fingerprintMessages(
  * Validation occurs before any runtime stage or provider can execute.
  * Request ids are idempotent for the bounded lifetime of the process.
  * Failed executions release their registration so transient failures can retry.
+ * The validated message payload is snapshotted before async execution so
+ * caller-side mutation cannot alter the in-flight cognitive request.
  */
 export async function executeCognitiveRequest(
   request: CognitiveRequest
@@ -155,9 +177,14 @@ export async function executeCognitiveRequest(
     request.messages
   );
 
+  const messages =
+    snapshotMessages(
+      request.messages
+    );
+
   const fingerprint =
     fingerprintMessages(
-      request.messages
+      messages
     );
 
   const registered =
@@ -172,7 +199,7 @@ export async function executeCognitiveRequest(
 
   const execution =
     executeRuntime(
-      request.messages
+      messages
     ).then(
       (state) => ({
         requestId,
