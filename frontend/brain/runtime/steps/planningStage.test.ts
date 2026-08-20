@@ -8,6 +8,7 @@ import {
 
 import {
   clearPlans,
+  getPlan,
 } from "../../planning";
 
 import {
@@ -40,6 +41,9 @@ async function runVerification(): Promise<void> {
 
   state.intent =
     Intent.PLANNING;
+
+  state.primaryLifeDomain =
+    "work";
 
   state.graph = [
     {
@@ -132,6 +136,34 @@ async function runVerification(): Promise<void> {
       "Use relevant knowledge graph relationships to guide execution."
     ) === true,
     "graph context must influence the generated plan"
+  );
+
+  assert(
+    result.plan?.includes(
+      "Life domain context: work, Work"
+    ) === true,
+    "life domain context must influence the generated plan"
+  );
+
+  assert(
+    result.plan?.includes(
+      "Domain guidance:"
+    ) === true,
+    "life domain guidance must be preserved in the generated plan"
+  );
+
+  const persistedPlan =
+    result.currentPlanId
+      ? getPlan(
+          result.currentPlanId
+        )
+      : undefined;
+
+  assert(
+    persistedPlan?.description.includes(
+      "Life domain context: work, Work"
+    ) === true,
+    "life domain context must remain on the persisted plan artifact"
   );
 
   assert(
