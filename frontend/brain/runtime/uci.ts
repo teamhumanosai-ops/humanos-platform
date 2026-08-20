@@ -7,6 +7,7 @@ import {
 } from "./execute";
 
 import {
+  clearRegisteredRequest,
   getRegisteredRequest,
   registerRequest,
 } from "./uciRequestRegistry";
@@ -131,6 +132,7 @@ function fingerprintMessages(
  * entrypoint without owning CognitiveRuntime or BrainState construction.
  * Validation occurs before any runtime stage or provider can execute.
  * Request ids are idempotent for the bounded lifetime of the process.
+ * Failed executions release their registration so transient failures can retry.
  */
 export async function executeCognitiveRequest(
   request: CognitiveRequest
@@ -186,5 +188,14 @@ export async function executeCognitiveRequest(
     execution
   );
 
-  return execution;
+  return execution.catch(
+    (error) => {
+      clearRegisteredRequest(
+        requestId,
+        fingerprint
+      );
+
+      throw error;
+    }
+  );
 }
