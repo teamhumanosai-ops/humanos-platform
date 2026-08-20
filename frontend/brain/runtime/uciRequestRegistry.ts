@@ -77,6 +77,23 @@ export function registerRequest(
   trimRegistry();
 }
 
+export function clearRegisteredRequest(
+  requestId: string,
+  fingerprint: string
+): void {
+  const entry =
+    entries.get(requestId);
+
+  if (
+    entry?.fingerprint ===
+    fingerprint
+  ) {
+    entries.delete(
+      requestId
+    );
+  }
+}
+
 export function clearUciRequestRegistry(): void {
   entries.clear();
 }
