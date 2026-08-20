@@ -21,6 +21,12 @@ function createState(): BrainState {
   return {
     runtimeStatus:
       "completed",
+    currentExecutionId:
+      null,
+    currentPlanId:
+      null,
+    currentDecisionId:
+      null,
     executedStages: [
       "Input",
       "Outcome",
@@ -90,6 +96,53 @@ assert(
   "mismatched outcome stage history must fail validation"
 );
 
+const mismatchedErrors =
+  createState();
+
+mismatchedErrors.errors = [
+  "Runtime failure",
+];
+
+let errorHistoryFailed =
+  false;
+
+try {
+  assertRuntimeStateIntegrity(
+    mismatchedErrors
+  );
+} catch {
+  errorHistoryFailed =
+    true;
+}
+
+assert(
+  errorHistoryFailed,
+  "outcome errors must match BrainState errors"
+);
+
+const mismatchedExecutionId =
+  createState();
+
+mismatchedExecutionId.currentExecutionId =
+  "execution-1";
+
+let executionIdFailed =
+  false;
+
+try {
+  assertRuntimeStateIntegrity(
+    mismatchedExecutionId
+  );
+} catch {
+  executionIdFailed =
+    true;
+}
+
+assert(
+  executionIdFailed,
+  "outcome execution identity must match BrainState execution identity"
+);
+
 const failedWithoutError =
   createState();
 
@@ -134,6 +187,29 @@ try {
 assert(
   blockedFailed,
   "blocked outcome with completed runtime status must fail validation"
+);
+
+const inProgressMismatch =
+  createState();
+
+inProgressMismatch.outcome!.status =
+  "in_progress";
+
+let inProgressFailed =
+  false;
+
+try {
+  assertRuntimeStateIntegrity(
+    inProgressMismatch
+  );
+} catch {
+  inProgressFailed =
+    true;
+}
+
+assert(
+  inProgressFailed,
+  "in-progress outcome with completed runtime status must fail validation"
 );
 
 console.log(
