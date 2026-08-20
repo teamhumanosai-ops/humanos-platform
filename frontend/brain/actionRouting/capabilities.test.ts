@@ -126,6 +126,20 @@ const webSearchCapability =
   );
 
 if (webSearchCapability) {
+  assert(
+    webSearchCapability.integrations.length ===
+      2,
+    "web-search must declare both required provider integrations"
+  );
+
+  assert(
+    webSearchCapability.integrations[0]?.provider ===
+      "tavily" &&
+    webSearchCapability.integrations[1]?.provider ===
+      "firecrawl",
+    "web-search must preserve Tavily and Firecrawl provider boundaries"
+  );
+
   const result =
     await webSearchCapability.execute(
       "Search for Human OS",
@@ -144,6 +158,18 @@ if (webSearchCapability) {
       "web-search",
     "web-search result must preserve capability provenance"
   );
+
+  assert(
+    result.metadata?.integrationProviders ===
+      "tavily,firecrawl",
+    "web-search result must expose provider provenance"
+  );
+
+  assert(
+    result.metadata?.integrationOperations ===
+      "tavily:search,firecrawl:search",
+    "web-search result must expose operation provenance"
+  );
 }
 
 const webContentCapability =
@@ -152,6 +178,14 @@ const webContentCapability =
   );
 
 if (webContentCapability) {
+  assert(
+    webContentCapability.integrations.length ===
+      1 &&
+    webContentCapability.integrations[0]?.provider ===
+      "firecrawl",
+    "web-content must declare Firecrawl as its provider"
+  );
+
   const result =
     await webContentCapability.execute(
       "Fetch https://example.com/source",
@@ -181,6 +215,12 @@ if (webContentCapability) {
     result.metadata?.capabilityTarget ===
       "web-content",
     "web-content result must preserve capability provenance"
+  );
+
+  assert(
+    result.metadata?.integrationProviders ===
+      "firecrawl",
+    "web-content result must expose provider provenance"
   );
 }
 
@@ -260,6 +300,12 @@ assert(
 );
 
 if (cognitiveCapability) {
+  assert(
+    cognitiveCapability.integrations.length ===
+      2,
+    "cognitive capability must preserve both AI provider boundaries"
+  );
+
   const result =
     await cognitiveCapability.execute(
       "Analyze the current action plan",
@@ -288,6 +334,12 @@ if (cognitiveCapability) {
     result.metadata?.capabilityTarget ===
       "cognitive",
     "cognitive result must preserve capability provenance"
+  );
+
+  assert(
+    result.metadata?.integrationProviders ===
+      "gemini,openrouter",
+    "cognitive result must preserve both AI provider boundaries"
   );
 }
 
@@ -318,6 +370,14 @@ clearActionTools();
 
 registerActionTool({
   id: "test-tool",
+  integration: {
+    provider:
+      "calendar",
+    operation:
+      "create-event",
+    isConfigured:
+      () => true,
+  },
   async execute(action) {
     return {
       summary:
@@ -367,6 +427,24 @@ if (toolCapability) {
     result.metadata?.capabilityTarget ===
       "tool",
     "tool result must preserve capability provenance"
+  );
+
+  assert(
+    result.metadata?.integrationProviders ===
+      "calendar",
+    "tool result must preserve registered integration provider provenance"
+  );
+
+  assert(
+    result.metadata?.integrationOperations ===
+      "calendar:create-event",
+    "tool result must preserve registered integration operation provenance"
+  );
+
+  assert(
+    result.metadata?.integrationConfigured ===
+      "true",
+    "tool result must preserve integration configuration status"
   );
 
   const explicitResult =

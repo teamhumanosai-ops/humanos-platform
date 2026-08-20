@@ -10,6 +10,19 @@ import {
   getActionTool,
 } from "./toolCapabilities";
 
+import type {
+  ExternalIntegration,
+} from "./integrationContracts";
+
+import {
+  integrationMetadata,
+  normalizeExternalIntegrations,
+} from "./integrationContracts";
+
+import {
+  executeWithIntegrationSafety,
+} from "./integrationExecution";
+
 export type ActionCapabilityTarget = Exclude<
   ActionRouteTarget,
   "unresolved"
@@ -18,6 +31,9 @@ export type ActionCapabilityTarget = Exclude<
 export type ActionCapability = {
   target:
     ActionCapabilityTarget;
+
+  integrations:
+    readonly ExternalIntegration[];
 
   execute: (
     action: string,
@@ -34,7 +50,8 @@ export type ActionCapabilityResult = {
 
 function normalizeCapabilityResult(
   target: ActionCapabilityTarget,
-  result: ActionCapabilityResult
+  result: ActionCapabilityResult,
+  integrations: readonly ExternalIntegration[]
 ): ActionCapabilityResult {
   const summary =
     result.summary.trim();
@@ -45,12 +62,20 @@ function normalizeCapabilityResult(
     );
   }
 
+  const normalizedIntegrations =
+    normalizeExternalIntegrations(
+      integrations
+    );
+
   return {
     summary,
     metadata: {
       ...(result.metadata ?? {}),
       capabilityTarget:
         target,
+      ...integrationMetadata(
+        normalizedIntegrations
+      ),
     },
   };
 }
@@ -77,6 +102,21 @@ const webSearchCapability:
   ActionCapability = {
   target:
     "web-search",
+
+  integrations: [
+    {
+      provider:
+        "tavily",
+      operation:
+        "search",
+    },
+    {
+      provider:
+        "firecrawl",
+      operation:
+        "search",
+    },
+  ],
 
   async execute(
     action,
@@ -121,7 +161,8 @@ const webSearchCapability:
               0
             ),
         },
-      }
+      },
+      webSearchCapability.integrations
     );
   },
 };
@@ -130,6 +171,15 @@ const webContentCapability:
   ActionCapability = {
   target:
     "web-content",
+
+  integrations: [
+    {
+      provider:
+        "firecrawl",
+      operation:
+        "fetch",
+    },
+  ],
 
   async execute(
     action,
@@ -187,7 +237,8 @@ const webContentCapability:
           provider:
             "firecrawl",
         },
-      }
+      },
+      webContentCapability.integrations
     );
   },
 };
@@ -196,6 +247,21 @@ const cognitiveCapability:
   ActionCapability = {
   target:
     "cognitive",
+
+  integrations: [
+    {
+      provider:
+        "gemini",
+      operation:
+        "cognitive-action",
+    },
+    {
+      provider:
+        "openrouter",
+      operation:
+        "cognitive-action",
+    },
+  ],
 
   async execute(
     action,
@@ -249,7 +315,8 @@ const cognitiveCapability:
           action:
             normalizedAction,
         },
-      }
+      },
+      cognitiveCapability.integrations
     );
   },
 };
@@ -258,6 +325,8 @@ const toolCapability:
   ActionCapability = {
   target:
     "tool",
+
+  integrations: [],
 
   async execute(
     action,
@@ -312,10 +381,47 @@ const toolCapability:
       );
     }
 
-    const result =
-      await tool.execute(
+    if (
+      tool.integration?.isConfigured &&
+      !tool.integration.isConfigured()
+    ) {
+      throw new Error(
+        `External integration "${tool.integration.provider}" is not configured for action tool "${toolId}".`
+      );
+    }
+
+    const toolIntegrations =
+      tool.integration
+        ? [
+            {
+              provider:
+                tool.integration.provider,
+              operation:
+                tool.integration.operation,
+            },
+          ]
+        : [];
+
+    const executionKey =
+      [
+        toolId,
+        tool.integration?.provider ??
+          "internal",
+        tool.integration?.operation ??
+          "execute",
         toolAction,
-        services
+      ].join("|");
+
+    const result =
+      await executeWithIntegrationSafety(
+        executionKey,
+        tool.integration?.executionPolicy ??
+          "allow-duplicate",
+        () =>
+          tool.execute(
+            toolAction,
+            services
+          )
       );
 
     return normalizeCapabilityResult(
@@ -328,8 +434,17 @@ const toolCapability:
             "registered-tool",
           toolId,
           toolAction,
+          integrationConfigured:
+            tool.integration?.isConfigured?.() ===
+            false
+              ? "false"
+              : "true",
+          executionPolicy:
+            tool.integration?.executionPolicy ??
+            "allow-duplicate",
         },
-      }
+      },
+      toolIntegrations
     );
   },
 };
