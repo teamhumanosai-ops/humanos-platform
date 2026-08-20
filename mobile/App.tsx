@@ -45,18 +45,26 @@ export default function App() {
     return () => {
       requestController.current?.abort();
       requestController.current = null;
+      if (recorderState.isRecording) {
+        void recorder.stop().catch(() => undefined);
+      }
+      void setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
     };
-  }, []);
+  }, [recorder, recorderState.isRecording]);
 
   async function handlePickImage() {
     if (sending || recorderState.isRecording) return;
     setError(null);
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], allowsEditing: false, quality: 0.8, base64: true,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
+
     try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.8,
+        base64: true,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
       if (!asset.base64) throw new Error("The selected image could not be read.");
       const input = createImageInput(asset.mimeType || "image/jpeg", asset.base64);
       setAttachment({ uri: asset.uri, input });
@@ -79,6 +87,7 @@ export default function App() {
         const input = createAudioInput(mimeType, base64);
         setAudioAttachment({ input, durationSeconds: Math.max(1, Math.round(recorder.currentTime)) });
         setAttachment(null);
+        await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
         return;
       }
 
@@ -88,6 +97,7 @@ export default function App() {
       await recorder.prepareToRecordAsync();
       recorder.record();
     } catch (recordingError) {
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
       setError(recordingError instanceof Error ? recordingError.message : "Unable to record audio.");
     }
   }
