@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "humanos",
+    "plugins": ["expo-image-picker"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ai.teamhumanos.humanos"
