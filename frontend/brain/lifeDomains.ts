@@ -15,10 +15,10 @@ export type LifeDomainId =
   | "general";
 
 export type LifeDomain = {
-  id: LifeDomainId;
-  label: string;
-  description: string;
-  aliases: string[];
+  readonly id: LifeDomainId;
+  readonly label: string;
+  readonly description: string;
+  readonly aliases: readonly string[];
 };
 
 export type LifeDomainMatch = {
@@ -27,7 +27,7 @@ export type LifeDomainMatch = {
   matchedTerms: string[];
 };
 
-export const LIFE_DOMAINS: readonly LifeDomain[] = [
+export const LIFE_DOMAINS: readonly LifeDomain[] = Object.freeze([
   {
     id: "work",
     label: "Work",
@@ -112,7 +112,15 @@ export const LIFE_DOMAINS: readonly LifeDomain[] = [
     description: "Cross-domain or currently unclassified cognitive work.",
     aliases: [],
   },
-] as const;
+].map(
+  (domain) =>
+    Object.freeze({
+      ...domain,
+      aliases: Object.freeze([
+        ...domain.aliases,
+      ]),
+    })
+  ) as readonly LifeDomain[]);
 
 const DOMAIN_MAP = new Map(
   LIFE_DOMAINS.map((domain) => [domain.id, domain])
