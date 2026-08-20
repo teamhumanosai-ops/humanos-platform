@@ -19,6 +19,10 @@ import {
   normalizeExternalIntegrations,
 } from "./integrationContracts";
 
+import {
+  executeWithIntegrationSafety,
+} from "./integrationExecution";
+
 export type ActionCapabilityTarget = Exclude<
   ActionRouteTarget,
   "unresolved"
@@ -377,11 +381,14 @@ const toolCapability:
       );
     }
 
-    const result =
-      await tool.execute(
-        toolAction,
-        services
+    if (
+      tool.integration?.isConfigured &&
+      !tool.integration.isConfigured()
+    ) {
+      throw new Error(
+        `External integration "${tool.integration.provider}" is not configured for action tool "${toolId}".`
       );
+    }
 
     const toolIntegrations =
       tool.integration
@@ -394,6 +401,28 @@ const toolCapability:
             },
           ]
         : [];
+
+    const executionKey =
+      [
+        toolId,
+        tool.integration?.provider ??
+          "internal",
+        tool.integration?.operation ??
+          "execute",
+        toolAction,
+      ].join("|");
+
+    const result =
+      await executeWithIntegrationSafety(
+        executionKey,
+        tool.integration?.executionPolicy ??
+          "allow-duplicate",
+        () =>
+          tool.execute(
+            toolAction,
+            services
+          )
+      );
 
     return normalizeCapabilityResult(
       "tool",
@@ -410,6 +439,9 @@ const toolCapability:
             false
               ? "false"
               : "true",
+          executionPolicy:
+            tool.integration?.executionPolicy ??
+            "allow-duplicate",
         },
       },
       toolIntegrations
