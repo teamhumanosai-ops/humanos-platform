@@ -10,3 +10,15 @@ export type VoiceOutputResult = {
   spoken: boolean;
   text: string;
 };
+
+export type VoiceInputOptions = {
+  lang?: string;
+  continuous?: boolean;
+  interimResults?: boolean;
+  maxAlternatives?: number;
+};
+
+export type VoiceInputResult = {
+  transcript: string;
+  final: boolean;
+};
