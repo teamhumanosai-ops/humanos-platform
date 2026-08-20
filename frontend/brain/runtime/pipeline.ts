@@ -438,6 +438,8 @@ export class CognitiveRuntime {
   /**
    * Execute one stage and convert stage exceptions into runtime
    * failure state without throwing outside the lifecycle boundary.
+   * Every stage receives one diagnostic record with timing and
+   * terminal success/error state.
    */
   private async executeStage(
     stage: Stage,
@@ -446,11 +448,38 @@ export class CognitiveRuntime {
     state: BrainState;
     halted: boolean;
   }> {
+    const startedAt =
+      new Date();
+
     try {
       const next =
         await stage.execute(
           state
         );
+
+      const completedAt =
+        new Date();
+
+      state.diagnostics.push({
+        stage:
+          stage.name,
+        startedAt,
+        completedAt,
+        durationMs:
+          Math.max(
+            0,
+            completedAt.getTime() -
+              startedAt.getTime()
+          ),
+        success:
+          true,
+        error:
+          null,
+      });
+
+      state.executedStages.push(
+        stage.name
+      );
 
       return {
         state:
@@ -459,6 +488,35 @@ export class CognitiveRuntime {
           false,
       };
     } catch (error) {
+      const completedAt =
+        new Date();
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      state.diagnostics.push({
+        stage:
+          stage.name,
+        startedAt,
+        completedAt,
+        durationMs:
+          Math.max(
+            0,
+            completedAt.getTime() -
+              startedAt.getTime()
+          ),
+        success:
+          false,
+        error:
+          message,
+      });
+
+      state.executedStages.push(
+        stage.name
+      );
+
       this.recordStageFailure(
         state,
         stage,
