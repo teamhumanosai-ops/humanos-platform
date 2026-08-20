@@ -2,6 +2,14 @@ import {
   createActionDispatch,
 } from "./execution";
 
+import {
+  ACTION_AUTHORIZATION_POLICY_VERSION,
+} from "./authorization";
+
+import type {
+  ActionAuthorization,
+} from "./authorization";
+
 function assert(
   condition: boolean,
   message: string
@@ -22,10 +30,20 @@ const route = {
   executable: true,
 };
 
+const authorization: ActionAuthorization = {
+  status: "allowed",
+  target: route.target,
+  routeId: route.id,
+  reason: "Test authorization",
+  policyVersion:
+    ACTION_AUTHORIZATION_POLICY_VERSION,
+  evaluatedAt: new Date(),
+};
+
 const dispatch =
   createActionDispatch(
     route,
-    "atr-authorization-v1"
+    authorization
   );
 
 assert(
@@ -41,8 +59,8 @@ assert(
 
 assert(
   dispatch?.authorizationPolicyVersion ===
-    "atr-authorization-v1",
-  "dispatch must retain the authorization policy version"
+    ACTION_AUTHORIZATION_POLICY_VERSION,
+  "dispatch must retain the canonical authorization policy version"
 );
 
 assert(
