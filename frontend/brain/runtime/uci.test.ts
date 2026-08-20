@@ -7,6 +7,14 @@ import {
   clearUciRequestRegistry,
 } from "./uciRequestRegistry";
 
+import {
+  CognitiveRuntime,
+} from "./pipeline";
+
+import {
+  runtimeServices,
+} from "./runtimeServices";
+
 function assert(
   condition: boolean,
   message: string
@@ -42,7 +50,84 @@ async function expectFailure(
   }
 }
 
+function verifyRuntimeStageBoundary(): void {
+  const runtime =
+    new CognitiveRuntime(
+      runtimeServices
+    );
+
+  const firstSnapshot =
+    runtime.getStages();
+
+  const secondSnapshot =
+    runtime.getStages();
+
+  assert(
+    firstSnapshot !== secondSnapshot,
+    "runtime stage inspection must return a fresh snapshot"
+  );
+
+  const originalLength =
+    firstSnapshot.length;
+
+  (
+    firstSnapshot as unknown as Array<unknown>
+  ).pop();
+
+  assert(
+    runtime.getStages().length ===
+      originalLength,
+    "mutating a stage snapshot must not mutate runtime lifecycle ownership"
+  );
+
+  const stageNames =
+    runtime
+      .getStages()
+      .map(
+        (stage) =>
+          stage.name
+      );
+
+  assert(
+    stageNames.at(-3) ===
+      "Reflection",
+    "Reflection must remain before terminal stages"
+  );
+
+  assert(
+    stageNames.at(-2) ===
+      "Autonomy",
+    "Autonomy must remain immediately before Outcome"
+  );
+
+  assert(
+    stageNames.at(-1) ===
+      "Outcome",
+    "Outcome must remain the terminal stage"
+  );
+
+  let duplicateRejected =
+    false;
+
+  try {
+    runtime.register({
+      name: "Outcome",
+      execute: async (state) =>
+        state,
+    });
+  } catch {
+    duplicateRejected = true;
+  }
+
+  assert(
+    duplicateRejected,
+    "duplicate stage registration must remain rejected"
+  );
+}
+
 async function runUciVerification(): Promise<void> {
+  verifyRuntimeStageBoundary();
+
   const request = {
     requestId:
       "uci-test-001",
