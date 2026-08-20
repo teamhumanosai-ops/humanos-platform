@@ -99,6 +99,37 @@ assert(
   "domain aliases must not match inside unrelated words"
 );
 
+const financeBoundaryFalsePositive =
+  resolveLifeDomains(
+    "The taxi is waiting outside the office."
+  );
+
+assert(
+  financeBoundaryFalsePositive.some(
+    (match) =>
+      match.domain === "work"
+  ),
+  "a real office alias should still resolve when another word contains a finance alias"
+);
+
+assert(
+  !financeBoundaryFalsePositive.some(
+    (match) =>
+      match.domain === "finance"
+  ),
+  "tax must not match inside taxi"
+);
+
+const studyBoundaryFalsePositive =
+  resolveLifeDomains(
+    "The classic design is finished."
+  );
+
+assert(
+  studyBoundaryFalsePositive[0]?.domain === "general",
+  "class must not match inside classic"
+);
+
 const punctuationBoundary =
   resolveLifeDomains(
     "Should I compare these options?"
