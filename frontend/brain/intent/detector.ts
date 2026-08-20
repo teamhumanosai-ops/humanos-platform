@@ -263,6 +263,14 @@ function isActionableTaskRequest(
   text: string
 ): boolean {
   if (
+    isExplicitLiveQuestion(
+      text
+    )
+  ) {
+    return false;
+  }
+
+  if (
     includesAny(
       text,
       INFORMATIONAL_TASK_PATTERNS
