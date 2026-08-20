@@ -35,6 +35,9 @@ export async function POST(
 
       citations:
         result.citations,
+
+      recommendations:
+        result.recommendations,
     });
   } catch (error) {
     console.error(error);
@@ -45,6 +48,8 @@ export async function POST(
           "Internal Server Error",
 
         citations: [],
+
+        recommendations: [],
       },
       {
         status: 500,

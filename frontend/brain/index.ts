@@ -1,6 +1,9 @@
 import * as Planning from "./planning";
 import * as Decision from "./decision";
 import * as Execution from "./execution";
+import * as ActionRouting from "./actionRouting";
+import * as Autonomy from "./autonomy";
+import * as ContentIntelligence from "./contentIntelligence";
 
 /**
  * Human OS Brain
@@ -40,6 +43,20 @@ export const Brain = {
     complete: Execution.completeExecution,
     block: Execution.blockExecution,
   },
+
+  actionRouting: {
+    route: ActionRouting.routeDecisionAction,
+  },
+
+  contentIntelligence: {
+    analyzeSources:
+      ContentIntelligence.analyzeContentSources,
+  },
+
+  autonomy: {
+    evaluate: Autonomy.evaluateAutonomousLoop,
+    Controller: Autonomy.AutonomousLoopController,
+  },
 };
 
 export default Brain;
@@ -47,3 +64,17 @@ export default Brain;
 export type { Plan } from "./planning";
 export type { Decision } from "./decision";
 export type { Execution } from "./execution";
+export type {
+  ActionRoute,
+  ActionRouteKind,
+} from "./actionRouting";
+export type {
+  ContentIntelligence,
+  ContentSourceProfile,
+  ContentSourceType,
+} from "./contentIntelligence";
+export type {
+  AutonomousLoopDecision,
+  AutonomousLoopOptions,
+  AutonomousLoopStatus,
+} from "./autonomy";

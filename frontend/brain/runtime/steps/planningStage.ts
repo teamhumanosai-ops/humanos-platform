@@ -7,7 +7,9 @@ import {
 } from "../../intent";
 
 import {
-  createPlanFromMessage,
+  createGoalFromPlan,
+  createPlanFromMessageWithContext,
+  enrichGoalFromContext,
   getAllPlans,
 } from "../../planning";
 
@@ -27,6 +29,8 @@ import {
  * - Handle startup planning
  * - Handle actionable task-management requests
  * - Return persisted planning results for task queries
+ * - Preserve cognitive evidence when creating plans
+ * - Build the canonical Goal artifact from the persisted Plan
  * - Prevent informational task queries from
  *   falling through to an LLM-generated/fabricated
  *   task list
@@ -110,11 +114,76 @@ export class PlanningStage
     | Planning and actionable task requests both use
     | exactly the same Planning Engine.
     |
+    | The complete BrainState cognitive evidence is
+    | passed through the PlanningContext contract so
+    | goal dependencies and obstacles can be derived
+    | from the same state used by later stages.
+    |
     */
 
     const plan =
-      createPlanFromMessage(
-        state.userMessage
+      createPlanFromMessageWithContext(
+        state.userMessage,
+        {
+          graphObservations:
+            state.graph
+              .slice(
+                0,
+                5
+              )
+              .map(
+                (node) =>
+                  `${node.label} (${node.type})`
+              ),
+
+          graphNodes:
+            state.graph.map(
+              (node) => ({
+                id:
+                  node.id,
+                label:
+                  node.label,
+                type:
+                  node.type,
+              })
+            ),
+
+          graphEdges:
+            state.graphEdges.map(
+              (edge) => ({
+                from:
+                  edge.from,
+                to:
+                  edge.to,
+                type:
+                  edge.type,
+              })
+            ),
+
+          reasoningObservations:
+            state.reasoningObservations.map(
+              (observation) => ({
+                statement:
+                  observation.statement,
+                confidence:
+                  observation.confidence,
+                kind:
+                  observation.kind,
+              })
+            ),
+
+          timeline:
+            state.timeline,
+
+          reflections:
+            state.reflections,
+
+          memories:
+            state.memories.map(
+              (memory) =>
+                `${memory.key}: ${memory.value}`
+            ),
+        }
       );
 
     if (
@@ -129,8 +198,67 @@ export class PlanningStage
     |--------------------------------------------------------------------------
     */
 
+    const goal =
+      enrichGoalFromContext(
+        createGoalFromPlan(
+          plan
+        ),
+        {
+          graphNodes:
+            state.graph.map(
+              (node) => ({
+                id:
+                  node.id,
+                label:
+                  node.label,
+                type:
+                  node.type,
+              })
+            ),
+
+          graphEdges:
+            state.graphEdges.map(
+              (edge) => ({
+                from:
+                  edge.from,
+                to:
+                  edge.to,
+                type:
+                  edge.type,
+              })
+            ),
+
+          reasoningObservations:
+            state.reasoningObservations.map(
+              (observation) => ({
+                statement:
+                  observation.statement,
+                confidence:
+                  observation.confidence,
+                kind:
+                  observation.kind,
+              })
+            ),
+
+          timeline:
+            state.timeline,
+
+          reflections:
+            state.reflections,
+
+          memories:
+            state.memories.map(
+              (memory) =>
+                `${memory.key}: ${memory.value}`
+            ),
+        }
+      );
+
+    state.goal =
+      goal;
+
     state.currentGoal =
-      plan.goal;
+      goal.statement;
 
     state.currentPlanId =
       plan.id;
@@ -163,6 +291,12 @@ export class PlanningStage
 
           this.formatPlan(
             plan
+          ),
+
+          "",
+
+          this.formatGoal(
+            goal
           ),
         ].join(
           "\n"
@@ -368,6 +502,53 @@ export class PlanningStage
         ) =>
           `${index + 1}. ${milestone}`
       ),
+    ].join(
+      "\n"
+    );
+  }
+
+  private formatGoal(
+    goal: {
+      statement: string;
+      status: string;
+      progress: number;
+      priority: number;
+      confidence: number;
+      nextAction: string;
+      obstacles: string[];
+      dependencies: string[];
+    }
+  ): string {
+    return [
+      "Goal Intelligence:",
+
+      `Statement: ${goal.statement}`,
+
+      `Status: ${goal.status}`,
+
+      `Progress: ${goal.progress}%`,
+
+      `Priority: ${goal.priority}`,
+
+      `Confidence: ${goal.confidence}`,
+
+      `Next Action: ${goal.nextAction}`,
+
+      ...(goal.dependencies.length > 0
+        ? [
+            `Dependencies: ${goal.dependencies.join(
+              ", "
+            )}`,
+          ]
+        : []),
+
+      ...(goal.obstacles.length > 0
+        ? [
+            `Obstacles: ${goal.obstacles.join(
+              "; "
+            )}`,
+          ]
+        : []),
     ].join(
       "\n"
     );

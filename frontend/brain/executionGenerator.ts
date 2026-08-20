@@ -1,25 +1,47 @@
-import { Decision } from "./decision";
-import { Execution } from "./execution";
+import {
+  Decision,
+} from "./decision";
+
+import {
+  Execution,
+} from "./execution";
+
+import type {
+  ActionRoute,
+} from "./actionRouting";
 
 export function generateExecution(
   decision: Decision,
-  planId: string
+  planId: string,
+  route: ActionRoute | null = null
 ): Execution {
   return {
-    id: crypto.randomUUID(),
+    id:
+      crypto.randomUUID(),
 
     planId,
 
-    title: decision.title,
+    title:
+      decision.title,
 
-    action: decision.selectedAction,
+    action:
+      decision.selectedAction,
 
-    status: "pending",
+    route,
 
-    startedAt: null,
+    status:
+      "pending",
 
-    completedAt: null,
+    startedAt:
+      null,
 
-    createdAt: new Date(),
+    completedAt:
+      null,
+
+    createdAt:
+      new Date(),
+
+    result:
+      null,
   };
 }

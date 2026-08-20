@@ -121,7 +121,33 @@ export abstract class BaseStage
       |--------------------------------------------------------------------------
       | Diagnostics
       |--------------------------------------------------------------------------
+      |
+      | Every stage persists a durable diagnostic artifact in BrainState.
+      |
       */
+
+      const completedAt =
+        new Date();
+
+      result.diagnostics.push({
+        stage:
+          this.name,
+
+        startedAt:
+          new Date(startedAt),
+
+        completedAt,
+
+        durationMs:
+          completedAt.getTime() -
+          startedAt,
+
+        success:
+          true,
+
+        error:
+          null,
+      });
 
       console.debug(
         `[Runtime] ${this.name} (${Date.now() - startedAt} ms)`
@@ -145,6 +171,29 @@ export abstract class BaseStage
       state.errors.push(
         `${this.name}: ${message}`
       );
+
+      const completedAt =
+        new Date();
+
+      state.diagnostics.push({
+        stage:
+          this.name,
+
+        startedAt:
+          new Date(startedAt),
+
+        completedAt,
+
+        durationMs:
+          completedAt.getTime() -
+          startedAt,
+
+        success:
+          false,
+
+        error:
+          message,
+      });
 
       console.error(
         `[Runtime] ${this.name} failed`,

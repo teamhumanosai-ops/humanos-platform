@@ -14,6 +14,43 @@ import {
   BaseStage,
 } from "./baseStage";
 
+const MAX_INFERENCE_EVIDENCE =
+  5;
+
+export function formatInferenceEvidence(
+  state: BrainState
+): string[] {
+  return state.inferences
+    .slice(
+      0,
+      MAX_INFERENCE_EVIDENCE
+    )
+    .map(
+      (
+        inference,
+        index
+      ) => {
+        const sources =
+          [
+            ...new Set(
+              inference.evidence.map(
+                (
+                  evidence
+                ) =>
+                  evidence.source
+              )
+            ),
+          ];
+
+        return `${index + 1}. [${inference.kind}] ${inference.statement} (confidence ${inference.confidence.toFixed(
+          2
+        )}; sources ${sources.join(
+          ", "
+        ) || "none"})`;
+      }
+    );
+}
+
 /**
  * DecisionStage
  *
@@ -23,10 +60,10 @@ import {
  * The Decision Engine remains authoritative
  * for selecting the action.
  *
- * BrainState reasoning evidence is preserved
- * alongside the resulting decision so later
- * runtime stages can understand the cognitive
- * evidence that preceded the decision.
+ * BrainState reasoning and inference evidence
+ * is preserved alongside the resulting decision
+ * so later runtime stages can understand the
+ * cognitive evidence that preceded the decision.
  */
 export class DecisionStage
   extends BaseStage {
@@ -116,6 +153,11 @@ export class DecisionStage
             })`
         );
 
+    const inferenceEvidence =
+      formatInferenceEvidence(
+        state
+      );
+
     /*
     |--------------------------------------------------------------------------
     | Decision artifact
@@ -151,6 +193,16 @@ export class DecisionStage
               "Reasoning Evidence:",
 
               ...reasoningEvidence,
+            ]
+          : []),
+
+        ...(inferenceEvidence.length > 0
+          ? [
+              "",
+
+              "Inference Evidence:",
+
+              ...inferenceEvidence,
             ]
           : []),
 

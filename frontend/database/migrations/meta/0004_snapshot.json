@@ -1,0 +1,77 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "02cc18a0-0a38-467a-ad13-f25b131943d4",
+  "prevId": "81432e6d-78c9-42c8-a466-fa001f75d146",
+  "tables": {
+    "memories": {
+      "name": "memories",
+      "columns": {
+        "key": {"name":"key","type":"text","primaryKey":true,"notNull":true,"autoincrement":false},
+        "value": {"name":"value","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "confidence": {"name":"confidence","type":"integer","primaryKey":false,"notNull":true,"autoincrement":false},
+        "kind": {"name":"kind","type":"text","primaryKey":false,"notNull":true,"autoincrement":false,"default":"'short_term'"},
+        "importance": {"name":"importance","type":"integer","primaryKey":false,"notNull":true,"autoincrement":false,"default":0},
+        "updated_at": {"name":"updated_at","type":"text","primaryKey":false,"notNull":true,"autoincrement":false}
+      },
+      "indexes": {},"foreignKeys": {},"compositePrimaryKeys": {},"uniqueConstraints": {},"checkConstraints": {}
+    },
+    "plans": {
+      "name": "plans",
+      "columns": {
+        "id": {"name":"id","type":"text","primaryKey":true,"notNull":true,"autoincrement":false},
+        "title": {"name":"title","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "goal": {"name":"goal","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "description": {"name":"description","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "status": {"name":"status","type":"text","primaryKey":false,"notNull":true,"autoincrement":false,"default":"'active'"},
+        "milestones": {"name":"milestones","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "completed_milestones": {"name":"completed_milestones","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "next_action": {"name":"next_action","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "priority": {"name":"priority","type":"integer","primaryKey":false,"notNull":true,"autoincrement":false},
+        "confidence": {"name":"confidence","type":"integer","primaryKey":false,"notNull":true,"autoincrement":false},
+        "created_at": {"name":"created_at","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "updated_at": {"name":"updated_at","type":"text","primaryKey":false,"notNull":true,"autoincrement":false}
+      },
+      "indexes": {},"foreignKeys": {},"compositePrimaryKeys": {},"uniqueConstraints": {},"checkConstraints": {}
+    },
+    "reflections": {
+      "name": "reflections",
+      "columns": {
+        "id": {"name":"id","type":"integer","primaryKey":true,"notNull":true,"autoincrement":true},
+        "summary": {"name":"summary","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "evidence": {"name":"evidence","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "confidence": {"name":"confidence","type":"integer","primaryKey":false,"notNull":true,"autoincrement":false},
+        "created_at": {"name":"created_at","type":"text","primaryKey":false,"notNull":true,"autoincrement":false}
+      },
+      "indexes": {},"foreignKeys": {},"compositePrimaryKeys": {},"uniqueConstraints": {},"checkConstraints": {}
+    },
+    "timeline_events": {
+      "name": "timeline_events",
+      "columns": {
+        "id": {"name":"id","type":"integer","primaryKey":true,"notNull":true,"autoincrement":true},
+        "timestamp": {"name":"timestamp","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "title": {"name":"title","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "description": {"name":"description","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "category": {"name":"category","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "confidence": {"name":"confidence","type":"integer","primaryKey":false,"notNull":true,"autoincrement":false},
+        "source": {"name":"source","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "created_at": {"name":"created_at","type":"text","primaryKey":false,"notNull":true,"autoincrement":false}
+      },
+      "indexes": {},"foreignKeys": {},"compositePrimaryKeys": {},"uniqueConstraints": {},"checkConstraints": {}
+    },
+    "profiles": {
+      "name": "profiles",
+      "columns": {
+        "id": {"name":"id","type":"text","primaryKey":true,"notNull":true,"autoincrement":false},
+        "data": {"name":"data","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "created_at": {"name":"created_at","type":"text","primaryKey":false,"notNull":true,"autoincrement":false},
+        "updated_at": {"name":"updated_at","type":"text","primaryKey":false,"notNull":true,"autoincrement":false}
+      },
+      "indexes": {},"foreignKeys": {},"compositePrimaryKeys": {},"uniqueConstraints": {},"checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {"schemas":{},"tables":{},"columns":{}},
+  "internal": {"indexes":{}}
+}

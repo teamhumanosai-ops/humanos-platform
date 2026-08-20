@@ -1,0 +1,219 @@
+import {
+  createBrainState,
+} from "../../brainState";
+
+import {
+  ActionDispatchStage,
+} from "./actionDispatchStage";
+
+function assert(
+  condition: boolean,
+  message: string
+): void {
+  if (!condition) {
+    throw new Error(
+      `ATR-002 dispatch-stage verification failed: ${message}`
+    );
+  }
+}
+
+const state =
+  createBrainState(
+    "conversation",
+    [],
+    "Search for status"
+  );
+
+state.actionRoute = {
+  id: "route-dispatch",
+  kind: "provider",
+  action: "Search for status",
+  target: "web-search",
+  confidence: 0.9,
+  executable: true,
+};
+
+const dispatchStage =
+  new ActionDispatchStage();
+
+await dispatchStage.execute(
+  state
+);
+
+assert(
+  state.errors.length === 0,
+  "valid search routes must dispatch without errors"
+);
+
+assert(
+  state.actionAuthorization?.status ===
+    "allowed",
+  "valid search dispatch must persist an allowed authorization decision"
+);
+
+assert(
+  state.actionDispatch?.authorizationStatus ===
+    "allowed",
+  "dispatch must preserve the allowed authorization status"
+);
+
+assert(
+  state.actionDispatch?.authorizationPolicyVersion ===
+    "atr-authorization-v1",
+  "dispatch must preserve the authorization policy version"
+);
+
+assert(
+  state.actionDispatch?.routeId ===
+    "route-dispatch",
+  "BrainState must preserve the dispatch route identity"
+);
+
+assert(
+  state.actionDispatch?.kind ===
+    "provider",
+  "BrainState must preserve the dispatch kind"
+);
+
+assert(
+  state.actionDispatch?.target ===
+    "web-search",
+  "BrainState must preserve the concrete dispatch target"
+);
+
+assert(
+  state.actionDispatch?.action ===
+    "Search for status",
+  "BrainState must preserve the dispatched action"
+);
+
+assert(
+  state.execution?.includes(
+    "Dispatch: provider/web-search"
+  ) === true,
+  "search dispatch metadata must preserve route kind and target"
+);
+
+assert(
+  state.execution?.includes(
+    "Route ID: route-dispatch"
+  ) === true,
+  "dispatch metadata must preserve route identity"
+);
+
+assert(
+  state.execution?.includes(
+    "Capability: web-search"
+  ) === true,
+  "search dispatch must identify the concrete execution capability"
+);
+
+const firstExecution =
+  state.execution;
+
+await dispatchStage.execute(
+  state
+);
+
+assert(
+  state.execution ===
+    firstExecution,
+  "re-entering dispatch with the same route must be idempotent"
+);
+
+assert(
+  state.actionDispatch?.routeId ===
+    "route-dispatch",
+  "idempotent dispatch must preserve the validated descriptor"
+);
+
+const contentState =
+  createBrainState(
+    "conversation",
+    [],
+    "Open this web page"
+  );
+
+contentState.actionRoute = {
+  id: "route-content",
+  kind: "provider",
+  action:
+    "Open https://example.com/source",
+  target: "web-content",
+  confidence: 0.9,
+  executable: true,
+};
+
+await new ActionDispatchStage().execute(
+  contentState
+);
+
+assert(
+  contentState.errors.length === 0,
+  "web-content routes must dispatch through a concrete capability"
+);
+
+assert(
+  contentState.actionDispatch?.target ===
+    "web-content",
+  "web-content dispatch must persist the concrete target"
+);
+
+assert(
+  contentState.actionDispatch?.authorizationStatus ===
+    "allowed",
+  "web-content dispatch must preserve authorization provenance"
+);
+
+assert(
+  contentState.execution?.includes(
+    "Dispatch: provider/web-content"
+  ) === true,
+  "web-content dispatch metadata must preserve the provider target"
+);
+
+assert(
+  contentState.execution?.includes(
+    "Capability: web-content"
+  ) === true,
+  "web-content dispatch must identify the concrete execution capability"
+);
+
+const invalidState =
+  createBrainState(
+    "conversation",
+    [],
+    "Do something ambiguous"
+  );
+
+invalidState.actionRoute = {
+  id: "route-invalid",
+  kind: "unknown",
+  action: "Do something ambiguous",
+  target: "unresolved",
+  confidence: 0,
+  executable: false,
+};
+
+await new ActionDispatchStage().execute(
+  invalidState
+);
+
+assert(
+  invalidState.actionDispatch ===
+    null,
+  "invalid routes must never persist a dispatch descriptor"
+);
+
+assert(
+  invalidState.errors.some(
+    (error) =>
+      error.includes(
+        "not executable"
+      ) ||
+      error.includes(
+        "not executable"
+      )
+  ),
+  "invalid routes must be rejected by authorization before dispatch"
+);

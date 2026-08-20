@@ -18,6 +18,8 @@ export type ReasoningObservation = {
 
   confidence: number;
 
+  relevance: number;
+
   source:
     ReasoningSource;
 

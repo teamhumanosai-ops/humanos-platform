@@ -1,4 +1,5 @@
 import type {
+  ExecutionResult,
   ExecutionStatus,
 } from "../execution";
 
@@ -24,6 +25,9 @@ export type RuntimeOutcome = {
 
     executionStatus:
       ExecutionStatus | null;
+
+    executionResult:
+      ExecutionResult | null;
 
     planId:
       string | null;
@@ -55,6 +59,9 @@ export function createRuntimeOutcome(
 
     executionStatus:
       ExecutionStatus | null;
+
+    executionResult?:
+      ExecutionResult | null;
 
     planId:
       string | null;
@@ -90,6 +97,16 @@ export function createRuntimeOutcome(
 
       executionStatus:
         input.executionStatus,
+
+      executionResult:
+        input.executionResult
+          ? {
+              ...input.executionResult,
+              metadata: {
+                ...input.executionResult.metadata,
+              },
+            }
+          : null,
 
       planId:
         input.planId,

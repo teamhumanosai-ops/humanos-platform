@@ -32,8 +32,25 @@ import type {
 } from "./prediction";
 
 import type {
+  Recommendation,
+} from "./recommendation";
+
+import type {
   CognitiveInference,
 } from "./inference";
+
+import type {
+  ActionAuthorization,
+} from "./actionRouting/authorization";
+
+import type {
+  ActionDispatch,
+  ActionRoute,
+} from "./actionRouting";
+
+import type {
+  ContentIntelligence,
+} from "./contentIntelligence";
 
 export type ConversationMessage = {
   role:
@@ -176,6 +193,16 @@ export type BrainState = {
 
   /*
   |--------------------------------------------------------------------------
+  | Content Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  contentIntelligence:
+    ContentIntelligence
+    | null;
+
+  /*
+  |--------------------------------------------------------------------------
   | Goal Intelligence
   |--------------------------------------------------------------------------
   */
@@ -192,6 +219,33 @@ export type BrainState = {
 
   predictions:
     Prediction[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Recommendation Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  recommendations:
+    Recommendation[];
+
+  /*
+  |--------------------------------------------------------------------------
+  | Action Routing Intelligence
+  |--------------------------------------------------------------------------
+  */
+
+  actionRoute:
+    ActionRoute
+    | null;
+
+  actionAuthorization:
+    ActionAuthorization
+    | null;
+
+  actionDispatch:
+    ActionDispatch
+    | null;
 
   /*
   |--------------------------------------------------------------------------
@@ -354,6 +408,15 @@ export function createBrainState(
 
     /*
     |--------------------------------------------------------------------------
+    | Content Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    contentIntelligence:
+      null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Goal Intelligence
     |--------------------------------------------------------------------------
     */
@@ -369,6 +432,30 @@ export function createBrainState(
 
     predictions:
       [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recommendation Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    recommendations:
+      [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Action Routing Intelligence
+    |--------------------------------------------------------------------------
+    */
+
+    actionRoute:
+      null,
+
+    actionAuthorization:
+      null,
+
+    actionDispatch:
+      null,
 
     /*
     |--------------------------------------------------------------------------

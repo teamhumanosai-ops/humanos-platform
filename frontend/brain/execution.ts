@@ -10,11 +10,28 @@ import {
   completePlanMilestone,
 } from "./planning";
 
+import type {
+  ActionRoute,
+} from "./actionRouting";
+
 export type ExecutionStatus =
   | "pending"
   | "in_progress"
   | "completed"
   | "blocked";
+
+export type ExecutionResult = {
+  status:
+    "completed" | "blocked";
+
+  summary: string;
+
+  metadata:
+    Record<string, string>;
+
+  error:
+    string | null;
+};
 
 export type Execution = {
   id: string;
@@ -25,6 +42,10 @@ export type Execution = {
 
   action: string;
 
+  route:
+    ActionRoute
+    | null;
+
   status: ExecutionStatus;
 
   startedAt: Date | null;
@@ -32,6 +53,9 @@ export type Execution = {
   completedAt: Date | null;
 
   createdAt: Date;
+
+  result:
+    ExecutionResult | null;
 };
 
 const executionStore =
@@ -106,19 +130,110 @@ export function clearExecutions():
 
 export function createExecutionFromDecision(
   decision: Decision,
-  planId: string
+  planId: string,
+  route: ActionRoute | null = null
 ): Execution {
   const execution =
     generateExecution(
       decision,
-      planId
+      planId,
+      route
     );
 
+  const normalized:
+    Execution = {
+    ...execution,
+
+    result:
+      null,
+  };
+
   saveExecution(
-    execution
+    normalized
   );
 
-  return execution;
+  return normalized;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Execution Result
+|--------------------------------------------------------------------------
+*/
+
+export function setExecutionResult(
+  id: string,
+  result: ExecutionResult
+): Execution | null {
+  const execution =
+    getExecution(id);
+
+  if (!execution) {
+    return null;
+  }
+
+  const summary =
+    result.summary.trim();
+
+  if (!summary) {
+    throw new Error(
+      "Execution result summary cannot be empty."
+    );
+  }
+
+  if (
+    result.status ===
+      "completed" &&
+    result.error !== null
+  ) {
+    throw new Error(
+      "Completed execution results cannot contain an error."
+    );
+  }
+
+  if (
+    result.status ===
+      "blocked" &&
+    !result.error?.trim()
+  ) {
+    throw new Error(
+      "Blocked execution results must contain an error."
+    );
+  }
+
+  if (
+    execution.status !==
+      "in_progress"
+  ) {
+    throw new Error(
+      `Execution ${id} cannot accept a result while in ${execution.status} state.`
+    );
+  }
+
+  const updated:
+    Execution = {
+    ...execution,
+
+    result: {
+      status:
+        result.status,
+
+      summary,
+
+      metadata: {
+        ...result.metadata,
+      },
+
+      error:
+        result.error,
+    },
+  };
+
+  saveExecution(
+    updated
+  );
+
+  return updated;
 }
 
 /*
@@ -137,12 +252,6 @@ export function startExecution(
   if (!execution) {
     return null;
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Only pending executions can start.
-  |--------------------------------------------------------------------------
-  */
 
   if (
     execution.status !==
@@ -180,15 +289,16 @@ export function completeExecution(
     return null;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Only active executions can complete.
-  |--------------------------------------------------------------------------
-  */
-
   if (
     execution.status !==
     "in_progress"
+  ) {
+    return null;
+  }
+
+  if (
+    execution.result?.status !==
+    "completed"
   ) {
     return null;
   }
@@ -207,13 +317,6 @@ export function completeExecution(
   saveExecution(
     updated
   );
-
-  /*
-  |--------------------------------------------------------------------------
-  | Completing execution advances the
-  | corresponding planning milestone.
-  |--------------------------------------------------------------------------
-  */
 
   completePlanMilestone(
     updated.planId,
@@ -234,13 +337,6 @@ export function blockExecution(
     return null;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Only pending or active executions
-  | may become blocked.
-  |--------------------------------------------------------------------------
-  */
-
   if (
     execution.status !==
       "pending" &&
@@ -256,6 +352,10 @@ export function blockExecution(
 
     status:
       "blocked",
+
+    completedAt:
+      execution.completedAt ??
+      new Date(),
   };
 
   saveExecution(

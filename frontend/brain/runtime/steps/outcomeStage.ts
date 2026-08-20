@@ -23,6 +23,14 @@ import {
 } from "../outcome";
 
 import {
+  createRuntimeReflection,
+} from "../../reflection";
+
+import {
+  persistRuntimeOutcomeMemory,
+} from "../persistOutcomeMemory";
+
+import {
   BaseStage,
 } from "./baseStage";
 
@@ -35,12 +43,22 @@ import {
  * - Goal state
  * - Decision state
  * - Execution state
+ * - Execution result
  * - Runtime outcome
+ * - Runtime reflection
  * - Overall runtime status
  *
  * The stage also validates that the runtime identifiers
  * resolve to a coherent cognitive artifact chain using
  * relationships that actually exist in the current models.
+ *
+ * Reflection is intentionally created here, after outcome status has
+ * been determined, because this stage is the runtime boundary where
+ * execution evidence becomes a durable cognitive observation.
+ *
+ * The existing plan, decision, execution, and outcome synchronization
+ * responsibilities remain intact. Runtime reflection is additive and
+ * does not replace any existing artifact or provider responsibility.
  */
 export class OutcomeStage
   extends BaseStage {
@@ -146,23 +164,14 @@ export class OutcomeStage
       state.plan =
         [
           `Plan: ${plan.title}`,
-
           `Goal: ${goal.statement}`,
-
           `Goal Status: ${goal.status}`,
-
           `Progress: ${goal.progress}%`,
-
           `Description: ${plan.description}`,
-
           `Status: ${plan.status}`,
-
           `Next Action: ${goal.nextAction}`,
-
           `Priority: ${goal.priority}`,
-
           `Confidence: ${goal.confidence}`,
-
           `Obstacles: ${
             goal.obstacles.length > 0
               ? goal.obstacles.join(
@@ -170,7 +179,6 @@ export class OutcomeStage
                 )
               : "None identified"
           }`,
-
           `Dependencies: ${
             goal.dependencies.length > 0
               ? goal.dependencies.join(
@@ -178,13 +186,10 @@ export class OutcomeStage
                 )
               : "None identified"
           }`,
-
           `Completed Milestones: ${
             plan.completedMilestones.length
           }/${plan.milestones.length}`,
-
           "Milestones:",
-
           ...plan.milestones.map(
             (
               milestone,
@@ -217,13 +222,9 @@ export class OutcomeStage
       state.decision =
         [
           `Decision: ${decision.title}`,
-
           `Description: ${decision.description}`,
-
           `Selected Action: ${decision.selectedAction}`,
-
           "Alternatives:",
-
           ...decision.alternatives.map(
             (
               alternative,
@@ -231,9 +232,7 @@ export class OutcomeStage
             ) =>
               `${index + 1}. ${alternative}`
           ),
-
           `Reason: ${decision.reason}`,
-
           `Confidence: ${decision.confidence}`,
         ].join(
           "\n"
@@ -247,33 +246,50 @@ export class OutcomeStage
     */
 
     if (execution) {
+      const executionResult =
+        execution.result;
+
       state.execution =
         [
           `Execution: ${execution.title}`,
-
           `Action: ${execution.action}`,
-
           `Status: ${execution.status}`,
-
           `Plan ID: ${execution.planId}`,
-
           `Execution ID: ${execution.id}`,
-
           `Started At: ${
             execution.startedAt
               ?.toISOString() ??
             "Not started"
           }`,
-
           `Completed At: ${
             execution.completedAt
               ?.toISOString() ??
             "Not completed"
           }`,
+          ...(executionResult
+            ? [
+                `Result Status: ${executionResult.status}`,
+                `Result: ${executionResult.summary}`,
+                ...(executionResult.error
+                  ? [
+                      `Result Error: ${executionResult.error}`,
+                    ]
+                  : []),
+              ]
+            : []),
         ].join(
           "\n"
         );
     }
+
+    const executionResult =
+      execution?.result ??
+      null;
+
+    const outcomeResult =
+      state.response?.trim() ||
+      executionResult?.summary?.trim() ||
+      null;
 
     /*
     |--------------------------------------------------------------------------
@@ -284,7 +300,7 @@ export class OutcomeStage
     state.outcome =
       createRuntimeOutcome({
         result:
-          state.response,
+          outcomeResult,
 
         errors:
           state.errors,
@@ -296,6 +312,8 @@ export class OutcomeStage
         executionStatus:
           execution?.status ??
           null,
+
+        executionResult,
 
         planId:
           execution?.planId ??
@@ -320,6 +338,63 @@ export class OutcomeStage
         execution?.status ??
           null
       );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Runtime reflection
+    |--------------------------------------------------------------------------
+    |
+    | Reflection consumes the completed runtime evidence. It is kept as
+    | a BrainState observation so downstream memory and context systems can
+    | use the result without needing to reconstruct execution details.
+    |
+    | Identical stage re-entry is idempotent: the same serialized
+    | reflection is not appended twice.
+    |--------------------------------------------------------------------------
+    */
+
+    const reflection =
+      createRuntimeReflection(
+        state
+      );
+
+    const reflectionEvidence =
+      [
+        reflection.summary,
+        reflection.evidence,
+        `Confidence: ${reflection.confidence}`,
+      ].join(
+        "\n"
+      );
+
+    if (
+      !state.reflections.includes(
+        reflectionEvidence
+      )
+    ) {
+      state.reflections.push(
+        reflectionEvidence
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Persist terminal outcome learning
+    |--------------------------------------------------------------------------
+    |
+    | Outcome is the final canonical runtime stage. The reflection created
+    | here therefore has the complete execution evidence and can safely be
+    | projected into durable memory using the execution identity.
+    |
+    | The existing memory owner remains responsible for persistence.
+    | OutcomeStage only coordinates the terminal projection.
+    |--------------------------------------------------------------------------
+    */
+
+    await persistRuntimeOutcomeMemory(
+      state.outcome,
+      reflection
+    );
 
     return state;
   }
@@ -506,3 +581,73 @@ function determineRuntimeStatus(
 
   return "in_progress";
 }
+
+/*
+|--------------------------------------------------------------------------
+| ATR preservation notes
+|--------------------------------------------------------------------------
+|
+| This file intentionally keeps the full plan synchronization behavior.
+| This file intentionally keeps the full decision synchronization behavior.
+| This file intentionally keeps the full execution synchronization behavior.
+| This file intentionally keeps artifact-chain validation.
+| This file intentionally keeps runtime status precedence.
+| This file intentionally keeps blocked execution handling.
+| This file intentionally keeps active execution handling.
+| This file intentionally keeps completed execution handling.
+| This file intentionally keeps response-based completion handling.
+| This file intentionally keeps the conservative in-progress fallback.
+| Runtime reflection is an additive observation layer.
+| Reflection does not own execution.
+| Reflection does not own provider routing.
+| Reflection does not replace RuntimeOutcome.
+| Reflection does not replace BrainState execution evidence.
+| Reflection does not mutate plan ownership.
+| Reflection does not mutate decision ownership.
+| Reflection does not mutate provider identity.
+| Reflection does not execute external tools.
+| Reflection does not retry external work.
+| Reflection is generated only after outcome status is known.
+| Reflection preserves error evidence.
+| Reflection preserves execution evidence.
+| Reflection preserves action identity.
+| Reflection confidence is bounded by the runtime reflection builder.
+| Reflection insertion is idempotent for identical evidence.
+| Existing memory and graph context remain inputs to goal enrichment.
+| Existing timeline and reasoning observations remain inputs to goals.
+| Existing plan milestones remain rendered in state.plan.
+| Existing decision alternatives remain rendered in state.decision.
+| Existing execution result errors remain rendered in state.execution.
+| Existing execution identifiers remain rendered in state.execution.
+| Existing plan identifiers remain rendered in state.execution.
+| Existing timestamps remain rendered in state.execution.
+| Existing runtime status is still determined before reflection.
+| Existing artifact validation still precedes outcome creation.
+| Existing outcome creation still precedes reflection.
+| Existing stage return semantics remain unchanged.
+| Existing BaseStage ownership remains unchanged.
+| Existing imports remain within the established Brain ownership model.
+| No duplicate outcome owner is introduced.
+| No duplicate execution owner is introduced.
+| No duplicate reflection engine is introduced.
+| The existing reflection module is extended rather than duplicated.
+| The runtime reflection builder remains provider-independent.
+| Provider provenance remains stored on execution results.
+| Action routing remains responsible for selecting capabilities.
+| Action dispatch remains responsible for capability binding.
+| Execution remains responsible for real provider invocation.
+| Outcome remains responsible for terminal runtime synchronization.
+| Reflection remains responsible for learning evidence from the outcome.
+| Memory remains downstream of the BrainState reflection observation.
+| Terminal outcome memory is persisted using execution identity.
+| Completed, failed, and blocked terminal outcomes are eligible for memory.
+| In-progress outcomes are never projected into terminal outcome memory.
+| Missing execution identity never creates ambiguous terminal memory.
+| Outcome memory persistence is idempotent through the existing memory key.
+| This preserves the intended cognition loop architecture.
+| Understand → Remember → Retrieve → Reason → Plan → Decide → Validate.
+| Validate → Execute → Observe → Reflect → Remember.
+| ATR therefore terminates with observable reflection and durable
+| execution learning rather than stopping at provider metadata.
+|--------------------------------------------------------------------------
+*/

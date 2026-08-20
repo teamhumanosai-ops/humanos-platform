@@ -5,7 +5,12 @@ import {
 import {
   loadReflections,
   runReflectionEngine,
+  buildRuntimeReflectionMemory,
 } from "../../reflection";
+
+import {
+  saveMemory,
+} from "../../memory/store";
 
 import {
   BaseStage,
@@ -21,8 +26,10 @@ import {
  * for analyzing timeline history and persisting
  * inferred reflections.
  *
- * This stage only integrates that capability
- * into the runtime BrainState.
+ * This stage integrates the persisted reflection
+ * knowledge into BrainState and promotes the
+ * latest reflection evidence into the existing
+ * durable memory owner.
  */
 export class ReflectionStage
   extends BaseStage {
@@ -56,6 +63,47 @@ export class ReflectionStage
         (reflection) =>
           reflection.summary
       );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Promote reflection knowledge into the
+    | existing durable memory owner.
+    |
+    | Reflection remains responsible for inference.
+    | Memory remains responsible for persistence.
+    | This stage only bridges the two existing owners.
+    |
+    | Terminal execution outcome memory is intentionally handled by
+    | OutcomeStage because the canonical runtime keeps Outcome after
+    | Reflection. That preserves the existing stage ordering while
+    | allowing terminal outcome evidence to be persisted after it exists.
+    |--------------------------------------------------------------------------
+    */
+
+    const latestReflection =
+      reflections[
+        reflections.length - 1
+      ];
+
+    if (latestReflection) {
+      const memoryKey =
+        state.currentExecutionId
+          ? `runtime-reflection:${state.currentExecutionId}`
+          : "runtime-reflection:latest";
+
+      const memoryValue =
+        buildRuntimeReflectionMemory(
+          latestReflection
+        );
+
+      if (memoryValue) {
+        await saveMemory(
+          memoryKey,
+          memoryValue,
+          0.85
+        );
+      }
+    }
 
     return state;
   }

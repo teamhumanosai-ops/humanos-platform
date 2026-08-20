@@ -8,7 +8,8 @@ export type PredictionEvidenceSource =
   | "timeline"
   | "memory"
   | "graph"
-  | "reflection";
+  | "reflection"
+  | "history";
 
 export type PredictionEvidence = {
   source:

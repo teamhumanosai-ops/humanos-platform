@@ -11,6 +11,8 @@ export type InferenceEvidence = {
   statement: string;
 
   confidence: number;
+
+  relevance: number;
 };
 
 export type CognitiveInference = {

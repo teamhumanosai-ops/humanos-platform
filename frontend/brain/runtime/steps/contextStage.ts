@@ -7,6 +7,10 @@ import {
 } from "../../context";
 
 import {
+  analyzeContentSources,
+} from "../../contentIntelligence";
+
+import {
   Intent,
 } from "../../intent";
 
@@ -25,8 +29,15 @@ import {
  * Live web evidence is explicitly included
  * when LiveKnowledgeStage has executed.
  *
+ * Content Intelligence analyzes source structure,
+ * freshness, completeness, and provider agreement
+ * without treating metadata as proof of truth.
+ *
  * Conversation continuity is included when older
  * messages fall outside the short-term window.
+ *
+ * The persisted Human Profile is included when
+ * ProfileStage has hydrated it into BrainState.
  */
 export class ContextStage
   extends BaseStage {
@@ -47,14 +58,52 @@ export class ContextStage
         state
       );
 
+    state.contentIntelligence =
+      analyzeContentSources(
+        state.citations
+      );
+
     let prompt =
       structuredContext.prompt;
+
+    if (
+      state.profile
+    ) {
+      prompt +=
+        `\n\nHUMAN PROFILE:\n\n${JSON.stringify(
+          state.profile
+        )}\n\nUse the profile as persistent user context. Do not treat missing fields as known facts.`;
+    }
 
     if (
       state.conversationContinuity
     ) {
       prompt +=
         `\n\nCONVERSATION CONTINUITY:\n\n${state.conversationContinuity}\n\nThe continuity above represents older conversation turns that are outside the active short-term message window. Use it only as historical conversational context and do not treat clipped content as a complete transcript.`;
+    }
+
+    if (
+      state.contentIntelligence
+        .sourceCount >
+      0
+    ) {
+      const content =
+        state.contentIntelligence;
+
+      prompt +=
+        [
+          "",
+          "CONTENT INTELLIGENCE:",
+          `Sources: ${content.sourceCount}`,
+          `Unique domains: ${content.uniqueDomainCount}`,
+          `Providers represented: ${content.providerCount}`,
+          `Cross-provider agreement: ${content.crossProviderAgreementCount}`,
+          `Average freshness: ${content.averageFreshness.toFixed(2)}`,
+          `Average completeness: ${content.averageCompleteness.toFixed(2)}`,
+          "",
+          "Cross-provider agreement is an evidence-strength signal, not proof of factual correctness.",
+          "Source metadata describes retrieval structure and completeness; it does not establish factual truth.",
+        ].join("\n");
     }
 
     switch (
@@ -92,8 +141,15 @@ export class ContextStage
               .map(
                 (
                   citation
-                ) =>
-                  `[${citation.index}] ${citation.title} — ${citation.url}`
+                ) => {
+                  const providers =
+                    citation.providers?.join(
+                      ", "
+                    ) ??
+                    "unknown";
+
+                  return `[${citation.index}] ${citation.title} — ${citation.url} — Providers: ${providers}`;
+                }
               )
               .join(
                 "\n"

@@ -14,10 +14,21 @@ import type {
   ReasoningSource,
 } from "./types";
 
+const MAX_OBSERVATIONS_PER_SOURCE = 5;
+
+const MAX_TOTAL_OBSERVATIONS = 12;
+
+const MIN_RELEVANCE = 0.12;
+
 function normalize(
   value: string
 ): string {
   return value
+    .toLowerCase()
+    .replace(
+      /[^a-z0-9\s]/g,
+      " "
+    )
     .replace(
       /\s+/g,
       " "
@@ -25,9 +36,65 @@ function normalize(
     .trim();
 }
 
+function getTokens(
+  value: string
+): string[] {
+  return [
+    ...new Set(
+      normalize(value)
+        .split(" ")
+        .filter(
+          (token) =>
+            token.length >= 3
+        )
+    ),
+  ];
+}
+
+function calculateRelevance(
+  statement: string,
+  requestTokens: string[]
+): number {
+  if (
+    requestTokens.length === 0
+  ) {
+    return 1;
+  }
+
+  const normalizedStatement =
+    normalize(statement);
+
+  if (
+    !normalizedStatement
+  ) {
+    return 0;
+  }
+
+  const matched =
+    requestTokens.filter(
+      (token) =>
+        normalizedStatement.includes(
+          token
+        )
+    ).length;
+
+  if (
+    matched === 0
+  ) {
+    return 0;
+  }
+
+  return Math.min(
+    1,
+    matched /
+      requestTokens.length
+  );
+}
+
 function limitItems<T>(
   items: T[],
-  limit = 5
+  limit =
+    MAX_OBSERVATIONS_PER_SOURCE
 ): T[] {
   return items.slice(
     0,
@@ -81,16 +148,33 @@ function createObservation(
   statement: string,
   confidence: number,
   source: ReasoningSource,
+  requestTokens: string[],
   preferredKind?:
     ReasoningObservationKind
 ): ReasoningObservation {
   return {
     statement:
-      normalize(
-        statement
+      statement
+        .replace(
+          /\s+/g,
+          " "
+        )
+        .trim(),
+
+    confidence:
+      Math.max(
+        0,
+        Math.min(
+          1,
+          confidence
+        )
       ),
 
-    confidence,
+    relevance:
+      calculateRelevance(
+        statement,
+        requestTokens
+      ),
 
     source,
 
@@ -104,7 +188,8 @@ function createObservation(
 }
 
 function buildMemoryObservations(
-  state: BrainState
+  state: BrainState,
+  requestTokens: string[]
 ): ReasoningObservation[] {
   return limitItems(
     state.memories
@@ -113,7 +198,8 @@ function buildMemoryObservations(
           createObservation(
             `${memory.key}: ${memory.value}`,
             memory.confidence,
-            "memory"
+            "memory",
+            requestTokens
           )
       )
       .filter(
@@ -125,7 +211,8 @@ function buildMemoryObservations(
 }
 
 function buildKnowledgeObservations(
-  state: BrainState
+  state: BrainState,
+  requestTokens: string[]
 ): ReasoningObservation[] {
   return limitItems(
     state.knowledge
@@ -134,7 +221,8 @@ function buildKnowledgeObservations(
           createObservation(
             knowledge.text,
             knowledge.score,
-            "knowledge"
+            "knowledge",
+            requestTokens
           )
       )
       .filter(
@@ -146,7 +234,8 @@ function buildKnowledgeObservations(
 }
 
 function buildGraphObservations(
-  state: BrainState
+  state: BrainState,
+  requestTokens: string[]
 ): ReasoningObservation[] {
   const nodesById =
     new Map<
@@ -197,6 +286,7 @@ function buildGraphObservations(
             )
           ),
           "knowledge_graph",
+          requestTokens,
           "observed_relationship"
         );
       }
@@ -212,7 +302,8 @@ function buildGraphObservations(
 }
 
 function buildTimelineObservations(
-  state: BrainState
+  state: BrainState,
+  requestTokens: string[]
 ): ReasoningObservation[] {
   return limitItems(
     state.timeline
@@ -224,14 +315,16 @@ function buildTimelineObservations(
           createObservation(
             event,
             0.85,
-            "timeline"
+            "timeline",
+            requestTokens
           )
       )
   );
 }
 
 function buildReflectionObservations(
-  state: BrainState
+  state: BrainState,
+  requestTokens: string[]
 ): ReasoningObservation[] {
   return limitItems(
     state.reflections
@@ -244,6 +337,7 @@ function buildReflectionObservations(
             reflection,
             0.8,
             "reflection",
+            requestTokens,
             "derived_inference"
           )
       )
@@ -251,7 +345,8 @@ function buildReflectionObservations(
 }
 
 function buildPredictionObservations(
-  state: BrainState
+  state: BrainState,
+  requestTokens: string[]
 ): ReasoningObservation[] {
   return limitItems(
     state.predictions
@@ -261,6 +356,7 @@ function buildPredictionObservations(
             prediction.statement,
             prediction.confidence,
             "prediction",
+            requestTokens,
             "derived_inference"
           )
       )
@@ -268,7 +364,8 @@ function buildPredictionObservations(
 }
 
 function buildLiveKnowledgeObservations(
-  state: BrainState
+  state: BrainState,
+  requestTokens: string[]
 ): ReasoningObservation[] {
   return limitItems(
     state.liveKnowledge
@@ -280,7 +377,8 @@ function buildLiveKnowledgeObservations(
           createObservation(
             knowledge,
             0.95,
-            "live_knowledge"
+            "live_knowledge",
+            requestTokens
           )
       )
   );
@@ -289,35 +387,72 @@ function buildLiveKnowledgeObservations(
 function buildObservations(
   state: BrainState
 ): ReasoningObservation[] {
-  return [
+  const requestTokens =
+    getTokens(
+      state.userMessage
+    );
+
+  const observations = [
     ...buildMemoryObservations(
-      state
+      state,
+      requestTokens
     ),
 
     ...buildKnowledgeObservations(
-      state
+      state,
+      requestTokens
     ),
 
     ...buildGraphObservations(
-      state
+      state,
+      requestTokens
     ),
 
     ...buildTimelineObservations(
-      state
+      state,
+      requestTokens
     ),
 
     ...buildReflectionObservations(
-      state
+      state,
+      requestTokens
     ),
 
     ...buildPredictionObservations(
-      state
+      state,
+      requestTokens
     ),
 
     ...buildLiveKnowledgeObservations(
-      state
+      state,
+      requestTokens
     ),
   ];
+
+  return observations
+    .filter(
+      (observation) =>
+        observation.relevance >=
+        MIN_RELEVANCE
+    )
+    .sort(
+      (a, b) => {
+        const aScore =
+          a.relevance * 0.65 +
+          a.confidence * 0.35;
+
+        const bScore =
+          b.relevance * 0.65 +
+          b.confidence * 0.35;
+
+        return bScore -
+          aScore;
+      }
+    )
+    .slice(
+      0,
+      MAX_TOTAL_OBSERVATIONS
+    );
 }
 
 export function reason(
@@ -329,28 +464,40 @@ export function reason(
     );
 
   const userRequest =
-    normalize(
-      state.userMessage
-    );
+    state.userMessage
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
 
   const summary =
     observations.length > 0
-      ? `The request "${userRequest}" can be answered using the available cognitive context and ${observations.length} relevant observations.`
-      : `The request "${userRequest}" does not currently have additional structured reasoning evidence.`;
+      ? `The request "${userRequest}" can be answered using ${observations.length} relevant cognitive observations.`
+      : `The request "${userRequest}" does not currently have sufficiently relevant structured reasoning evidence.`;
 
   const confidence =
     observations.length === 0
-      ? 0.5
+      ? 0.25
       : observations.reduce(
           (
             total,
             observation
           ) =>
             total +
-            observation.confidence,
+            observation.confidence *
+              observation.relevance,
           0
         ) /
-        observations.length;
+        observations.reduce(
+          (
+            total,
+            observation
+          ) =>
+            total +
+            observation.relevance,
+          0
+        );
 
   return {
     summary,

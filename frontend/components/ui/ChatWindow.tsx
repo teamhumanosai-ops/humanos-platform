@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+import type {
+  Recommendation,
+} from "@/brain/recommendation";
+
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
 import TypingIndicator from "./TypingIndicator";
@@ -18,6 +22,7 @@ type Message = {
   role: "user" | "assistant";
   message: string;
   citations?: Citation[];
+  recommendations?: Recommendation[];
 };
 
 export default function ChatWindow() {
@@ -108,6 +113,13 @@ export default function ChatWindow() {
             )
               ? data.citations
               : [],
+
+          recommendations:
+            Array.isArray(
+              data.recommendations
+            )
+              ? data.recommendations
+              : [],
         },
       ]);
     } catch (error) {
@@ -125,6 +137,8 @@ export default function ChatWindow() {
             "Sorry, something went wrong while contacting Human OS.",
 
           citations: [],
+
+          recommendations: [],
         },
       ]);
     } finally {
@@ -164,6 +178,9 @@ export default function ChatWindow() {
               }
               citations={
                 msg.citations
+              }
+              recommendations={
+                msg.recommendations
               }
             />
           )

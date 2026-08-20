@@ -14,10 +14,9 @@ export const AI_CONFIG = {
   | Providers
   |--------------------------------------------------------------------------
   |
-  | Both providers are permanently configured.
-  |
-  | The order is the preferred order only.
-  | It is NOT a manual provider switch.
+  | Human OS requires both independent AI providers to be configured.
+  | The order is the preferred failover order only; it is never a manual
+  | provider switch and Human OS must never silently become single-provider.
   |
   */
 
@@ -25,6 +24,11 @@ export const AI_CONFIG = {
     "gemini",
     "openrouter",
   ] as AIProvider[],
+
+  requiredApiKeys: [
+    "GEMINI_API_KEY",
+    "OPENROUTER_API_KEY",
+  ] as const,
 
   /*
   |--------------------------------------------------------------------------
@@ -62,3 +66,23 @@ export const AI_CONFIG = {
   providerFailureCooldownMs:
     30_000,
 };
+
+export function getMissingAIProviderKeys(): string[] {
+  return AI_CONFIG.requiredApiKeys.filter(
+    (key) =>
+      !process.env[key]?.trim()
+  );
+}
+
+export function assertDualAIProviderConfiguration(): void {
+  const missing =
+    getMissingAIProviderKeys();
+
+  if (
+    missing.length > 0
+  ) {
+    throw new Error(
+      `Human OS requires both AI providers. Missing API key(s): ${missing.join(", ")}.`
+    );
+  }
+}

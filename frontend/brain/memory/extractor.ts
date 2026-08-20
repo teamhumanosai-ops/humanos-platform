@@ -27,6 +27,32 @@ function normalizeMessage(
     );
 }
 
+function buildCollectionKey(
+  category: string,
+  value: string
+): string {
+  const normalized =
+    value
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9]+/g,
+        "-"
+      )
+      .replace(
+        /^-+|-+$/g,
+        ""
+      )
+      .slice(
+        0,
+        80
+      );
+
+  return normalized
+    ? `${category}:${normalized}`
+    : category;
+}
+
 function pushCandidate(
   candidates: MemoryExtractionCandidate[],
   key: string,
@@ -194,10 +220,16 @@ export function extractMemoryCandidates(
       "i prefer "
     )
   ) {
+    const value =
+      text.substring(9);
+
     pushCandidate(
       candidates,
-      "preference",
-      text.substring(9),
+      buildCollectionKey(
+        "preference",
+        value
+      ),
+      value,
       0.9
     );
   }
@@ -207,10 +239,16 @@ export function extractMemoryCandidates(
       "i like "
     )
   ) {
+    const value =
+      text.substring(7);
+
     pushCandidate(
       candidates,
-      "preference",
-      text.substring(7),
+      buildCollectionKey(
+        "preference",
+        value
+      ),
+      value,
       0.9
     );
   }
@@ -220,10 +258,16 @@ export function extractMemoryCandidates(
       "i love "
     )
   ) {
+    const value =
+      text.substring(7);
+
     pushCandidate(
       candidates,
-      "preference",
-      text.substring(7),
+      buildCollectionKey(
+        "preference",
+        value
+      ),
+      value,
       0.9
     );
   }
@@ -233,10 +277,16 @@ export function extractMemoryCandidates(
       "i dislike "
     )
   ) {
+    const value =
+      text.substring(10);
+
     pushCandidate(
       candidates,
-      "dislike",
-      text.substring(10),
+      buildCollectionKey(
+        "dislike",
+        value
+      ),
+      value,
       0.9
     );
   }
@@ -246,10 +296,16 @@ export function extractMemoryCandidates(
       "i don't like "
     )
   ) {
+    const value =
+      text.substring(13);
+
     pushCandidate(
       candidates,
-      "dislike",
-      text.substring(13),
+      buildCollectionKey(
+        "dislike",
+        value
+      ),
+      value,
       0.9
     );
   }
@@ -259,10 +315,16 @@ export function extractMemoryCandidates(
       "i dont like "
     )
   ) {
+    const value =
+      text.substring(12);
+
     pushCandidate(
       candidates,
-      "dislike",
-      text.substring(12),
+      buildCollectionKey(
+        "dislike",
+        value
+      ),
+      value,
       0.9
     );
   }
@@ -272,10 +334,16 @@ export function extractMemoryCandidates(
       "my goal is "
     )
   ) {
+    const value =
+      text.substring(11);
+
     pushCandidate(
       candidates,
-      "goal",
-      text.substring(11),
+      buildCollectionKey(
+        "goal",
+        value
+      ),
+      value,
       0.9
     );
   }
@@ -285,10 +353,16 @@ export function extractMemoryCandidates(
       "i want to "
     )
   ) {
+    const value =
+      text.substring(10);
+
     pushCandidate(
       candidates,
-      "goal",
-      text.substring(10),
+      buildCollectionKey(
+        "goal",
+        value
+      ),
+      value,
       0.85
     );
   }
@@ -298,10 +372,16 @@ export function extractMemoryCandidates(
       "i am trying to "
     )
   ) {
+    const value =
+      text.substring(15);
+
     pushCandidate(
       candidates,
-      "goal",
-      text.substring(15),
+      buildCollectionKey(
+        "goal",
+        value
+      ),
+      value,
       0.85
     );
   }
@@ -311,10 +391,16 @@ export function extractMemoryCandidates(
       "i'm trying to "
     )
   ) {
+    const value =
+      text.substring(14);
+
     pushCandidate(
       candidates,
-      "goal",
-      text.substring(14),
+      buildCollectionKey(
+        "goal",
+        value
+      ),
+      value,
       0.85
     );
   }
