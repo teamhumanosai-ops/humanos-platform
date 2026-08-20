@@ -55,6 +55,11 @@ export default function App() {
     setError(null);
 
     try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        throw new Error("Photo library permission is required to attach an image.");
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsEditing: false,
