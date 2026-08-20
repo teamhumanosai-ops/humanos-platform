@@ -4,10 +4,6 @@ import {
   orchestrate,
 } from "@/brain/orchestrator";
 
-import {
-  runMultimodalInput,
-} from "@/brain/core/multimodalService";
-
 import type {
   MultimodalInput,
 } from "@/brain/core/multimodalContracts";
@@ -33,22 +29,11 @@ export async function POST(
         | MultimodalInput
         | undefined;
 
-    if (multimodal) {
-      const message =
-        await runMultimodalInput(
-          multimodal
-        );
-
-      return NextResponse.json({
-        message,
-        citations: [],
-        recommendations: [],
-      });
-    }
-
-    const result = await orchestrate(
-      messages
-    );
+    const result =
+      await orchestrate(
+        messages,
+        multimodal
+      );
 
     return NextResponse.json({
       message: result.message,
