@@ -45,12 +45,10 @@ export default function App() {
     return () => {
       requestController.current?.abort();
       requestController.current = null;
-      if (recorderState.isRecording) {
-        void recorder.stop().catch(() => undefined);
-      }
+      void recorder.stop().catch(() => undefined);
       void setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
     };
-  }, [recorder, recorderState.isRecording]);
+  }, []);
 
   async function handlePickImage() {
     if (sending || recorderState.isRecording) return;
