@@ -10,24 +10,24 @@ import {
 } from "../websearch";
 
 export type RuntimeServices = {
-  aiService:
+  readonly aiService:
     typeof aiService;
 
-  searchWeb:
+  readonly searchWeb:
     typeof searchWeb;
 
-  fetchWebContent:
+  readonly fetchWebContent:
     typeof fetchWebContent;
 
-  fetchWebContentViaFirecrawl:
+  readonly fetchWebContentViaFirecrawl:
     typeof fetchWebContentViaFirecrawl;
 
-  scrapeFirecrawl:
+  readonly scrapeFirecrawl:
     typeof scrapeFirecrawl;
 };
 
 export const runtimeServices:
-  RuntimeServices = {
+  RuntimeServices = Object.freeze({
     aiService,
 
     searchWeb,
@@ -37,4 +37,4 @@ export const runtimeServices:
     fetchWebContentViaFirecrawl,
 
     scrapeFirecrawl,
-  };
+  });
