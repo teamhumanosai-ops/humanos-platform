@@ -118,6 +118,14 @@ const DOMAIN_MAP = new Map(
   LIFE_DOMAINS.map((domain) => [domain.id, domain])
 );
 
+export function isLifeDomainId(
+  value: string
+): value is LifeDomainId {
+  return DOMAIN_MAP.has(
+    value as LifeDomainId
+  );
+}
+
 export function getLifeDomain(
   id: LifeDomainId
 ): LifeDomain {
@@ -144,7 +152,7 @@ export function resolveLifeDomains(
     .filter((domain) => domain.id !== "general")
     .map((domain) => {
       const matchedTerms = domain.aliases.filter((alias) =>
-        containsAlias(normalized, alias)
+        normalized.includes(alias)
       );
 
       return {
@@ -172,19 +180,4 @@ export function resolveLifeDomains(
           matchedTerms: [],
         },
       ];
-}
-
-function containsAlias(
-  text: string,
-  alias: string
-): boolean {
-  const escaped = alias.replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&"
-  );
-
-  return new RegExp(
-    `(^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`,
-    "i"
-  ).test(text);
 }
