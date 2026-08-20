@@ -27,7 +27,7 @@ export type RuntimeServices = {
 };
 
 export const runtimeServices:
-  RuntimeServices = {
+  RuntimeServices = Object.freeze({
     aiService,
 
     searchWeb,
@@ -37,4 +37,4 @@ export const runtimeServices:
     fetchWebContentViaFirecrawl,
 
     scrapeFirecrawl,
-  };
+  });
