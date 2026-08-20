@@ -49,8 +49,9 @@ import {
  * the runtime's final capability-binding provenance artifact.
  *
  * Authorization is also enforced here as a defense-in-depth boundary.
- * A capability cannot execute unless its dispatch was produced from
- * an allowed authorization decision under the same policy version.
+ * A capability cannot execute unless its dispatch was produced from an
+ * allowed authorization decision under the same policy version, route,
+ * and target binding.
  */
 export class ExecutionStage
   extends BaseStage {
@@ -135,12 +136,29 @@ export class ExecutionStage
       return state;
     }
 
+    const authorization =
+      state.actionAuthorization;
+
     if (
-      state.actionAuthorization?.status !==
+      authorization?.status !==
       "allowed"
     ) {
       state.errors.push(
         "Execution: action execution is not authorized by the current action policy."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    if (
+      authorization.routeId !==
+      actionRoute.id ||
+      authorization.target !==
+      actionRoute.target
+    ) {
+      state.errors.push(
+        "Execution: authorization binding does not match the validated action route."
       );
       state.runtimeStatus =
         "blocked";
@@ -161,10 +179,24 @@ export class ExecutionStage
 
     if (
       actionDispatch.authorizationPolicyVersion !==
-      state.actionAuthorization.policyVersion
+      authorization.policyVersion
     ) {
       state.errors.push(
         "Execution: dispatch authorization policy version does not match the current authorization decision."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    if (
+      actionDispatch.authorizationRouteId !==
+      authorization.routeId ||
+      actionDispatch.target !==
+      authorization.target
+    ) {
+      state.errors.push(
+        "Execution: dispatch authorization provenance does not match the current authorization binding."
       );
       state.runtimeStatus =
         "blocked";
