@@ -66,7 +66,7 @@ export function authorizeAndCreateActionDispatch(
   const dispatch =
     createActionDispatch(
       state.actionRoute,
-      authorization.policyVersion
+      authorization
     );
 
   if (!dispatch) {
