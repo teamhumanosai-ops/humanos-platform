@@ -29,7 +29,7 @@ const plan: Plan = {
     "Book personal appointment",
   ],
   completedMilestones: [],
-  nextAction: "Book personal appointment",
+  nextAction: "Complete work review",
   priority: 0.8,
   confidence: 0.8,
   createdAt: new Date(),
