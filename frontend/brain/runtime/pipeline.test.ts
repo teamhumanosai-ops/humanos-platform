@@ -1,4 +1,8 @@
 import {
+  BrainState,
+} from "../brainState";
+
+import {
   CognitiveRuntime,
 } from "./pipeline";
 
@@ -33,6 +37,7 @@ function runPipelineRegistrationVerification(): void {
   const expected = [
     "Input",
     "Intent",
+    "LifeDomain",
     "LiveKnowledge",
     "MemoryExtraction",
     "TimelineExtraction",
@@ -81,6 +86,18 @@ function runPipelineRegistrationVerification(): void {
     new Set(names).size ===
       names.length,
     "canonical runtime must not contain duplicate stage names"
+  );
+
+  assert(
+    names.indexOf("Intent") <
+      names.indexOf("LifeDomain"),
+    "life-domain routing must consume intent output"
+  );
+
+  assert(
+    names.indexOf("LifeDomain") <
+      names.indexOf("LiveKnowledge"),
+    "knowledge retrieval must consume the established life-domain boundary"
   );
 
   assert(
@@ -159,6 +176,32 @@ function runPipelineRegistrationVerification(): void {
     names.indexOf("Outcome") ===
       names.length - 1,
     "Outcome must remain the terminal canonical runtime stage"
+  );
+
+  let terminalRegistrationRejected =
+    false;
+
+  try {
+    runtime.register({
+      name: "AfterOutcome",
+      async execute(
+        state: BrainState
+      ): Promise<BrainState> {
+        return state;
+      },
+    });
+  } catch (
+    error
+  ) {
+    terminalRegistrationRejected =
+      error instanceof Error &&
+      error.message ===
+        "CognitiveRuntime cannot register a stage after terminal Outcome.";
+  }
+
+  assert(
+    terminalRegistrationRejected,
+    "runtime must reject stages registered after terminal Outcome"
   );
 
   console.log(
