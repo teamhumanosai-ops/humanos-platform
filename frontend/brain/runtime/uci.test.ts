@@ -3,6 +3,10 @@ import {
   UCI_PROTOCOL_VERSION,
 } from "./uci";
 
+import {
+  clearUciRequestRegistry,
+} from "./uciRequestRegistry";
+
 function assert(
   condition: boolean,
   message: string
@@ -39,18 +43,22 @@ async function expectFailure(
 }
 
 async function runUciVerification(): Promise<void> {
+  const request = {
+    requestId:
+      "uci-test-001",
+    messages: [
+      {
+        role: "user" as const,
+        message:
+          "Validate the UCI boundary.",
+      },
+    ],
+  };
+
   const response =
-    await executeCognitiveRequest({
-      requestId:
-        "uci-test-001",
-      messages: [
-        {
-          role: "user",
-          message:
-            "Validate the UCI boundary.",
-        },
-      ],
-    });
+    await executeCognitiveRequest(
+      request
+    );
 
   assert(
     response.requestId ===
@@ -68,6 +76,32 @@ async function runUciVerification(): Promise<void> {
     response.state.userMessage ===
       "Validate the UCI boundary.",
     "validated messages must reach BrainState"
+  );
+
+  const duplicateResponse =
+    await executeCognitiveRequest(
+      request
+    );
+
+  assert(
+    duplicateResponse ===
+      response,
+    "duplicate requestId and payload must reuse the registered execution result"
+  );
+
+  await expectFailure(
+    {
+      requestId:
+        "uci-test-001",
+      messages: [
+        {
+          role: "user",
+          message:
+            "Different payload must not reuse the same request id.",
+        },
+      ],
+    },
+    "UCI requestId \"uci-test-001\" was reused with a different request payload."
   );
 
   await expectFailure(
@@ -117,6 +151,8 @@ async function runUciVerification(): Promise<void> {
     "UCI message 0 has an unsupported role."
   );
 
+  clearUciRequestRegistry();
+
   console.log(
     "UCI cognitive request boundary verification passed."
   );
@@ -124,6 +160,7 @@ async function runUciVerification(): Promise<void> {
 
 runUciVerification().catch(
   (error) => {
+    clearUciRequestRegistry();
     throw error;
   }
 );
