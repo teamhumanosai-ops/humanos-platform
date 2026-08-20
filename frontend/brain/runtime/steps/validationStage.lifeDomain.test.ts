@@ -1,4 +1,12 @@
 import { createBrainState } from "../../brainState";
+import {
+  createDecisionFromPlan,
+  deleteDecision,
+} from "../../decision";
+import {
+  createPlanFromMessage,
+  deletePlan,
+} from "../../planning";
 import { ValidationStage } from "./validationStage";
 
 function assert(condition: boolean, message: string): void {
@@ -14,10 +22,18 @@ const state = createBrainState(
 );
 
 state.primaryLifeDomain = "learning";
-state.currentPlanId = "plan-learning";
-state.currentDecisionId = "decision-learning";
-state.decision =
-  "Decision: Study plan\nLife Domain: Learning";
+
+const plan = createPlanFromMessage(
+  "Help me plan my study schedule"
+);
+
+if (!plan) {
+  throw new Error("Expected a plan for the validation boundary test.");
+}
+
+const decision = createDecisionFromPlan(plan);
+state.currentPlanId = plan.id;
+state.currentDecisionId = decision.id;
 
 const errorsBefore = state.errors.length;
 const result = await new ValidationStage().execute(state);
@@ -34,5 +50,10 @@ assert(
   state.primaryLifeDomain === "learning",
   "validation must not erase the request-scoped Life Domain"
 );
+
+if (plan) {
+  deletePlan(plan.id);
+}
+deleteDecision(decision.id);
 
 console.log("Life Domain validation verification passed.");
