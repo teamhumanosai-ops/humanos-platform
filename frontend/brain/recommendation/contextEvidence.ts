@@ -288,6 +288,41 @@ function buildProfileEvidence(
   ];
 }
 
+function buildLifeDomainEvidence(
+  state: BrainState,
+  recommendation: Recommendation
+): RecommendationEvidence[] {
+  const domain =
+    state.primaryLifeDomain;
+
+  if (
+    !domain ||
+    domain === "general"
+  ) {
+    return [];
+  }
+
+  if (
+    !hasRelevantOverlap(
+      recommendation,
+      domain
+    )
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      source:
+        "profile",
+      statement:
+        `Life-domain context: ${domain}`,
+      confidence:
+        0.7,
+    },
+  ];
+}
+
 function normalizeEvidence(
   evidence: RecommendationEvidence[]
 ): RecommendationEvidence[] {
@@ -380,6 +415,10 @@ export function enrichRecommendationsWithContext(
           recommendation
         ),
         ...buildProfileEvidence(
+          state,
+          recommendation
+        ),
+        ...buildLifeDomainEvidence(
           state,
           recommendation
         ),
