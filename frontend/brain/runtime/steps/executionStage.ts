@@ -10,6 +10,10 @@ import {
 } from "../../actionRouting";
 
 import {
+  evaluateActionAuthorization,
+} from "../../actionRouting/authorization";
+
+import {
   getDecision,
 } from "../../decision";
 
@@ -34,32 +38,6 @@ import {
   BaseStage,
 } from "./baseStage";
 
-/**
- * ExecutionStage
- *
- * Executes a validated action through the dispatch descriptor
- * produced by ActionDispatchStage and an explicitly registered
- * capability. Arbitrary action strings are never evaluated as code.
- *
- * An existing execution on BrainState is authoritative. Re-entering
- * this stage therefore never starts a second external execution for
- * the same runtime execution record, including when the existing
- * record is still pending.
- *
- * ActionDispatch is mandatory at this boundary. Execution must never
- * fall back to a raw ActionRoute because the dispatch descriptor is
- * the runtime's final capability-binding provenance artifact.
- *
- * Authorization is also enforced here as a defense-in-depth boundary.
- * A capability cannot execute unless its dispatch was produced from an
- * allowed authorization decision under the same policy version, route,
- * and target binding.
- *
- * External capabilities additionally execute through the integration
- * safety boundary so concurrent duplicate provider work shares the
- * same in-flight execution promise. Provider/operation provenance is
- * persisted into the execution result rather than inferred later.
- */
 export class ExecutionStage
   extends BaseStage {
   readonly name =
@@ -152,6 +130,41 @@ export class ExecutionStage
     ) {
       state.errors.push(
         "Execution: action execution is not authorized by the current action policy."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    const currentAuthorization =
+      evaluateActionAuthorization(
+        state
+      );
+
+    if (
+      currentAuthorization.status !==
+      "allowed"
+    ) {
+      state.errors.push(
+        "Execution: current action authorization is no longer allowed for the resolved route."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    if (
+      currentAuthorization.routeId !==
+      actionRoute.id ||
+      currentAuthorization.target !==
+      actionRoute.target ||
+      currentAuthorization.policyVersion !==
+      authorization.policyVersion ||
+      currentAuthorization.confirmedAt?.getTime() !==
+      authorization.confirmedAt?.getTime()
+    ) {
+      state.errors.push(
+        "Execution: stored authorization is stale or no longer matches the current authorization binding."
       );
       state.runtimeStatus =
         "blocked";
@@ -473,13 +486,6 @@ export class ExecutionStage
     }
   }
 
-  /**
-   * Resume state from an already-created execution record.
-   *
-   * Pending executions are deliberately not executed again. The
-   * runtime exposes the pending state to Outcome so the cycle can
-   * remain observable without risking duplicate external work.
-   */
   private resumeExistingExecution(
     state: BrainState
   ): Promise<BrainState> {
@@ -527,10 +533,6 @@ export class ExecutionStage
     );
   }
 
-  /**
-   * Keep execution presentation consistent across first execution,
-   * successful re-entry, and terminal re-entry paths.
-   */
   private formatExecution(
     execution: {
       title: string;
