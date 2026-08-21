@@ -127,14 +127,11 @@ const webSearchCapability:
         action
       );
 
-    const providerAnswer =
-      result.answer?.trim();
-
     return normalizeCapabilityResult(
       "web-search",
       {
         summary:
-          providerAnswer ||
+          result.answer ??
           `Web search completed for ${result.query}. Results: ${result.results.length}.`,
         metadata: {
           query:
@@ -254,63 +251,35 @@ const cognitiveCapability:
     },
     {
       provider:
-        "openrouter",
-      operation:
-        "cognitive-action",
-    },
+        "openrouter",",operation":"cognitive-action"}
   ],
 
-  async execute(
-    action,
-    services
-  ) {
-    const normalizedAction =
-      action.trim();
-
+  async execute(action, services) {
+    const normalizedAction = action.trim();
     if (!normalizedAction) {
-      throw new Error(
-        "Cognitive action execution requires a non-empty action."
-      );
+      throw new Error("Cognitive action execution requires a non-empty action.");
     }
-
-    const result =
-      await services.aiService(
-        [
-          "HUMAN OS ACTION EXECUTION MODE.",
-          "Execute the requested cognitive action as a real provider-backed operation.",
-          "Return a concise, useful result of the requested action.",
-          "Do not describe the action as merely acknowledged or simulated.",
-        ].join("\n"),
-        [
-          {
-            role:
-              "user",
-            message:
-              normalizedAction,
-          },
-        ]
-      );
-
-    const summary =
-      result.trim();
-
+    const result = await services.aiService(
+      [
+        "HUMAN OS ACTION EXECUTION MODE.",
+        "Execute the requested cognitive action as a real provider-backed operation.",
+        "Return a concise, useful result of the requested action.",
+        "Do not describe the action as merely acknowledged or simulated.",
+      ].join("\n"),
+      [{ role: "user", message: normalizedAction }]
+    );
+    const summary = result.trim();
     if (!summary) {
-      throw new Error(
-        "Cognitive action execution returned an empty provider result."
-      );
+      throw new Error("Cognitive action execution returned an empty provider result.");
     }
-
     return normalizeCapabilityResult(
       "cognitive",
       {
         summary,
         metadata: {
-          executionType:
-            "cognitive-ai",
-          providerBoundary:
-            "aiService",
-          action:
-            normalizedAction,
+          executionType: "cognitive-ai",
+          providerBoundary: "aiService",
+          action: normalizedAction,
         },
       },
       cognitiveCapability.integrations
@@ -318,127 +287,47 @@ const cognitiveCapability:
   },
 };
 
-const toolCapability:
-  ActionCapability = {
-  target:
-    "tool",
-
+const toolCapability: ActionCapability = {
+  target: "tool",
   integrations: [],
-
-  async execute(
-    action,
-    services
-  ) {
-    const normalizedAction =
-      action.trim();
-
-    const explicitPrefix =
-      normalizedAction
-        .toLowerCase()
-        .startsWith("tool:");
-
-    const toolPayload =
-      explicitPrefix
-        ? normalizedAction.slice(5).trim()
-        : normalizedAction;
-
-    const separator =
-      toolPayload.indexOf(":");
-
+  async execute(action, services) {
+    const normalizedAction = action.trim();
+    const explicitPrefix = normalizedAction.toLowerCase().startsWith("tool:");
+    const toolPayload = explicitPrefix ? normalizedAction.slice(5).trim() : normalizedAction;
+    const separator = toolPayload.indexOf(":");
     if (separator <= 0) {
-      throw new Error(
-        "Tool execution requires an explicit registered tool id followed by ':'."
-      );
+      throw new Error("Tool execution requires an explicit registered tool id followed by ':'.");
     }
-
-    const toolId =
-      toolPayload
-        .slice(0, separator)
-        .trim();
-
-    const toolAction =
-      toolPayload
-        .slice(separator + 1)
-        .trim();
-
-    const tool =
-      getActionTool(
-        toolId
-      );
-
+    const toolId = toolPayload.slice(0, separator).trim();
+    const toolAction = toolPayload.slice(separator + 1).trim();
+    const tool = getActionTool(toolId);
     if (!tool) {
-      throw new Error(
-        `No registered action tool exists for "${toolId}".`
-      );
+      throw new Error(`No registered action tool exists for "${toolId}".`);
     }
-
     if (!toolAction) {
-      throw new Error(
-        `Registered action tool "${toolId}" requires an action.`
-      );
+      throw new Error(`Registered action tool "${toolId}" requires an action.`);
     }
-
-    if (
-      tool.integration?.isConfigured &&
-      !tool.integration.isConfigured()
-    ) {
-      throw new Error(
-        `External integration "${tool.integration.provider}" is not configured for action tool "${toolId}".`
-      );
+    if (tool.integration?.isConfigured && !tool.integration.isConfigured()) {
+      throw new Error(`External integration "${tool.integration.provider}" is not configured for action tool "${toolId}".`);
     }
-
-    const toolIntegrations =
-      tool.integration
-        ? [
-            {
-              provider:
-                tool.integration.provider,
-              operation:
-                tool.integration.operation,
-            },
-          ]
-        : [];
-
-    const executionKey =
-      [
-        toolId,
-        tool.integration?.provider ??
-          "internal",
-        tool.integration?.operation ??
-          "execute",
-        toolAction,
-      ].join("|");
-
-    const result =
-      await executeWithIntegrationSafety(
-        executionKey,
-        tool.integration?.executionPolicy ??
-          "allow-duplicate",
-        () =>
-          tool.execute(
-            toolAction,
-            services
-          )
-      );
-
+    const toolIntegrations = tool.integration ? [{ provider: tool.integration.provider, operation: tool.integration.operation }] : [];
+    const executionKey = [toolId, tool.integration?.provider ?? "internal", tool.integration?.operation ?? "execute", toolAction].join("|");
+    const result = await executeWithIntegrationSafety(
+      executionKey,
+      tool.integration?.executionPolicy ?? "allow-duplicate",
+      () => tool.execute(toolAction, services)
+    );
     return normalizeCapabilityResult(
       "tool",
       {
         ...result,
         metadata: {
           ...(result.metadata ?? {}),
-          executionType:
-            "registered-tool",
+          executionType: "registered-tool",
           toolId,
           toolAction,
-          integrationConfigured:
-            tool.integration?.isConfigured?.() ===
-            false
-              ? "false"
-              : "true",
-          executionPolicy:
-            tool.integration?.executionPolicy ??
-            "allow-duplicate",
+          integrationConfigured: tool.integration?.isConfigured?.() === false ? "false" : "true",
+          executionPolicy: tool.integration?.executionPolicy ?? "allow-duplicate",
         },
       },
       toolIntegrations
@@ -446,43 +335,17 @@ const toolCapability:
   },
 };
 
-const capabilities: ReadonlyMap<
-  ActionCapabilityTarget,
-  ActionCapability
-> = new Map([
-  [
-    "web-search",
-    webSearchCapability,
-  ],
-  [
-    "web-content",
-    webContentCapability,
-  ],
-  [
-    "cognitive",
-    cognitiveCapability,
-  ],
-  [
-    "tool",
-    toolCapability,
-  ],
+const capabilities: ReadonlyMap<ActionCapabilityTarget, ActionCapability> = new Map([
+  ["web-search", webSearchCapability],
+  ["web-content", webContentCapability],
+  ["cognitive", cognitiveCapability],
+  ["tool", toolCapability],
 ]);
 
-export function getActionCapability(
-  target: string
-): ActionCapability | null {
-  return (
-    capabilities.get(
-      target as ActionCapabilityTarget
-    ) ?? null
-  );
+export function getActionCapability(target: string): ActionCapability | null {
+  return capabilities.get(target as ActionCapabilityTarget) ?? null;
 }
 
-export function hasActionCapability(
-  target: string
-): boolean {
-  return (
-    getActionCapability(target) !==
-    null
-  );
+export function hasActionCapability(target: string): boolean {
+  return getActionCapability(target) !== null;
 }
