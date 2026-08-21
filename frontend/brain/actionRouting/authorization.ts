@@ -14,6 +14,7 @@ export type ActionAuthorization = {
   status: ActionAuthorizationStatus;
   target: ActionRouteTarget;
   routeId: string;
+  action: string;
   reason: string;
   policyVersion: string;
   evaluatedAt: Date;
@@ -89,6 +90,7 @@ export function confirmActionAuthorization(
       status: "blocked",
       target: "unresolved",
       routeId: "unresolved",
+      action: "",
       reason:
         "Cannot confirm an action without a resolved action route.",
       policyVersion:
@@ -103,6 +105,7 @@ export function confirmActionAuthorization(
       status: "blocked",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Cannot confirm an action route that failed executable-route safety validation.",
       policyVersion:
@@ -169,6 +172,7 @@ export function evaluateActionAuthorization(
       status: "blocked",
       target: "unresolved",
       routeId: "unresolved",
+      action: "",
       reason:
         "No resolved action route exists for authorization.",
       policyVersion:
@@ -183,6 +187,7 @@ export function evaluateActionAuthorization(
       status: "blocked",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "The resolved action route failed executable-route safety validation.",
       policyVersion:
@@ -201,6 +206,7 @@ export function evaluateActionAuthorization(
       status: "allowed",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Read-only provider execution is allowed by the current action policy.",
       policyVersion:
@@ -226,6 +232,7 @@ export function evaluateActionAuthorization(
         status: "allowed",
         target: route.target,
         routeId: route.id,
+        action: route.action,
         reason:
           "Explicit user confirmation is bound to the exact registered tool route and action.",
         policyVersion:
@@ -240,6 +247,7 @@ export function evaluateActionAuthorization(
       status: "requires_confirmation",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Registered tool execution requires explicit user confirmation before external execution.",
       policyVersion:
@@ -256,6 +264,7 @@ export function evaluateActionAuthorization(
       status: "allowed",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Internal cognitive execution does not perform an external side effect by itself.",
       policyVersion:
@@ -269,6 +278,7 @@ export function evaluateActionAuthorization(
     status: "blocked",
     target: route.target,
     routeId: route.id,
+    action: route.action,
     reason:
       "The action target is not recognized by the authorization policy.",
     policyVersion:
