@@ -186,7 +186,7 @@ if (webContentCapability) {
 
   assert(
     result.summary.includes(
-      "Test source content"
+      "Firecrawl test source content"
     ),
     "web-content capability must return provider content"
   );
