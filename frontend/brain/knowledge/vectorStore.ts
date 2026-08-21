@@ -5,15 +5,94 @@ export interface VectorDocument {
   embedding: number[];
 }
 
+function validateVectorDocument(
+  document: VectorDocument,
+  expectedDimension:
+    number | null
+): void {
+  if (!document.id.trim()) {
+    throw new Error(
+      "VectorStore requires a document id."
+    );
+  }
+
+  if (!document.source.trim()) {
+    throw new Error(
+      "VectorStore requires a document source."
+    );
+  }
+
+  if (!document.chunk.trim()) {
+    throw new Error(
+      "VectorStore requires non-empty chunk text."
+    );
+  }
+
+  if (
+    document.embedding.length === 0
+  ) {
+    throw new Error(
+      "VectorStore requires a non-empty embedding."
+    );
+  }
+
+  if (
+    document.embedding.some(
+      (value) =>
+        !Number.isFinite(value)
+    )
+  ) {
+    throw new Error(
+      "VectorStore requires finite embedding values."
+    );
+  }
+
+  if (
+    expectedDimension !== null &&
+    document.embedding.length !==
+      expectedDimension
+  ) {
+    throw new Error(
+      "VectorStore embedding dimensions must remain consistent."
+    );
+  }
+}
+
 export class VectorStore {
   private readonly documents: VectorDocument[] = [];
 
-  add(document: VectorDocument): void {
-    this.documents.push(document);
+  add(
+    document: VectorDocument
+  ): void {
+    const existing =
+      this.documents.find(
+        (entry) =>
+          entry.id === document.id
+      );
+
+    if (existing) {
+      throw new Error(
+        `VectorStore cannot register duplicate document id "${document.id}".`
+      );
+    }
+
+    validateVectorDocument(
+      document,
+      this.documents[0]
+        ?.embedding.length ?? null
+    );
+
+    this.documents.push(
+      document
+    );
   }
 
-  addMany(documents: VectorDocument[]): void {
-    this.documents.push(...documents);
+  addMany(
+    documents: VectorDocument[]
+  ): void {
+    for (const document of documents) {
+      this.add(document);
+    }
   }
 
   getAll(): VectorDocument[] {
@@ -33,4 +112,5 @@ export class VectorStore {
   }
 }
 
-export const vectorStore = new VectorStore();
+export const vectorStore =
+  new VectorStore();
