@@ -131,14 +131,7 @@ const webSearchCapability:
       "web-search",
       {
         summary:
-          [
-            result.answer,
-            `Evidence count: ${result.results.length}`,
-            `Search time: ${result.searchedAt}`,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-
+          result.answer,
         metadata: {
           query:
             result.query,
