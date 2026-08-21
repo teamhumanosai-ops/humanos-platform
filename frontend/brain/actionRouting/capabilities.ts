@@ -127,11 +127,14 @@ const webSearchCapability:
         action
       );
 
+    const providerAnswer =
+      result.answer?.trim();
+
     return normalizeCapabilityResult(
       "web-search",
       {
         summary:
-          result.answer ??
+          providerAnswer ||
           `Web search completed for ${result.query}. Results: ${result.results.length}.`,
         metadata: {
           query:
