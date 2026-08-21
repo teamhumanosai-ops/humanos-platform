@@ -122,16 +122,35 @@ const webSearchCapability:
     action,
     services
   ) {
-    const result =
-      await services.searchWeb(
-        action
+    let result;
+
+    try {
+      result =
+        await services.searchWeb(
+          action
+        );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      return normalizeCapabilityResult(
+        "web-search",
+        {
+          summary:
+            `Web search execution failed: ${message}`,
+        },
+        webSearchCapability.integrations
       );
+    }
 
     return normalizeCapabilityResult(
       "web-search",
       {
         summary:
-          result.answer,
+          result.answer ??
+          `Web search completed for ${result.query}. Results: ${result.results.length}.`,
         metadata: {
           query:
             result.query,
