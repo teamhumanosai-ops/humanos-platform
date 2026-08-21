@@ -34,7 +34,7 @@ const MAX_MEDIA_BYTES =
   8 * 1024 * 1024;
 
 const MAX_BASE64_LENGTH =
-  Math.floor((MAX_MEDIA_BYTES + 2) / 3) * 4;
+  Math.floor(MAX_MEDIA_BYTES / 3) * 4;
 
 const ALLOWED_IMAGE_MIME_TYPES =
   new Set([
