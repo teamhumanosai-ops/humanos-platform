@@ -68,11 +68,26 @@ export class RetrievalPipeline {
         normalizedQuery
       );
 
-    const semantic =
-      await semanticSearch(
-        normalizedQuery,
-        limit
+    let semantic: Awaited<
+      ReturnType<typeof semanticSearch>
+    > = [];
+
+    try {
+      semantic =
+        await semanticSearch(
+          normalizedQuery,
+          limit
+        );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      console.warn(
+        `[Retrieval] Semantic retrieval unavailable; using keyword results: ${message}`
       );
+    }
 
     const fused =
       new Map<
