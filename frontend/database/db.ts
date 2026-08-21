@@ -3,13 +3,17 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import * as schema from "./schema";
 
-const sqlite = new Database("humanos.db");
+const databasePath = process.env.HUMANOS_DB_PATH ?? "humanos.db";
+const sqlite = new Database(databasePath);
 
 /**
  * The runtime database is created directly by better-sqlite3 rather than by a
  * migration runner. Bootstrap the canonical schema idempotently before the
  * Drizzle instance is used so a fresh checkout cannot fail on its first
  * BrainState/profile read.
+ *
+ * HUMANOS_DB_PATH is intentionally opt-in so production keeps using the
+ * canonical humanos.db file while isolated test runs can use a disposable DB.
  */
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS memories (
