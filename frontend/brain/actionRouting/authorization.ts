@@ -29,15 +29,10 @@ const READ_ONLY_TARGETS: ReadonlySet<ActionRouteTarget> =
     "web-content",
   ]);
 
-/**
- * Explicit confirmation is held outside the mutable authorization object so
- * changing state.actionAuthorization.status cannot itself manufacture consent.
- * The confirmation is bound to the exact BrainState object, route id, target,
- * and authorization policy version that were presented to the user.
- */
 type ActionAuthorizationConfirmation = {
   routeId: string;
   target: ActionRouteTarget;
+  action: string;
   policyVersion: string;
   confirmedAt: Date;
 };
@@ -48,7 +43,8 @@ const confirmations =
 function getValidConfirmation(
   state: BrainState,
   routeId: string,
-  target: ActionRouteTarget
+  target: ActionRouteTarget,
+  action: string
 ): ActionAuthorizationConfirmation | null {
   const confirmation = confirmations.get(state);
 
@@ -59,6 +55,7 @@ function getValidConfirmation(
   if (
     confirmation.routeId !== routeId ||
     confirmation.target !== target ||
+    confirmation.action !== action ||
     confirmation.policyVersion !== ACTION_AUTHORIZATION_POLICY_VERSION
   ) {
     confirmations.delete(state);
@@ -68,13 +65,6 @@ function getValidConfirmation(
   return confirmation;
 }
 
-/**
- * Records explicit user confirmation for the currently resolved action route.
- *
- * This is the only confirmation mutation path. A confirmation is invalidated
- * automatically by route, target, or policy-version changes because the
- * authorization evaluator requires an exact binding before allowing a tool.
- */
 export function confirmActionAuthorization(
   state: BrainState
 ): ActionAuthorization {
@@ -122,6 +112,7 @@ export function confirmActionAuthorization(
     {
       routeId: route.id,
       target: route.target,
+      action: route.action,
       policyVersion: ACTION_AUTHORIZATION_POLICY_VERSION,
       confirmedAt,
     }
@@ -213,7 +204,8 @@ export function evaluateActionAuthorization(
       getValidConfirmation(
         state,
         route.id,
-        route.target
+        route.target,
+        route.action
       );
 
     if (confirmation) {
@@ -222,7 +214,7 @@ export function evaluateActionAuthorization(
         target: route.target,
         routeId: route.id,
         reason:
-          "Explicit user confirmation is bound to the exact registered tool route.",
+          "Explicit user confirmation is bound to the exact registered tool route and action.",
         policyVersion:
           ACTION_AUTHORIZATION_POLICY_VERSION,
         evaluatedAt,
@@ -273,11 +265,6 @@ export function evaluateActionAuthorization(
   };
 }
 
-/**
- * Authorization is derived from the current route and the private
- * confirmation binding. A mutable BrainState authorization object alone
- * can never manufacture permission.
- */
 export function isActionAuthorized(
   state: BrainState
 ): boolean {
