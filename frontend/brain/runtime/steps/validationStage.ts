@@ -17,18 +17,14 @@ import {
 /**
  * ValidationStage
  *
- * Validates the cognitive state immediately
- * before execution.
+ * Validates the cognitive state immediately before execution.
  *
- * This stage does not execute actions.
- * It only determines whether the current
- * decision contains enough valid information
- * to enter the Execution stage.
- *
- * Permissions and external authorization are
- * intentionally not evaluated here because
- * the current architecture does not yet expose
- * a permission service.
+ * This stage validates decision and plan readiness. It does not own
+ * authorization, confirmation, or external permission policy. The
+ * centralized ActionDispatch authorization boundary evaluates the exact
+ * action route and binds any allowed dispatch to the current policy version.
+ * ExecutionStage repeats those provenance checks as a defense-in-depth
+ * boundary immediately before external capability execution.
  */
 export class ValidationStage
   extends BaseStage {
@@ -38,23 +34,11 @@ export class ValidationStage
   protected async process(
     state: BrainState
   ): Promise<BrainState> {
-    /*
-    |--------------------------------------------------------------------------
-    | No decision means there is nothing to execute.
-    |--------------------------------------------------------------------------
-    */
-
     if (
       !state.currentDecisionId
     ) {
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Decision must exist.
-    |--------------------------------------------------------------------------
-    */
 
     const decision =
       getDecision(
@@ -69,12 +53,6 @@ export class ValidationStage
       return state;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | A plan is required for execution.
-    |--------------------------------------------------------------------------
-    */
-
     if (
       !state.currentPlanId
     ) {
@@ -84,12 +62,6 @@ export class ValidationStage
 
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Plan must exist.
-    |--------------------------------------------------------------------------
-    */
 
     const plan =
       getPlan(
@@ -104,12 +76,6 @@ export class ValidationStage
       return state;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Plan identity must remain consistent.
-    |--------------------------------------------------------------------------
-    */
-
     if (
       plan.id !==
       state.currentPlanId
@@ -120,12 +86,6 @@ export class ValidationStage
 
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Decision must contain an executable action.
-    |--------------------------------------------------------------------------
-    */
 
     const action =
       decision.selectedAction
@@ -138,12 +98,6 @@ export class ValidationStage
 
       return state;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validation passed.
-    |--------------------------------------------------------------------------
-    */
 
     return state;
   }
