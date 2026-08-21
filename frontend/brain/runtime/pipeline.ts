@@ -23,6 +23,9 @@ import {
   LiveKnowledgeStage,
 } from "./steps/liveKnowledgeStage";
 import {
+  KnowledgeRetrievalStage,
+} from "./steps/knowledgeRetrievalStage";
+import {
   MemoryExtractionStage,
 } from "./steps/memoryExtractionStage";
 import {
@@ -194,6 +197,10 @@ export class CognitiveRuntime {
       new LiveKnowledgeStage(
         this.services
       )
+    );
+
+    this.register(
+      new KnowledgeRetrievalStage()
     );
 
     this.register(

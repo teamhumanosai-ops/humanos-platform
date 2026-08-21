@@ -7,54 +7,127 @@ export interface RetrievalResult {
   score: number;
 }
 
+const DEFAULT_TOP_K = 5;
+const MAX_TOP_K = 20;
+const RRF_K = 60;
+
+function normalizeTopK(
+  topK: number
+): number {
+  if (!Number.isFinite(topK)) {
+    return DEFAULT_TOP_K;
+  }
+
+  return Math.min(
+    MAX_TOP_K,
+    Math.max(1, Math.floor(topK))
+  );
+}
+
+function addRankedResult(
+  fused: Map<string, RetrievalResult>,
+  source: string,
+  text: string,
+  rank: number
+): void {
+  const score =
+    1 / (RRF_K + rank);
+
+  const existing =
+    fused.get(text);
+
+  if (existing) {
+    existing.score += score;
+    return;
+  }
+
+  fused.set(text, {
+    source,
+    text,
+    score,
+  });
+}
+
 export class RetrievalPipeline {
   async execute(
     query: string,
-    topK: number = 5
+    topK: number = DEFAULT_TOP_K
   ): Promise<RetrievalResult[]> {
-    console.log("");
-    console.log("🧠 Human OS Hybrid Retrieval");
-    console.log("----------------------------");
+    const normalizedQuery =
+      query.trim();
 
-    const keyword = searchKnowledge(query);
+    if (!normalizedQuery) {
+      return [];
+    }
 
-    const semantic = await semanticSearch(query, topK);
+    const limit =
+      normalizeTopK(topK);
 
-    const fused = new Map<string, RetrievalResult>();
+    const keyword =
+      searchKnowledge(
+        normalizedQuery
+      );
 
-    const K = 60;
+    let semantic: Awaited<
+      ReturnType<typeof semanticSearch>
+    > = [];
 
-    keyword.forEach((item, index) => {
-      const key = item.chunk.text;
+    try {
+      semantic =
+        await semanticSearch(
+          normalizedQuery,
+          limit
+        );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
 
-      fused.set(key, {
-        source: item.chunk.source,
-        text: item.chunk.text,
-        score: 1 / (K + index + 1),
+      console.warn(
+        `[Retrieval] Semantic retrieval unavailable; using keyword results: ${message}`
+      );
+    }
+
+    const fused =
+      new Map<
+        string,
+        RetrievalResult
+      >();
+
+    keyword
+      .slice(0, limit)
+      .forEach((item, index) => {
+        addRankedResult(
+          fused,
+          item.chunk.source,
+          item.chunk.text,
+          index + 1
+        );
       });
-    });
 
-    semantic.forEach((item, index) => {
-      const key = item.chunk;
-
-      const score = 1 / (K + index + 1);
-
-      const existing = fused.get(key);
-
-      if (existing) {
-        existing.score += score;
-      } else {
-        fused.set(key, {
-          source: item.source,
-          text: item.chunk,
-          score,
-        });
-      }
-    });
+    semantic
+      .slice(0, limit)
+      .forEach((item, index) => {
+        addRankedResult(
+          fused,
+          item.source,
+          item.chunk,
+          index + 1
+        );
+      });
 
     return [...fused.values()]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK);
+      .sort((a, b) => {
+        if (a.score !== b.score) {
+          return b.score - a.score;
+        }
+
+        return `${a.source}\n${a.text}`.localeCompare(
+          `${b.source}\n${b.text}`
+        );
+      })
+      .slice(0, limit);
   }
 }
 

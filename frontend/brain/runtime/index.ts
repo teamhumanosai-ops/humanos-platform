@@ -50,3 +50,7 @@ export type {
 export {
   LifeDomainStage,
 } from "./steps/lifeDomainStage";
+
+export {
+  KnowledgeRetrievalStage,
+} from "./steps/knowledgeRetrievalStage";
