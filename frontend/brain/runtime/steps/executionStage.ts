@@ -10,6 +10,10 @@ import {
 } from "../../actionRouting";
 
 import {
+  evaluateActionAuthorization,
+} from "../../actionRouting/authorization";
+
+import {
   getDecision,
 } from "../../decision";
 
@@ -152,6 +156,41 @@ export class ExecutionStage
     ) {
       state.errors.push(
         "Execution: action execution is not authorized by the current action policy."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    const currentAuthorization =
+      evaluateActionAuthorization(
+        state
+      );
+
+    if (
+      currentAuthorization.status !==
+      "allowed"
+    ) {
+      state.errors.push(
+        "Execution: current action authorization is no longer allowed for the resolved route."
+      );
+      state.runtimeStatus =
+        "blocked";
+      return state;
+    }
+
+    if (
+      currentAuthorization.routeId !==
+      actionRoute.id ||
+      currentAuthorization.target !==
+      actionRoute.target ||
+      currentAuthorization.policyVersion !==
+      authorization.policyVersion ||
+      currentAuthorization.confirmedAt?.getTime() !==
+      authorization.confirmedAt?.getTime()
+    ) {
+      state.errors.push(
+        "Execution: stored authorization is stale or no longer matches the current authorization binding."
       );
       state.runtimeStatus =
         "blocked";

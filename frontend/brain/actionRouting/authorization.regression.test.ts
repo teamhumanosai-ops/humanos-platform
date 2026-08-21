@@ -51,6 +51,21 @@ assert(confirmed.status === "allowed", "explicit confirmation must allow the exa
 assert(confirmed.confirmedAt !== null, "allowed tool authorization must retain confirmation provenance");
 assert(evaluateActionAuthorization(state).status === "allowed", "exact confirmed route must remain authorized");
 
+state.actionRoute = {
+  ...state.actionRoute!,
+  action: "Run a different registered tool action",
+};
+assert(evaluateActionAuthorization(state).status === "requires_confirmation", "confirmation must not survive an action mutation even when route identity is unchanged");
+
+state.actionRoute = {
+  ...state.actionRoute!,
+  action: "Run registered tool",
+};
+assert(evaluateActionAuthorization(state).status === "requires_confirmation", "an invalidated confirmation must not be restored by reverting the action without a new confirmation");
+
+const reConfirmed = confirmActionAuthorization(state);
+assert(reConfirmed.status === "allowed", "the exact restored action must require a fresh confirmation");
+
 state.actionRoute = { ...state.actionRoute!, id: "route-tool-changed" };
 assert(evaluateActionAuthorization(state).status === "requires_confirmation", "confirmation must not survive a route identity change");
 
