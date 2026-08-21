@@ -217,6 +217,23 @@ const LIVE_QUESTION_PATTERNS = [
   "what's the latest news",
   "whats the latest news",
   "is it true that",
+  "what happened with",
+  "what happened about",
+  "tell me what happened with",
+  "tell me what happened about",
+  "what's going on with",
+  "whats going on with",
+  "what is going on with",
+  "what's new with",
+  "whats new with",
+  "what is new with",
+  "give me an update on",
+  "give me the latest on",
+  "tell me the latest about",
+  "any news about",
+  "any news on",
+  "latest news about",
+  "latest news on",
 ];
 
 const DOCUMENT_TERMS = [
@@ -262,6 +279,14 @@ function isExplicitPlanningRequest(
 function isActionableTaskRequest(
   text: string
 ): boolean {
+  if (
+    isExplicitLiveQuestion(
+      text
+    )
+  ) {
+    return false;
+  }
+
   if (
     includesAny(
       text,
@@ -333,21 +358,6 @@ export function detectIntent(
     return Intent.GENERAL_CHAT;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Notes
-  |--------------------------------------------------------------------------
-  |
-  | Notes always win over task language inside the note content.
-  |
-  | Example:
-  |
-  | "Save note: Finish the planner today"
-  |
-  | must remain NOTE_TAKING.
-  |
-  */
-
   if (
     includesAny(
       text,
@@ -358,12 +368,6 @@ export function detectIntent(
     return Intent.NOTE_TAKING;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Calendar
-  |--------------------------------------------------------------------------
-  */
-
   if (
     includesAny(
       text,
@@ -372,12 +376,6 @@ export function detectIntent(
   ) {
     return Intent.CALENDAR;
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Startup Planning
-  |--------------------------------------------------------------------------
-  */
 
   if (
     text.includes(
@@ -399,16 +397,6 @@ export function detectIntent(
     return Intent.STARTUP_PLANNING;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Explicit planning requests
-  |--------------------------------------------------------------------------
-  |
-  | Planning intent is evaluated before broad live-information
-  | words such as "today" or "current".
-  |
-  */
-
   if (
     isExplicitPlanningRequest(
       text
@@ -416,39 +404,6 @@ export function detectIntent(
   ) {
     return Intent.PLANNING;
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Actionable task requests
-  |--------------------------------------------------------------------------
-  |
-  | This is deliberately before broad live-information context.
-  |
-  | Therefore:
-  |
-  | "Review my finances today"
-  |
-  | becomes TASK_MANAGEMENT rather than LIVE_SEARCH.
-  |
-  */
-
-  if (
-    isActionableTaskRequest(
-      text
-    )
-  ) {
-    return Intent.TASK_MANAGEMENT;
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Explicit live-information questions
-  |--------------------------------------------------------------------------
-  |
-  | Strong live questions still become LIVE_SEARCH even when
-  | they contain action-like words elsewhere in the sentence.
-  |
-  */
 
   if (
     isExplicitLiveQuestion(
@@ -458,15 +413,13 @@ export function detectIntent(
     return Intent.LIVE_SEARCH;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Broad live-information context
-  |--------------------------------------------------------------------------
-  |
-  | Only reach this layer when no stronger action/planning intent
-  | has already been detected.
-  |
-  */
+  if (
+    isActionableTaskRequest(
+      text
+    )
+  ) {
+    return Intent.TASK_MANAGEMENT;
+  }
 
   if (
     containsLiveContext(
@@ -476,12 +429,6 @@ export function detectIntent(
     return Intent.LIVE_SEARCH;
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Documents
-  |--------------------------------------------------------------------------
-  */
-
   if (
     includesAny(
       text,
@@ -490,12 +437,6 @@ export function detectIntent(
   ) {
     return Intent.DOCUMENT;
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Learning
-  |--------------------------------------------------------------------------
-  */
 
   if (
     includesAny(
