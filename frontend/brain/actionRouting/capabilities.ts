@@ -122,28 +122,10 @@ const webSearchCapability:
     action,
     services
   ) {
-    let result;
-
-    try {
-      result =
-        await services.searchWeb(
-          action
-        );
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : String(error);
-
-      return normalizeCapabilityResult(
-        "web-search",
-        {
-          summary:
-            `Web search execution failed: ${message}`,
-        },
-        webSearchCapability.integrations
+    const result =
+      await services.searchWeb(
+        action
       );
-    }
 
     return normalizeCapabilityResult(
       "web-search",
