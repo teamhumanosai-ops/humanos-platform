@@ -287,15 +287,6 @@ function isActionableTaskRequest(
     return false;
   }
 
-  if (
-    includesAny(
-      text,
-      INFORMATIONAL_TASK_PATTERNS
-    )
-  ) {
-    return false;
-  }
-
   return includesAny(
     text,
     TASK_TERMS
