@@ -30,12 +30,6 @@ const READ_ONLY_TARGETS: ReadonlySet<ActionRouteTarget> =
     "web-content",
   ]);
 
-/**
- * Explicit confirmation is held outside the mutable authorization object so
- * changing state.actionAuthorization.status cannot itself manufacture consent.
- * The confirmation is bound to the exact BrainState object, route id, target,
- * action, and authorization policy version that were presented to the user.
- */
 type ActionAuthorizationConfirmation = {
   routeId: string;
   target: ActionRouteTarget;
@@ -72,13 +66,6 @@ function getValidConfirmation(
   return confirmation;
 }
 
-/**
- * Records explicit user confirmation for the currently resolved action route.
- *
- * This is the only confirmation mutation path. A confirmation is invalidated
- * automatically by route, target, action, or policy-version changes because
- * the authorization evaluator requires an exact binding before allowing a tool.
- */
 export function confirmActionAuthorization(
   state: BrainState
 ): ActionAuthorization {
@@ -189,7 +176,7 @@ export function evaluateActionAuthorization(
       routeId: route.id,
       action: route.action,
       reason:
-        "The resolved action route failed executable-route safety validation.",
+        "The resolved action route is not executable or failed safety validation.",
       policyVersion:
         ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
@@ -198,9 +185,7 @@ export function evaluateActionAuthorization(
   }
 
   if (
-    READ_ONLY_TARGETS.has(
-      route.target
-    )
+    READ_ONLY_TARGETS.has(route.target)
   ) {
     return {
       status: "allowed",
@@ -288,18 +273,11 @@ export function evaluateActionAuthorization(
   };
 }
 
-/**
- * Authorization is derived from the current route and the private
- * confirmation binding. A mutable BrainState authorization object alone
- * can never manufacture permission.
- */
 export function isActionAuthorized(
   state: BrainState
 ): boolean {
   return (
-    evaluateActionAuthorization(
-      state
-    ).status ===
+    evaluateActionAuthorization(state).status ===
     "allowed"
   );
 }
