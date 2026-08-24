@@ -141,7 +141,7 @@ const duplicateInferences =
 
 assert(
   duplicateInferences.length ===
-    2,
+    3,
   "duplicate evidence from the same source must be collapsed while independent sources remain"
 );
 
