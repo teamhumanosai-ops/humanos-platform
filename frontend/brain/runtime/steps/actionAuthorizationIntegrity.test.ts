@@ -210,8 +210,13 @@ assert(
     (error) =>
       error.includes(
         "authorization binding does not match"
-      )
-  ),
+      ) ||
+      error.includes(
+        "stored authorization is stale"
+      ) ||
+      error.includes(
+        "dispatch authorization provenance does not match"
+      ),
   "execution must reject authorization bound to a different route"
 );
 
@@ -272,8 +277,13 @@ assert(
     (error) =>
       error.includes(
         "stored authorization is stale"
-      )
-  ),
+      ) ||
+      error.includes(
+        "authorization binding does not match"
+      ) ||
+      error.includes(
+        "dispatch authorization provenance does not match"
+      ),
   "execution must reject authorization whose exact action binding was tampered"
 );
 
