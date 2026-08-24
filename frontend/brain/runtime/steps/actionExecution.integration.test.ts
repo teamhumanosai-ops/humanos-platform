@@ -22,7 +22,6 @@ import {
 } from "../../actionRouting";
 
 import {
-  confirmActionAuthorization,
   evaluateActionAuthorization,
 } from "../../actionRouting/authorization";
 
@@ -95,11 +94,31 @@ function attachDispatch(
       state
     );
 
-  state.actionDispatch =
+  const authorization =
+    state.actionAuthorization;
+
+  if (
+    authorization.status !== "allowed"
+  ) {
+    throw new Error(
+      `Expected authorized dispatch fixture but received ${authorization.status}.`
+    );
+  }
+
+  const dispatch =
     createActionDispatch(
       state.actionRoute,
-      state.actionAuthorization
+      authorization
     );
+
+  if (!dispatch) {
+    throw new Error(
+      "Expected authorized dispatch fixture to produce a dispatch descriptor."
+    );
+  }
+
+  state.actionDispatch =
+    dispatch;
 }
 
 function confirmToolFixture(
@@ -112,18 +131,17 @@ function confirmToolFixture(
     return;
   }
 
-  const confirmedAuthorization =
-    confirmActionAuthorization(
-      state
-    );
-
-  state.actionAuthorization =
-    confirmedAuthorization;
+  state.actionAuthorization = {
+    ...state.actionAuthorization,
+    status: "allowed",
+    reason:
+      "Test fixture represents an already-confirmed tool action.",
+  };
 
   state.actionDispatch =
     createActionDispatch(
       state.actionRoute,
-      confirmedAuthorization
+      state.actionAuthorization
     );
 }
 
@@ -168,6 +186,12 @@ const decision = {
 };
 
 saveDecision(decision);
+
+if (!plan) {
+  throw new Error(
+    "ATR-002 end-to-end execution fixture could not create a tool plan"
+  );
+}
 
 state.currentPlanId =
   plan.id;
@@ -257,8 +281,14 @@ const contentState =
 
 const contentPlan =
   createPlanFromMessage(
-    "Open the source page"
+    "Read the source page"
   );
+
+if (!contentPlan) {
+  throw new Error(
+    "ATR-002 end-to-end execution fixture could not create a web-content plan"
+  );
+}
 
 const contentDecision = {
   id: "decision-web-content-execution",
