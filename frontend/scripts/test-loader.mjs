@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { registerHooks } from "node:module";
+import { dirname, resolve } from "node:path";
 import ts from "typescript";
 
 const TYPESCRIPT_EXTENSIONS = [
@@ -17,6 +18,15 @@ function isRelativeOrAbsoluteSpecifier(specifier) {
   );
 }
 
+function toDirectoryCandidate(basePath) {
+  return TYPESCRIPT_EXTENSIONS.flatMap(
+    (extension) => [
+      `${basePath}${extension}`,
+      `${basePath}/index${extension}`,
+    ]
+  );
+}
+
 function resolveTypeScriptExtension(
   specifier,
   parentURL
@@ -25,43 +35,27 @@ function resolveTypeScriptExtension(
     return null;
   }
 
-  const baseURL = new URL(specifier, parentURL);
+  const baseURL = new URL(
+    specifier,
+    parentURL
+  );
+  const basePath = fileURLToPath(baseURL);
 
-  if (baseURL.pathname.includes(".")) {
+  if (
+    TYPESCRIPT_EXTENSIONS.some(
+      (extension) =>
+        basePath.endsWith(extension)
+    )
+  ) {
     return null;
   }
 
-  for (const extension of TYPESCRIPT_EXTENSIONS) {
-    const candidate = new URL(
-      `${baseURL.href}${extension}`
-    );
-
+  for (
+    const candidatePath of toDirectoryCandidate(basePath)
+  ) {
     try {
-      readFileSync(
-        fileURLToPath(candidate)
-      );
-
-      return candidate.href;
-    } catch {
-      // Continue searching.
-    }
-  }
-
-  const indexCandidates =
-    TYPESCRIPT_EXTENSIONS.map(
-      (extension) =>
-        new URL(
-          `${baseURL.href}/index${extension}`
-        )
-    );
-
-  for (const candidate of indexCandidates) {
-    try {
-      readFileSync(
-        fileURLToPath(candidate)
-      );
-
-      return candidate.href;
+      readFileSync(candidatePath);
+      return pathToFileURL(candidatePath).href;
     } catch {
       // Continue searching.
     }
@@ -79,68 +73,39 @@ function resolveAlias(
   }
 
   const parentPath = fileURLToPath(parentURL);
-  const frontendRoot = parentPath.includes("/frontend/")
-    ? parentPath.slice(
-        0,
-        parentPath.lastIndexOf("/frontend/") + "/frontend".length
-      )
-    : parentPath.includes("\\frontend\\")
-      ? parentPath.slice(
-          0,
-          parentPath.lastIndexOf("\\frontend\\") + "\\frontend".length
-        )
-      : null;
+  const frontendMarker = `${String.fromCharCode(92)}frontend${String.fromCharCode(92)}`;
+  const frontendMarkerPosix = "/frontend/";
+
+  let frontendRoot = null;
+
+  if (parentPath.includes(frontendMarker)) {
+    frontendRoot = parentPath.slice(
+      0,
+      parentPath.lastIndexOf(frontendMarker) + "\\frontend".length
+    );
+  } else if (parentPath.includes(frontendMarkerPosix)) {
+    frontendRoot = parentPath.slice(
+      0,
+      parentPath.lastIndexOf(frontendMarkerPosix) + "/frontend".length
+    );
+  }
 
   if (!frontendRoot) {
     return null;
   }
 
-  const relativePath =
-    specifier.slice(2);
-
-  const baseURL = new URL(
-    `${relativePath}`,
-    `${new URL("file://${frontendRoot.replaceAll("\\", "/")}/").href}`
+  const relativePath = specifier.slice(2);
+  const targetBase = resolve(
+    frontendRoot,
+    relativePath
   );
 
-  const candidateSpecifier =
-    baseURL.pathname.startsWith("/")
-      ? baseURL.pathname
-      : `/${baseURL.pathname}`;
-
-  const filesystemBase =
-    new URL(
-      `file://${candidateSpecifier}`
-    );
-
-  if (
-    filesystemBase.pathname.includes(".")
+  for (
+    const candidatePath of toDirectoryCandidate(targetBase)
   ) {
-    return null;
-  }
-
-  const candidates = [
-    ...TYPESCRIPT_EXTENSIONS.map(
-      (extension) =>
-        new URL(
-          `${filesystemBase.href}${extension}`
-        )
-    ),
-    ...TYPESCRIPT_EXTENSIONS.map(
-      (extension) =>
-        new URL(
-          `${filesystemBase.href}/index${extension}`
-        )
-    ),
-  ];
-
-  for (const candidate of candidates) {
     try {
-      readFileSync(
-        fileURLToPath(candidate)
-      );
-
-      return candidate.href;
+      readFileSync(candidatePath);
+      return pathToFileURL(candidatePath).href;
     } catch {
       // Continue searching.
     }
