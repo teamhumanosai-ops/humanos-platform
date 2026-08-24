@@ -486,6 +486,7 @@ export function reason(
           ) =>
             total +
             observation.confidence *
+              observation.relevance *
               observation.relevance,
           0
         ) /
@@ -495,7 +496,8 @@ export function reason(
             observation
           ) =>
             total +
-            observation.relevance,
+            observation.relevance *
+              observation.relevance,
           0
         );
 
