@@ -136,6 +136,11 @@ const plan =
     "Search the latest status"
   );
 
+assert(
+  plan !== null,
+  "authorization integrity fixture must create a valid plan"
+);
+
 const decision = {
   id: "decision-integrity-execution",
   title: "Search status",
@@ -159,9 +164,9 @@ const executionState =
   );
 
 executionState.currentPlanId =
-  plan.id;
+  plan!.id;
 executionState.currentGoal =
-  plan.goal;
+  plan!.goal;
 executionState.currentDecisionId =
   decision.id;
 executionState.actionRoute = {
@@ -221,9 +226,9 @@ const actionTamperedState =
   );
 
 actionTamperedState.currentPlanId =
-  plan.id;
+  plan!.id;
 actionTamperedState.currentGoal =
-  plan.goal;
+  plan!.goal;
 actionTamperedState.currentDecisionId =
   decision.id;
 actionTamperedState.actionRoute = {
