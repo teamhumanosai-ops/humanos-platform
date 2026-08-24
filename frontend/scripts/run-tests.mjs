@@ -18,6 +18,7 @@ const tests = [
   "brain/actionRouting/capabilities.test.ts",
   "brain/runtime/steps/actionAuthorizationIntegrity.test.ts",
   "brain/runtime/steps/actionExecution.integration.test.ts",
+  "brain/runtime/steps/liveKnowledgeStage.test.ts",
   "brain/runtime/pipeline.stageBoundary.test.ts",
   "brain/runtime/pipeline.test.ts",
 ];
@@ -51,4 +52,4 @@ for (const test of tests) {
   }
 }
 
-console.log("\nAll ATR/runtime regression tests passed.");
+console.log("\nAll ATR/runtime/provider regression tests passed.");
