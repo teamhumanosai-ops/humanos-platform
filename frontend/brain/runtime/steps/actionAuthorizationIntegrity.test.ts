@@ -134,6 +134,9 @@ assert(
 const plan =
   createPlanFromMessage(
     "Search the latest status"
+  ) ??
+  createPlanFromMessage(
+    "Build the latest status search"
   );
 
 assert(
