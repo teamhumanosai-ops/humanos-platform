@@ -35,6 +35,7 @@ export const ACTION_ROUTE_RULES:
       "fetch",
       "open source",
       "open page",
+      "open the source page",
       "read source",
       "retrieve page",
     ],
