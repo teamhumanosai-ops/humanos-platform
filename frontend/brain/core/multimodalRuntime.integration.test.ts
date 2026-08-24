@@ -310,6 +310,46 @@ try {
     "OpenRouter must receive an actual image payload during fallback"
   );
 
+  forceGeminiFailure =
+    false;
+  requests.length =
+    0;
+
+  const whitespaceState =
+    createRuntimeBrainState(
+      [
+        {
+          role: "user",
+          message: "   ",
+        },
+      ],
+      {
+        text: "   ",
+        image: {
+          mimeType: "image/png",
+          dataBase64: "aW1hZ2U=",
+        },
+      }
+    );
+
+  const whitespaceResult =
+    await applyMultimodalInput(
+      whitespaceState,
+      whitespaceState.multimodalInput!
+    );
+
+  assert(
+    whitespaceResult.userMessage ===
+      "[image input]",
+    "whitespace-only text must fall back to the actual multimodal modality context"
+  );
+
+  assert(
+    whitespaceResult.messages.at(-2)?.message ===
+      "[image input]",
+    "BrainState must not retain a blank user message for image-only multimodal input"
+  );
+
   console.log(
     "Multimodal runtime provider execution verification passed."
   );
