@@ -30,6 +30,20 @@ function resolveTypeScriptExtension(specifier, parentURL) {
     }
   }
 
+  const indexCandidates = TYPESCRIPT_EXTENSIONS.map(
+    (extension) =>
+      new URL(`${baseURL.href}/index${extension}`)
+  );
+
+  for (const candidate of indexCandidates) {
+    try {
+      readFileSync(fileURLToPath(candidate));
+      return candidate.href;
+    } catch {
+      // Continue searching for the next supported TypeScript index.
+    }
+  }
+
   return null;
 }
 
