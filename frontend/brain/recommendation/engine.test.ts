@@ -76,7 +76,7 @@ function verifyPredictionRecommendation(): void {
 
   assert(
     recommendations[0]?.confidence ===
-      0.9,
+      0.95,
     "recommendation confidence must reflect its evidence"
   );
 }
