@@ -23,6 +23,7 @@ import {
 
 import {
   evaluateActionAuthorization,
+  confirmActionAuthorization,
 } from "../../actionRouting/authorization";
 
 import {
@@ -131,17 +132,9 @@ function confirmToolFixture(
     return;
   }
 
-  state.actionAuthorization = {
-    ...state.actionAuthorization,
-    status: "allowed",
-    reason:
-      "Test fixture represents an already-confirmed tool action.",
-  };
-
-  state.actionDispatch =
-    createActionDispatch(
-      state.actionRoute,
-      state.actionAuthorization
+  state.actionAuthorization =
+    confirmActionAuthorization(
+      state
     );
 }
 
@@ -207,8 +200,12 @@ state.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
-attachDispatch(state);
+state.actionAuthorization =
+  evaluateActionAuthorization(
+    state
+  );
 confirmToolFixture(state);
+attachDispatch(state);
 
 assert(
   state.actionAuthorization?.status ===
@@ -409,8 +406,12 @@ failedState.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
-attachDispatch(failedState);
+failedState.actionAuthorization =
+  evaluateActionAuthorization(
+    failedState
+  );
 confirmToolFixture(failedState);
+attachDispatch(failedState);
 
 await new ExecutionStage(
   services
