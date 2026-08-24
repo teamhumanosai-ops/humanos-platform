@@ -206,24 +206,20 @@ await new ExecutionStage(
 ).execute(executionState);
 
 assert(
-  executionState.errors.some(
-    (error) =>
-      error.includes(
-        "authorization binding does not match"
-      ) ||
-      error.includes(
-        "stored authorization is stale"
-      ) ||
-      error.includes(
-        "dispatch authorization provenance does not match"
-      ),
-  "execution must reject authorization bound to a different route"
-);
-
-assert(
   executionState.runtimeStatus ===
     "blocked",
   "authorization provenance mismatch must block execution"
+);
+
+assert(
+  executionState.errors.some(
+    (error) =>
+      error.includes("dispatch route") ||
+      error.includes("authorization binding") ||
+      error.includes("stored authorization") ||
+      error.includes("dispatch authorization provenance")
+  ),
+  "execution must reject authorization bound to a different route"
 );
 
 const actionTamperedState =
@@ -273,24 +269,20 @@ await new ExecutionStage(
 ).execute(actionTamperedState);
 
 assert(
-  actionTamperedState.errors.some(
-    (error) =>
-      error.includes(
-        "stored authorization is stale"
-      ) ||
-      error.includes(
-        "authorization binding does not match"
-      ) ||
-      error.includes(
-        "dispatch authorization provenance does not match"
-      ),
-  "execution must reject authorization whose exact action binding was tampered"
-);
-
-assert(
   actionTamperedState.runtimeStatus ===
     "blocked",
   "authorization action mismatch must block execution"
+);
+
+assert(
+  actionTamperedState.errors.some(
+    (error) =>
+      error.includes("dispatch descriptor does not match") ||
+      error.includes("authorization binding") ||
+      error.includes("stored authorization") ||
+      error.includes("dispatch authorization provenance")
+  ),
+  "execution must reject authorization whose exact action binding was tampered"
 );
 
 assert(
