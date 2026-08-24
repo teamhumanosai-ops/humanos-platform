@@ -184,6 +184,8 @@ export class ExecutionStage
       actionRoute.id ||
       currentAuthorization.target !==
       actionRoute.target ||
+      currentAuthorization.action !==
+      actionRoute.action ||
       currentAuthorization.policyVersion !==
       authorization.policyVersion ||
       currentAuthorization.confirmedAt?.getTime() !==
@@ -201,7 +203,9 @@ export class ExecutionStage
       authorization.routeId !==
       actionRoute.id ||
       authorization.target !==
-      actionRoute.target
+      actionRoute.target ||
+      authorization.action !==
+      actionRoute.action
     ) {
       state.errors.push(
         "Execution: authorization binding does not match the validated action route."
