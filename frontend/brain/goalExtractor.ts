@@ -12,7 +12,7 @@ const DIRECT_GOAL_PATTERNS = [
 ];
 
 const ACTION_PATTERNS = [
-  /^(finish|complete|do|buy|prepare|organize|organise|handle|review|update|fix|clean|call|send|pay|book|schedule|build|create|develop|launch|write|read|study|learn|practice|research|design|implement|install|set up|setup)\b\s+(.+)/i,
+  /^(finish|complete|do|buy|prepare|organize|organise|handle|review|update|fix|clean|call|send|pay|book|schedule|build|create|develop|launch|write|read|study|learn|practice|research|design|implement|install|set up|setup|execute)\b\s+(.+)/i,
 ];
 
 const INFORMATION_PATTERNS = [
