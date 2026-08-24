@@ -57,7 +57,7 @@ import {
  * Authorization is also enforced here as a defense-in-depth boundary.
  * A capability cannot execute unless its dispatch was produced from an
  * allowed authorization decision under the same policy version, route,
- * and target binding.
+ * target, and exact action binding.
  *
  * External capabilities additionally execute through the integration
  * safety boundary so concurrent duplicate provider work shares the
@@ -187,9 +187,7 @@ export class ExecutionStage
       currentAuthorization.action !==
       actionRoute.action ||
       currentAuthorization.policyVersion !==
-      authorization.policyVersion ||
-      currentAuthorization.confirmedAt?.getTime() !==
-      authorization.confirmedAt?.getTime()
+      authorization.policyVersion
     ) {
       state.errors.push(
         "Execution: stored authorization is stale or no longer matches the current authorization binding."
@@ -205,7 +203,9 @@ export class ExecutionStage
       authorization.target !==
       actionRoute.target ||
       authorization.action !==
-      actionRoute.action
+      actionRoute.action ||
+      authorization.policyVersion !==
+      currentAuthorization.policyVersion
     ) {
       state.errors.push(
         "Execution: authorization binding does not match the validated action route."
@@ -243,7 +243,9 @@ export class ExecutionStage
       actionDispatch.authorizationRouteId !==
       authorization.routeId ||
       actionDispatch.target !==
-      authorization.target
+      authorization.target ||
+      actionDispatch.action !==
+      authorization.action
     ) {
       state.errors.push(
         "Execution: dispatch authorization provenance does not match the current authorization binding."
@@ -375,6 +377,8 @@ export class ExecutionStage
                 actionDispatch.target,
               dispatchKind:
                 actionDispatch.kind,
+              dispatchAction:
+                actionDispatch.action,
               authorizationStatus:
                 actionDispatch.authorizationStatus,
               authorizationPolicyVersion:
@@ -475,6 +479,8 @@ export class ExecutionStage
               actionDispatch.target,
             dispatchKind:
               actionDispatch.kind,
+            dispatchAction:
+              actionDispatch.action,
             authorizationStatus:
               actionDispatch.authorizationStatus,
             authorizationPolicyVersion:
