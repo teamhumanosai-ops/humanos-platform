@@ -250,6 +250,52 @@ try {
     "missing Tavily provider must fail closed"
   );
 
+  process.env.TAVILY_API_KEY =
+    "test-tavily";
+
+  let firecrawlFailureFailed = false;
+
+  globalThis.fetch =
+    async (
+      input: RequestInfo | URL
+    ) => {
+      const url = String(input);
+
+      if (url.includes("api.firecrawl.dev")) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Firecrawl unavailable",
+          }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+
+      return tavilyHealthyFetch(input);
+    };
+
+  try {
+    await searchWeb(
+      "Human OS"
+    );
+  } catch (error) {
+    firecrawlFailureFailed =
+      error instanceof Error &&
+      error.message.includes(
+        "firecrawl web search failed"
+      );
+  }
+
+  assert(
+    firecrawlFailureFailed,
+    "Firecrawl provider failure must fail closed rather than silently returning partial evidence"
+  );
+
   console.log(
     "PROV-003 dual-provider web search verification passed."
   );
