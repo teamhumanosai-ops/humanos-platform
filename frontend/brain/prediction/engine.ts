@@ -487,7 +487,7 @@ function createCandidatePredictions(
       ) =>
         item.source ===
         "graph" &&
-        item.statement.includes("Goal dependency:") &&
+        !item.statement.includes("Goal dependency:") &&
         /(depends|requires|blocks|blocked|deadline|due|renew|recurring)/i.test(
           item.statement
         )
@@ -549,7 +549,7 @@ function createCandidatePredictions(
             : [
                 {
                   source:
-                    "timeline",
+                    "history",
 
                   statement:
                     `Active goal: ${goal.statement}.`,
