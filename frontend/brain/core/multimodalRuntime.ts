@@ -98,7 +98,7 @@ export async function applyMultimodalInput(
     );
 
   const userMessage =
-    input.text?.trim() ??
+    input.text?.trim() ||
     `[${modalities.join(" + ")} input]`;
 
   const lastMessage =
