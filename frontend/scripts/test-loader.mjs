@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { registerHooks } from "node:module";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import ts from "typescript";
 
 const TYPESCRIPT_EXTENSIONS = [
