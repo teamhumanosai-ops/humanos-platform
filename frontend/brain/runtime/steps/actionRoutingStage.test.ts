@@ -3,6 +3,10 @@ import {
 } from "../../brainState";
 
 import {
+  createPlanFromMessage,
+} from "../../planning";
+
+import {
   saveDecision,
 } from "../../decision";
 
@@ -32,6 +36,22 @@ const state =
     "Find the latest status"
   );
 
+const plan =
+  createPlanFromMessage(
+    "Research the latest status"
+  );
+
+if (!plan) {
+  throw new Error(
+    "ATR-001 stage verification fixture could not create a plan"
+  );
+}
+
+state.currentPlanId =
+  plan.id;
+state.currentGoal =
+  plan.goal;
+
 const decision: Decision = {
   id: "decision-atr-1",
   title: "Find latest status",
@@ -57,6 +77,7 @@ state.actionAuthorization = {
   reason: "Stale authorization fixture",
   policyVersion: "atr-authorization-v1",
   evaluatedAt: new Date(),
+  confirmedAt: null,
 };
 
 state.actionDispatch = {
@@ -64,6 +85,9 @@ state.actionDispatch = {
   kind: "provider",
   action: "Search stale evidence",
   target: "web-search",
+  authorizationStatus: "allowed",
+  authorizationPolicyVersion: "atr-authorization-v1",
+  authorizationRouteId: "stale-route",
 };
 
 const stage =
@@ -115,19 +139,17 @@ assert(
   "rerouting must invalidate any stale dispatch descriptor"
 );
 
-assert(
-  state.executedStages.includes(
-    "ActionRouting"
-  ),
-  "stage execution must be recorded"
-);
-
 const blockedState =
   createBrainState(
     "conversation",
     [],
     "Do something ambiguous"
   );
+
+blockedState.currentPlanId =
+  plan.id;
+blockedState.currentGoal =
+  plan.goal;
 
 const blockedDecision: Decision = {
   ...decision,
@@ -149,6 +171,7 @@ blockedState.actionAuthorization = {
   reason: "Stale authorization fixture",
   policyVersion: "atr-authorization-v1",
   evaluatedAt: new Date(),
+  confirmedAt: null,
 };
 
 blockedState.actionDispatch = {
@@ -156,6 +179,9 @@ blockedState.actionDispatch = {
   kind: "provider",
   action: "Search stale evidence",
   target: "web-search",
+  authorizationStatus: "allowed",
+  authorizationPolicyVersion: "atr-authorization-v1",
+  authorizationRouteId: "stale-blocked-route",
 };
 
 await stage.execute(

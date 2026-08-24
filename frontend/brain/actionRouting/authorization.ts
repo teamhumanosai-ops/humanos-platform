@@ -14,6 +14,7 @@ export type ActionAuthorization = {
   status: ActionAuthorizationStatus;
   target: ActionRouteTarget;
   routeId: string;
+  action: string;
   reason: string;
   policyVersion: string;
   evaluatedAt: Date;
@@ -29,12 +30,6 @@ const READ_ONLY_TARGETS: ReadonlySet<ActionRouteTarget> =
     "web-content",
   ]);
 
-/**
- * Explicit confirmation is held outside the mutable authorization object so
- * changing state.actionAuthorization.status cannot itself manufacture consent.
- * The confirmation is bound to the exact BrainState object, route id, target,
- * action, and authorization policy version that were presented to the user.
- */
 type ActionAuthorizationConfirmation = {
   routeId: string;
   target: ActionRouteTarget;
@@ -71,13 +66,6 @@ function getValidConfirmation(
   return confirmation;
 }
 
-/**
- * Records explicit user confirmation for the currently resolved action route.
- *
- * This is the only confirmation mutation path. A confirmation is invalidated
- * automatically by route, target, action, or policy-version changes because
- * the authorization evaluator requires an exact binding before allowing a tool.
- */
 export function confirmActionAuthorization(
   state: BrainState
 ): ActionAuthorization {
@@ -89,6 +77,7 @@ export function confirmActionAuthorization(
       status: "blocked",
       target: "unresolved",
       routeId: "unresolved",
+      action: "",
       reason:
         "Cannot confirm an action without a resolved action route.",
       policyVersion:
@@ -103,6 +92,7 @@ export function confirmActionAuthorization(
       status: "blocked",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Cannot confirm an action route that failed executable-route safety validation.",
       policyVersion:
@@ -169,6 +159,7 @@ export function evaluateActionAuthorization(
       status: "blocked",
       target: "unresolved",
       routeId: "unresolved",
+      action: "",
       reason:
         "No resolved action route exists for authorization.",
       policyVersion:
@@ -183,8 +174,9 @@ export function evaluateActionAuthorization(
       status: "blocked",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
-        "The resolved action route failed executable-route safety validation.",
+        "The resolved action route is not executable or failed safety validation.",
       policyVersion:
         ACTION_AUTHORIZATION_POLICY_VERSION,
       evaluatedAt,
@@ -193,14 +185,13 @@ export function evaluateActionAuthorization(
   }
 
   if (
-    READ_ONLY_TARGETS.has(
-      route.target
-    )
+    READ_ONLY_TARGETS.has(route.target)
   ) {
     return {
       status: "allowed",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Read-only provider execution is allowed by the current action policy.",
       policyVersion:
@@ -226,6 +217,7 @@ export function evaluateActionAuthorization(
         status: "allowed",
         target: route.target,
         routeId: route.id,
+        action: route.action,
         reason:
           "Explicit user confirmation is bound to the exact registered tool route and action.",
         policyVersion:
@@ -240,6 +232,7 @@ export function evaluateActionAuthorization(
       status: "requires_confirmation",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Registered tool execution requires explicit user confirmation before external execution.",
       policyVersion:
@@ -256,6 +249,7 @@ export function evaluateActionAuthorization(
       status: "allowed",
       target: route.target,
       routeId: route.id,
+      action: route.action,
       reason:
         "Internal cognitive execution does not perform an external side effect by itself.",
       policyVersion:
@@ -269,6 +263,7 @@ export function evaluateActionAuthorization(
     status: "blocked",
     target: route.target,
     routeId: route.id,
+    action: route.action,
     reason:
       "The action target is not recognized by the authorization policy.",
     policyVersion:
@@ -278,18 +273,11 @@ export function evaluateActionAuthorization(
   };
 }
 
-/**
- * Authorization is derived from the current route and the private
- * confirmation binding. A mutable BrainState authorization object alone
- * can never manufacture permission.
- */
 export function isActionAuthorized(
   state: BrainState
 ): boolean {
   return (
-    evaluateActionAuthorization(
-      state
-    ).status ===
+    evaluateActionAuthorization(state).status ===
     "allowed"
   );
 }

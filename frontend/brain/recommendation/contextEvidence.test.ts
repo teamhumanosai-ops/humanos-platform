@@ -290,7 +290,15 @@ function verifyLifeDomainEvidence(): void {
     enrichRecommendationsWithContext(
       state,
       [
-        createRecommendation(),
+        {
+          ...createRecommendation(),
+
+          statement:
+            "Choose a birthday gift for a friend.",
+
+          rationale:
+            "The personal occasion needs a simple gift choice.",
+        },
       ]
     );
 

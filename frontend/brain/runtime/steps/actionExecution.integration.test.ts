@@ -23,6 +23,7 @@ import {
 
 import {
   evaluateActionAuthorization,
+  confirmActionAuthorization,
 } from "../../actionRouting/authorization";
 
 import {
@@ -94,11 +95,31 @@ function attachDispatch(
       state
     );
 
-  state.actionDispatch =
+  const authorization =
+    state.actionAuthorization;
+
+  if (
+    authorization.status !== "allowed"
+  ) {
+    throw new Error(
+      `Expected authorized dispatch fixture but received ${authorization.status}.`
+    );
+  }
+
+  const dispatch =
     createActionDispatch(
       state.actionRoute,
-      state.actionAuthorization.policyVersion
+      authorization
     );
+
+  if (!dispatch) {
+    throw new Error(
+      "Expected authorized dispatch fixture to produce a dispatch descriptor."
+    );
+  }
+
+  state.actionDispatch =
+    dispatch;
 }
 
 function confirmToolFixture(
@@ -111,17 +132,9 @@ function confirmToolFixture(
     return;
   }
 
-  state.actionAuthorization = {
-    ...state.actionAuthorization,
-    status: "allowed",
-    reason:
-      "Test fixture represents an already-confirmed tool action.",
-  };
-
-  state.actionDispatch =
-    createActionDispatch(
-      state.actionRoute,
-      state.actionAuthorization.policyVersion
+  state.actionAuthorization =
+    confirmActionAuthorization(
+      state
     );
 }
 
@@ -167,6 +180,12 @@ const decision = {
 
 saveDecision(decision);
 
+if (!plan) {
+  throw new Error(
+    "ATR-002 end-to-end execution fixture could not create a tool plan"
+  );
+}
+
 state.currentPlanId =
   plan.id;
 state.currentGoal =
@@ -181,8 +200,12 @@ state.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
-attachDispatch(state);
+state.actionAuthorization =
+  evaluateActionAuthorization(
+    state
+  );
 confirmToolFixture(state);
+attachDispatch(state);
 
 assert(
   state.actionAuthorization?.status ===
@@ -255,8 +278,14 @@ const contentState =
 
 const contentPlan =
   createPlanFromMessage(
-    "Open the source page"
+    "Read the source page"
   );
+
+if (!contentPlan) {
+  throw new Error(
+    "ATR-002 end-to-end execution fixture could not create a web-content plan"
+  );
+}
 
 const contentDecision = {
   id: "decision-web-content-execution",
@@ -377,8 +406,12 @@ failedState.actionRoute = {
   confidence: 0.95,
   executable: true,
 };
-attachDispatch(failedState);
+failedState.actionAuthorization =
+  evaluateActionAuthorization(
+    failedState
+  );
 confirmToolFixture(failedState);
+attachDispatch(failedState);
 
 await new ExecutionStage(
   services

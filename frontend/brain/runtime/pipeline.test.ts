@@ -39,6 +39,7 @@ function runPipelineRegistrationVerification(): void {
     "Intent",
     "LifeDomain",
     "LiveKnowledge",
+    "KnowledgeRetrieval",
     "MemoryExtraction",
     "TimelineExtraction",
     "Memory",

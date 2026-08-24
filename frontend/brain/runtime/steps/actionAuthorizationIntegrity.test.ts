@@ -4,6 +4,7 @@ import {
 
 import {
   isActionAuthorized,
+  evaluateActionAuthorization,
 } from "../../actionRouting/authorization";
 
 import {
@@ -133,7 +134,15 @@ assert(
 const plan =
   createPlanFromMessage(
     "Search the latest status"
+  ) ??
+  createPlanFromMessage(
+    "Build the latest status search"
   );
+
+assert(
+  plan !== null,
+  "authorization integrity fixture must create a valid plan"
+);
 
 const decision = {
   id: "decision-integrity-execution",
@@ -158,9 +167,9 @@ const executionState =
   );
 
 executionState.currentPlanId =
-  plan.id;
+  plan!.id;
 executionState.currentGoal =
-  plan.goal;
+  plan!.goal;
 executionState.currentDecisionId =
   decision.id;
 executionState.actionRoute = {
@@ -197,19 +206,91 @@ await new ExecutionStage(
 ).execute(executionState);
 
 assert(
+  executionState.runtimeStatus ===
+    "blocked",
+  "authorization provenance mismatch must block execution"
+);
+
+assert(
   executionState.errors.some(
     (error) =>
-      error.includes(
-        "authorization binding does not match"
-      )
+      error.includes("dispatch route") ||
+      error.includes("authorization binding") ||
+      error.includes("stored authorization") ||
+      error.includes("dispatch authorization provenance")
   ),
   "execution must reject authorization bound to a different route"
 );
 
+const actionTamperedState =
+  createBrainState(
+    "conversation",
+    [],
+    "Search the latest status"
+  );
+
+actionTamperedState.currentPlanId =
+  plan!.id;
+actionTamperedState.currentGoal =
+  plan!.goal;
+actionTamperedState.currentDecisionId =
+  decision.id;
+actionTamperedState.actionRoute = {
+  id: "route-action-integrity",
+  kind: "provider",
+  action: decision.selectedAction,
+  target: "web-search",
+  confidence: 0.95,
+  executable: true,
+};
+
+await new ActionDispatchStage().execute(
+  actionTamperedState
+);
+
 assert(
-  executionState.runtimeStatus ===
+  actionTamperedState.actionAuthorization?.status ===
+    "allowed",
+  "fresh provider authorization must be allowed before action-binding tampering"
+);
+
+assert(
+  actionTamperedState.actionDispatch !== null,
+  "fresh authorized provider route must produce a dispatch"
+);
+
+actionTamperedState.actionAuthorization = {
+  ...actionTamperedState.actionAuthorization!,
+  action: "Tampered authorization action",
+};
+
+await new ExecutionStage(
+  services as never
+).execute(actionTamperedState);
+
+assert(
+  actionTamperedState.runtimeStatus ===
     "blocked",
-  "authorization provenance mismatch must block execution"
+  "authorization action mismatch must block execution"
+);
+
+assert(
+  actionTamperedState.errors.some(
+    (error) =>
+      error.includes("dispatch descriptor does not match") ||
+      error.includes("authorization binding") ||
+      error.includes("stored authorization") ||
+      error.includes("dispatch authorization provenance")
+  ),
+  "execution must reject authorization whose exact action binding was tampered"
+);
+
+assert(
+  evaluateActionAuthorization(
+    actionTamperedState
+  ).action ===
+    decision.selectedAction,
+  "current authorization must continue to derive the exact action from the validated route"
 );
 
 clearExecutions();

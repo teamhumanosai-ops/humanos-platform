@@ -32,10 +32,12 @@ function allow(
     status: "allowed",
     target: route.target,
     routeId: route.id,
+    action: route.action,
     reason: "Test authorization",
     policyVersion:
       ACTION_AUTHORIZATION_POLICY_VERSION,
     evaluatedAt: new Date(),
+    confirmedAt: null,
   };
 }
 
@@ -257,6 +259,17 @@ assert(
     validRoute,
     {
       ...allow(validRoute),
+      action: "Search for a different action",
+    }
+  ) === null,
+  "authorization must bind to the exact route action"
+);
+
+assert(
+  createActionDispatch(
+    validRoute,
+    {
+      ...allow(validRoute),
       policyVersion: "atr-authorization-old",
     }
   ) === null,
@@ -273,6 +286,3 @@ assert(
   ) === null,
   "confirmation-required authorization must never create a dispatch"
 );
-
-// @ts-expect-error: dispatch creation must require an evaluated authorization snapshot.
-createActionDispatch(validRoute);

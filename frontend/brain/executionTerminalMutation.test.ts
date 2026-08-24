@@ -28,7 +28,7 @@ const decision: Decision = {
 };
 
 clearExecutions();
-const plan = createPlanFromMessage("Terminal mutation test");
+const plan = createPlanFromMessage("Execute terminal mutation test");
 const execution = createExecutionFromDecision(decision, plan.id);
 
 assert(startExecution(execution.id)?.status === "in_progress", "execution must start");

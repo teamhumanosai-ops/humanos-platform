@@ -54,7 +54,9 @@ export function authorizeAndCreateActionDispatch(
     authorization.routeId !==
       state.actionRoute.id ||
     authorization.target !==
-      state.actionRoute.target
+      state.actionRoute.target ||
+    authorization.action !==
+      state.actionRoute.action
   ) {
     return {
       authorization: {
@@ -138,7 +140,9 @@ export function authorizeAndCreateActionDispatch(
     dispatch.routeId !==
       state.actionRoute.id ||
     dispatch.target !==
-      authorization.target
+      authorization.target ||
+    dispatch.action !==
+      state.actionRoute.action
   ) {
     return {
       authorization: {

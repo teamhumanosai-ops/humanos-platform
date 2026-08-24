@@ -1,7 +1,7 @@
 import {
   authorizeAndCreateActionDispatch,
   getActionCapability,
-} from "../../actionRouting";
+} from "../../actionRouting/index";
 
 import {
   BrainState,

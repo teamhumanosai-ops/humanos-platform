@@ -41,6 +41,7 @@ const original =
 state.actionRoute = {
   ...state.actionRoute,
   id: "route-replaced",
+  kind: "tool",
   target: "tool",
 };
 
