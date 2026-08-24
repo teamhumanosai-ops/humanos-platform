@@ -4,6 +4,7 @@ import {
 
 import {
   isActionAuthorized,
+  evaluateActionAuthorization,
 } from "../../actionRouting/authorization";
 
 import {
@@ -210,6 +211,76 @@ assert(
   executionState.runtimeStatus ===
     "blocked",
   "authorization provenance mismatch must block execution"
+);
+
+const actionTamperedState =
+  createBrainState(
+    "conversation",
+    [],
+    "Search the latest status"
+  );
+
+actionTamperedState.currentPlanId =
+  plan.id;
+actionTamperedState.currentGoal =
+  plan.goal;
+actionTamperedState.currentDecisionId =
+  decision.id;
+actionTamperedState.actionRoute = {
+  id: "route-action-integrity",
+  kind: "provider",
+  action: decision.selectedAction,
+  target: "web-search",
+  confidence: 0.95,
+  executable: true,
+};
+
+await new ActionDispatchStage().execute(
+  actionTamperedState
+);
+
+assert(
+  actionTamperedState.actionAuthorization?.status ===
+    "allowed",
+  "fresh provider authorization must be allowed before action-binding tampering"
+);
+
+assert(
+  actionTamperedState.actionDispatch !== null,
+  "fresh authorized provider route must produce a dispatch"
+);
+
+actionTamperedState.actionAuthorization = {
+  ...actionTamperedState.actionAuthorization!,
+  action: "Tampered authorization action",
+};
+
+await new ExecutionStage(
+  services as never
+).execute(actionTamperedState);
+
+assert(
+  actionTamperedState.errors.some(
+    (error) =>
+      error.includes(
+        "stored authorization is stale"
+      )
+  ),
+  "execution must reject authorization whose exact action binding was tampered"
+);
+
+assert(
+  actionTamperedState.runtimeStatus ===
+    "blocked",
+  "authorization action mismatch must block execution"
+);
+
+assert(
+  evaluateActionAuthorization(
+    actionTamperedState
+  ).action ===
+    decision.selectedAction,
+  "current authorization must continue to derive the exact action from the validated route"
 );
 
 clearExecutions();
