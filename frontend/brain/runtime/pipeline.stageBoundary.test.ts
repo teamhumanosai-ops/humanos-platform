@@ -41,6 +41,7 @@ const runtime =
 const state = {
   userMessage:
     "stage boundary test",
+  messages: [],
   diagnostics: [],
   executedStages: [],
   errors: [],
