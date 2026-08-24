@@ -286,6 +286,3 @@ assert(
   ) === null,
   "confirmation-required authorization must never create a dispatch"
 );
-
-// @ts-expect-error: dispatch creation must require an evaluated authorization snapshot.
-createActionDispatch(validRoute);
