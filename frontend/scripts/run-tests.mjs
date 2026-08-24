@@ -19,6 +19,8 @@ const tests = [
   "brain/runtime/steps/actionAuthorizationIntegrity.test.ts",
   "brain/runtime/steps/actionExecution.integration.test.ts",
   "brain/runtime/steps/liveKnowledgeStage.test.ts",
+  "brain/websearch/search.test.ts",
+  "brain/runtime/runtimeServices.test.ts",
   "brain/runtime/pipeline.stageBoundary.test.ts",
   "brain/runtime/pipeline.test.ts",
 ];
