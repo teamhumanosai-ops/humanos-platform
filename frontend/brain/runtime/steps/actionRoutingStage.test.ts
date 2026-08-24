@@ -38,7 +38,7 @@ const state =
 
 const plan =
   createPlanFromMessage(
-    "Find the latest status"
+    "Research the latest status"
   );
 
 if (!plan) {
