@@ -38,7 +38,7 @@ const decision: Decision = {
 
 clearExecutions();
 
-const plan = createPlanFromMessage("Blocked timestamp test");
+const plan = createPlanFromMessage("Execute blocked timestamp test");
 const execution = createExecutionFromDecision(decision, plan.id);
 const started = startExecution(execution.id);
 
