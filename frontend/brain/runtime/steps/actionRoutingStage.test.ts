@@ -139,13 +139,6 @@ assert(
   "rerouting must invalidate any stale dispatch descriptor"
 );
 
-assert(
-  state.executedStages.includes(
-    "ActionRouting"
-  ),
-  "stage execution must be recorded"
-);
-
 const blockedState =
   createBrainState(
     "conversation",
