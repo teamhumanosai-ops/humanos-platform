@@ -55,7 +55,8 @@ export function createActionDispatch(
     authorization.policyVersion !==
       ACTION_AUTHORIZATION_POLICY_VERSION ||
     authorization.routeId !== route.id ||
-    authorization.target !== route.target
+    authorization.target !== route.target ||
+    authorization.action !== route.action
   ) {
     return null;
   }
