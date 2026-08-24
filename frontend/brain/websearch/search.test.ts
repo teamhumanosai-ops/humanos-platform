@@ -32,13 +32,10 @@ globalThis.fetch =
   async (
     input: RequestInfo | URL
   ) => {
-    const url =
-      String(input);
+    const url = String(input);
 
     if (
-      url.includes(
-        "api.tavily.com"
-      )
+      url.includes("api.tavily.com")
     ) {
       return new Response(
         JSON.stringify({
@@ -67,9 +64,7 @@ globalThis.fetch =
     }
 
     if (
-      url.includes(
-        "api.firecrawl.dev"
-      )
+      url.includes("api.firecrawl.dev")
     ) {
       return new Response(
         JSON.stringify({
@@ -184,7 +179,7 @@ try {
     "test-firecrawl";
 
   let tavilyFailureFailed = false;
-  const tavilyHealthyFetch =
+  const baselineFetch =
     globalThis.fetch;
 
   globalThis.fetch =
@@ -193,7 +188,9 @@ try {
     ) => {
       const url = String(input);
 
-      if (url.includes("api.tavily.com")) {
+      if (
+        url.includes("api.tavily.com")
+      ) {
         return new Response(
           JSON.stringify({
             error: {
@@ -209,7 +206,7 @@ try {
         );
       }
 
-      return tavilyHealthyFetch(input);
+      return baselineFetch(input);
     };
 
   try {
@@ -261,7 +258,9 @@ try {
     ) => {
       const url = String(input);
 
-      if (url.includes("api.firecrawl.dev")) {
+      if (
+        url.includes("api.firecrawl.dev")
+      ) {
         return new Response(
           JSON.stringify({
             success: false,
@@ -276,7 +275,7 @@ try {
         );
       }
 
-      return tavilyHealthyFetch(input);
+      return baselineFetch(input);
     };
 
   try {
