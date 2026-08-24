@@ -128,6 +128,23 @@ try {
   );
 
   assert(
+    shared?.providers?.includes("tavily") === true &&
+      shared?.providers?.includes("firecrawl") === true,
+    "shared result must identify both actual providers"
+  );
+
+  assert(
+    response.provenance?.requiredProviders.length === 2,
+    "provenance must declare both required providers"
+  );
+
+  assert(
+    response.provenance?.observedProviders.includes("tavily") === true &&
+      response.provenance?.observedProviders.includes("firecrawl") === true,
+    "provenance must identify all observed providers"
+  );
+
+  assert(
     response.provenance?.dualProviderResultCount === 1,
     "provenance must identify the shared result"
   );
@@ -161,6 +178,76 @@ try {
   assert(
     missingProviderFailed,
     "missing required provider must fail closed"
+  );
+
+  process.env.FIRECRAWL_API_KEY =
+    "test-firecrawl";
+
+  let tavilyFailureFailed = false;
+  const tavilyHealthyFetch =
+    globalThis.fetch;
+
+  globalThis.fetch =
+    async (
+      input: RequestInfo | URL
+    ) => {
+      const url = String(input);
+
+      if (url.includes("api.tavily.com")) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              message: "Tavily unavailable",
+            },
+          }),
+          {
+            status: 503,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+
+      return tavilyHealthyFetch(input);
+    };
+
+  try {
+    await searchWeb(
+      "Human OS"
+    );
+  } catch (error) {
+    tavilyFailureFailed =
+      error instanceof Error &&
+      error.message.includes(
+        "tavily web search failed"
+      );
+  }
+
+  assert(
+    tavilyFailureFailed,
+    "Tavily provider failure must fail closed rather than silently returning partial evidence"
+  );
+
+  process.env.TAVILY_API_KEY = "";
+
+  let missingTavilyFailed = false;
+
+  try {
+    await searchWeb(
+      "Human OS"
+    );
+  } catch (error) {
+    missingTavilyFailed =
+      error instanceof Error &&
+      error.message.includes(
+        "tavily"
+      );
+  }
+
+  assert(
+    missingTavilyFailed,
+    "missing Tavily provider must fail closed"
   );
 
   console.log(
