@@ -233,7 +233,7 @@ function buildEvidence(
       evidence,
       {
         source:
-          "timeline",
+          "history",
 
         statement:
           `Active goal: ${goal.statement}. Status: ${goal.status}. Progress: ${goal.progress}%. Next action: ${goal.nextAction}.`,
@@ -457,7 +457,8 @@ function createCandidatePredictions(
         item
       ) =>
         item.source ===
-        "reflection"
+        "reflection" &&
+        !item.statement.includes("Goal obstacle:")
     );
 
   for (
@@ -486,6 +487,7 @@ function createCandidatePredictions(
       ) =>
         item.source ===
         "graph" &&
+        item.statement.includes("Goal dependency:") &&
         /(depends|requires|blocks|blocked|deadline|due|renew|recurring)/i.test(
           item.statement
         )
