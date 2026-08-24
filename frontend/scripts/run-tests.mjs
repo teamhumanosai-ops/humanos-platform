@@ -21,6 +21,9 @@ const tests = [
   "brain/runtime/steps/liveKnowledgeStage.test.ts",
   "brain/websearch/search.test.ts",
   "brain/runtime/runtimeServices.test.ts",
+  "brain/core/multimodalContracts.test.ts",
+  "brain/core/multimodalRuntime.test.ts",
+  "brain/core/voiceInput.test.ts",
   "brain/runtime/pipeline.stageBoundary.test.ts",
   "brain/runtime/pipeline.test.ts",
 ];
@@ -54,4 +57,4 @@ for (const test of tests) {
   }
 }
 
-console.log("\nAll ATR/runtime/provider regression tests passed.");
+console.log("\nAll Brain/runtime/provider regression tests passed.");
