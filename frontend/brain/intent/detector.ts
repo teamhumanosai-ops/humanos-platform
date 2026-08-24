@@ -250,17 +250,6 @@ const LEARNING_TERMS = [
   "what is",
 ];
 
-const INFORMATIONAL_TASK_PATTERNS = [
-  "show me my tasks",
-  "show my tasks",
-  "list my tasks",
-  "list tasks",
-  "what are my tasks",
-  "what tasks do i have",
-  "what do i need to do",
-  "what should i do",
-];
-
 function isExplicitPlanningRequest(
   text: string
 ): boolean {
