@@ -30,6 +30,7 @@ const tests = [
   "brain/core/multimodalContracts.test.ts",
   "brain/core/multimodalRuntime.test.ts",
   "brain/core/voiceInput.test.ts",
+  "brain/core/voiceInput.browserBoundary.test.ts",
   "brain/runtime/pipeline.stageBoundary.test.ts",
   "brain/runtime/pipeline.test.ts",
 ];
