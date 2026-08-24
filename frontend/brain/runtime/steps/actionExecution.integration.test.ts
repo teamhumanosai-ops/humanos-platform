@@ -22,6 +22,7 @@ import {
 } from "../../actionRouting";
 
 import {
+  confirmActionAuthorization,
   evaluateActionAuthorization,
 } from "../../actionRouting/authorization";
 
@@ -97,7 +98,7 @@ function attachDispatch(
   state.actionDispatch =
     createActionDispatch(
       state.actionRoute,
-      state.actionAuthorization.policyVersion
+      state.actionAuthorization
     );
 }
 
@@ -111,17 +112,18 @@ function confirmToolFixture(
     return;
   }
 
-  state.actionAuthorization = {
-    ...state.actionAuthorization,
-    status: "allowed",
-    reason:
-      "Test fixture represents an already-confirmed tool action.",
-  };
+  const confirmedAuthorization =
+    confirmActionAuthorization(
+      state
+    );
+
+  state.actionAuthorization =
+    confirmedAuthorization;
 
   state.actionDispatch =
     createActionDispatch(
       state.actionRoute,
-      state.actionAuthorization.policyVersion
+      confirmedAuthorization
     );
 }
 
